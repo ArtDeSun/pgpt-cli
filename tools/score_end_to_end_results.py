@@ -431,6 +431,52 @@ def _run_deterministic_check(
             },
         }
 
+    if check_type == "forbidden_regex":
+        patterns = check.get(
+            "patterns",
+            [],
+        )
+
+        if not isinstance(
+            patterns,
+            list,
+        ):
+            raise ValueError(
+                "forbidden_regex patterns "
+                "must be a list"
+            )
+
+        matches: list[str] = []
+
+        for pattern in patterns:
+            if not isinstance(
+                pattern,
+                str,
+            ):
+                raise ValueError(
+                    "forbidden_regex patterns "
+                    "must contain strings"
+                )
+
+            if re.search(
+                pattern,
+                answer,
+                re.IGNORECASE,
+            ):
+                matches.append(
+                    pattern
+                )
+
+        return {
+            "type": check_type,
+            "passed": not matches,
+            "details": {
+                "matched_patterns": (
+                    matches
+                ),
+            },
+        }
+
     raise ValueError(
         "Unknown deterministic check "
         f"type: {check_type!r}"

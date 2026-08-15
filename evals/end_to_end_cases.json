@@ -28,6 +28,15 @@
       "project": null
     },
     "quality": {
+      "deterministic_checks": [
+        {
+          "type": "forbidden_regex",
+          "patterns": [
+            "attempts? to (?:automatically )?convert (?:the )?integer to a string",
+            "automatically converts? (?:the )?integer to a string"
+          ]
+        }
+      ],
       "required_points": [
         "Identifies concatenation between a string and an integer as the failure.",
         "Provides a minimal correction using explicit string conversion or formatting."
