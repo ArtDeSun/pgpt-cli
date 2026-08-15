@@ -126,6 +126,28 @@ def _load_prompt(
     ).strip()
 
 
+@lru_cache(maxsize=1)
+def _load_request_prompt() -> str:
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "prompts"
+        / "routing"
+        / "classifier-request.md"
+    )
+
+    return path.read_text(
+        encoding="utf-8"
+    ).strip()
+
+
+def _classifier_request(
+    prompt: str,
+) -> str:
+    return _load_request_prompt().format(
+        prompt=prompt
+    )
+
+
 def _classify_one(
     *,
     prompt: str,
@@ -150,10 +172,8 @@ def _classify_one(
             },
             {
                 "role": "user",
-                "content": (
-                    "Classify this request. "
-                    "Do not answer it.\n\n"
-                    f"REQUEST:\n{prompt}"
+                "content": _classifier_request(
+                    prompt
                 ),
             },
         ],
