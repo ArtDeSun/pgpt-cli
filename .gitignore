@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local pgpt secrets
+secrets.json
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Generated responses
+responses/
+
+# Temporary files
+*.tmp
+*.log
+
+# Build / package output
+build/
+dist/
+*.egg-info/
+
+# Local caches
+.cache/
+
+# Additional secret protection
+secrets.env
+*.secrets.env
+backups/

@@ -1,0 +1,144 @@
+[
+  {
+    "id": "general_01",
+    "task": "general",
+    "prompt": "Explain dependency injection in plain English and give one small practical example.",
+    "max_tokens": 300,
+    "rubric": [
+      "Correctly explains receiving dependencies rather than constructing them internally.",
+      "Uses a practical example.",
+      "Does not confuse dependency injection with inheritance or dependency inversion."
+    ]
+  },
+  {
+    "id": "general_02",
+    "task": "general",
+    "prompt": "Explain the difference between a process and a thread. Focus on memory, isolation, and when each is useful.",
+    "max_tokens": 300,
+    "rubric": [
+      "Explains separate process address spaces.",
+      "Explains that threads share process resources.",
+      "Gives sensible usage tradeoffs."
+    ]
+  },
+
+  {
+    "id": "explain_code_01",
+    "task": "explain-code",
+    "prompt": "Explain this Python function step by step, including what happens to duplicates and why order is preserved:\n\n```python\ndef unique(values):\n    seen = set()\n    result = []\n    for value in values:\n        if value in seen:\n            continue\n        seen.add(value)\n        result.append(value)\n    return result\n```",
+    "max_tokens": 350,
+    "rubric": [
+      "Explains the purpose of seen.",
+      "Explains continue correctly.",
+      "Explains why result preserves first-occurrence order."
+    ]
+  },
+  {
+    "id": "explain_code_02",
+    "task": "explain-code",
+    "prompt": "Explain the control flow of this JavaScript function and what it returns for an HTTP 404 response:\n\n```javascript\nasync function loadUser(id) {\n  const response = await fetch(`/api/users/${id}`);\n  if (!response.ok) {\n    return null;\n  }\n  return response.json();\n}\n```",
+    "max_tokens": 350,
+    "rubric": [
+      "Explains await fetch.",
+      "Explains response.ok.",
+      "Correctly says a 404 normally returns null rather than parsing JSON."
+    ]
+  },
+
+  {
+    "id": "debug_01",
+    "task": "debug",
+    "prompt": "Diagnose the smallest fix for this Python error:\n\n```python\nage = 25\nmessage = \"Age: \" + age\nprint(message)\n```\n\nRuntime error:\n`TypeError: can only concatenate str (not \"int\") to str`",
+    "max_tokens": 300,
+    "rubric": [
+      "Identifies string plus integer concatenation as the cause.",
+      "Suggests str(age) or an f-string.",
+      "Does not propose unrelated changes."
+    ]
+  },
+  {
+    "id": "debug_02",
+    "task": "debug",
+    "prompt": "This JavaScript function unexpectedly returns undefined. Identify the cause and give the smallest fix:\n\n```javascript\nfunction getName(user) {\n  if (user) {\n    user.name;\n  }\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```",
+    "max_tokens": 300,
+    "rubric": [
+      "Identifies the missing return statement.",
+      "Provides a minimal corrected function.",
+      "Does not invent unrelated runtime problems."
+    ]
+  },
+
+  {
+    "id": "implement_01",
+    "task": "implement",
+    "prompt": "Write a Python function `unique_strings(values)` that removes duplicate strings while preserving the order of the first occurrence. Keep the implementation minimal and include one example.",
+    "max_tokens": 350,
+    "rubric": [
+      "Returns unique strings in first-occurrence order.",
+      "Uses valid Python.",
+      "Does not unnecessarily sort the input."
+    ]
+  },
+  {
+    "id": "implement_02",
+    "task": "implement",
+    "prompt": "Add exponential-backoff retry to this Python function. Make at most 3 attempts and wait 1 second, then 2 seconds between retries. Make the smallest coherent change.\n\n```python\nimport requests\n\ndef fetch_json(url):\n    response = requests.get(url, timeout=5)\n    response.raise_for_status()\n    return response.json()\n```",
+    "max_tokens": 450,
+    "rubric": [
+      "Uses at most three attempts.",
+      "Uses one-second then two-second waits.",
+      "Retries appropriate request failures.",
+      "Preserves the basic behavior of the function."
+    ]
+  },
+
+  {
+    "id": "architecture_01",
+    "task": "architecture",
+    "prompt": "Compare a monolith, modular monolith, and microservices architecture for a small SaaS application maintained by one or two developers. Recommend a starting architecture and explain when migration would become justified.",
+    "max_tokens": 550,
+    "rubric": [
+      "Distinguishes all three architectures.",
+      "Discusses operational complexity and team size.",
+      "Makes a staged recommendation rather than assuming microservices are always better."
+    ]
+  },
+  {
+    "id": "architecture_02",
+    "task": "architecture",
+    "prompt": "A web application currently handles HTTP requests and long-running video processing in one server process. Design a staged migration that separates request handling from background processing without immediately introducing many microservices. Explain the boundaries, queue role, deployment sequence, and failure handling.",
+    "max_tokens": 600,
+    "rubric": [
+      "Separates request handling from background workers.",
+      "Explains why a queue is useful.",
+      "Provides an incremental migration.",
+      "Discusses failures or retries.",
+      "Avoids unnecessary service proliferation."
+    ]
+  },
+
+  {
+    "id": "research_01",
+    "task": "research",
+    "prompt": "Using only the source summaries below, compare three privacy approaches and explain when each is useful.\n\nSource A: Privacy by Design integrates privacy requirements throughout the system lifecycle and emphasizes minimizing unnecessary collection.\n\nSource B: Differential privacy adds carefully calibrated statistical noise so aggregate analysis reveals less about individual records, with a privacy-versus-accuracy tradeoff.\n\nSource C: Federated learning trains across decentralized devices without centrally collecting raw training data, but model updates can still leak information unless additional protections are used.\n\nGive a synthesis rather than merely repeating each source.",
+    "max_tokens": 550,
+    "rubric": [
+      "Distinguishes system-design, statistical, and distributed-training roles.",
+      "Explains meaningful tradeoffs.",
+      "Synthesizes the approaches instead of only listing them.",
+      "Does not invent unsupported claims."
+    ]
+  },
+  {
+    "id": "research_02",
+    "task": "research",
+    "prompt": "Using only these source summaries, compare three strategies for migrating a monolithic application and recommend a low-risk approach.\n\nSource A: A big-bang rewrite replaces the old application at once. It can simplify the final architecture but has high delivery and integration risk.\n\nSource B: The strangler pattern gradually routes individual capabilities to new components while the original system continues operating.\n\nSource C: A modularization-first strategy improves boundaries inside the monolith before extracting services, reducing premature distributed-system complexity.\n\nCompare the evidence and recommend a staged path for a small development team.",
+    "max_tokens": 550,
+    "rubric": [
+      "Compares all three strategies.",
+      "Recognizes big-bang risk.",
+      "Explains the benefits of gradual extraction.",
+      "Makes a recommendation suitable for a small team."
+    ]
+  }
+]

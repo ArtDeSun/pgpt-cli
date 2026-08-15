@@ -1,0 +1,10 @@
+{
+  "max_candidates": 12,
+  "minimum_project_definition_score": 90,
+  "identifier_shapes": {
+    "allow_snake_case": true,
+    "allow_dollar_identifiers": true,
+    "allow_mixed_case": true,
+    "allow_all_uppercase": false
+  }
+}

@@ -1,0 +1,113 @@
+[
+  {
+    "id": "general_concept_01",
+    "prompt": "What is dependency injection?",
+    "expect": {
+      "execution": "local",
+      "template": "general",
+      "model": "qwen3:1.7b",
+      "project": null
+    },
+    "quality": {
+      "required_points": [
+        "Explains that dependencies are supplied from outside rather than constructed internally.",
+        "Explains at least one benefit such as loose coupling or testability."
+      ],
+      "forbidden_points": [
+        "Claims dependency injection requires a dependency injection container."
+      ]
+    }
+  },
+  {
+    "id": "debug_local_01",
+    "prompt": "Why does this Python code fail, and what is the smallest fix?\n\nage = 25\nmessage = 'Age: ' + age",
+    "expect": {
+      "execution": "local",
+      "template": "debug",
+      "model": "llama3.2:3b",
+      "project": null
+    },
+    "quality": {
+      "required_points": [
+        "Identifies concatenation between a string and an integer as the failure.",
+        "Provides a minimal correction using explicit string conversion or formatting."
+      ],
+      "forbidden_points": [
+        "Claims Python automatically converts the integer before string concatenation."
+      ]
+    }
+  },
+  {
+    "id": "implement_local_01",
+    "prompt": "Write a Python function that removes duplicate strings while preserving order.",
+    "expect": {
+      "execution": "local",
+      "template": "implement",
+      "model": "qwen2.5-coder:3b",
+      "project": null
+    },
+    "quality": {
+      "required_points": [
+        "Provides valid Python.",
+        "Removes duplicates.",
+        "Preserves first-occurrence order."
+      ],
+      "forbidden_points": [
+        "Sorts the input as the mechanism for removing duplicates."
+      ]
+    }
+  },
+  {
+    "id": "architecture_generic_01",
+    "prompt": "Design a staged migration from a monolith to separate API and background worker services.",
+    "expect": {
+      "execution": "local",
+      "template": "architecture",
+      "model": "qwen2.5-coder:3b",
+      "project": null
+    },
+    "quality": {
+      "required_points": [
+        "Separates synchronous request handling from long-running background work.",
+        "Introduces a queue or equivalent durable handoff between API and workers.",
+        "Explains a staged migration rather than an all-at-once rewrite.",
+        "Addresses worker failure, retry, or idempotency."
+      ],
+      "forbidden_points": [
+        "Assumes the user's project uses a specific framework without evidence.",
+        "Recommends immediately splitting the system into many microservices."
+      ]
+    }
+  },
+  {
+    "id": "research_web_01",
+    "prompt": "Research current AI privacy approaches and compare several independent sources.",
+    "expect": {
+      "execution": "web_research",
+      "template": "research-web",
+      "model": "qwen3:1.7b",
+      "project": null
+    },
+    "quality": {
+      "evaluation_context": [
+        "Source identifiers such as [S1], [S2], and [S3] are the application's valid citation format.",
+        "The application automatically appends a Sources section containing source identifiers and URLs.",
+        "The automatically appended Sources section is application metadata rather than part of the assistant's substantive research answer."
+      ],
+      "deterministic_checks": [
+        {
+          "type": "inline_source_ids",
+          "before": "### Sources",
+          "minimum_distinct": 2
+        }
+      ],
+      "required_points": [
+        "Presents substantive research findings rather than merely defining the topic or explaining how to conduct research.",
+        "Meaningfully compares findings, perspectives, evidence, or limitations from multiple independent sources."
+      ],
+      "forbidden_points": [
+        "Directly instructs the user to conduct, search for, or complete the research themselves instead of answering the research request."
+      ]
+    }
+  }
+]

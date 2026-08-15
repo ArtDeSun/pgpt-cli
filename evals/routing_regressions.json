@@ -1,0 +1,13 @@
+[
+  {
+    "id": "generic_architecture_api_not_project_01",
+    "prompt": "Design a staged migration from a monolith to separate API and background worker services.",
+    "symbol_hit": false,
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "stable"
+    }
+  }
+]

@@ -1,0 +1,781 @@
+[
+  {
+    "case_id": "general_01",
+    "task": "general",
+    "model": "llama3.2:3b",
+    "prompt": "Explain dependency injection in plain English and give one small practical example.",
+    "rubric": [
+      "Correctly explains receiving dependencies rather than constructing them internally.",
+      "Uses a practical example.",
+      "Does not confuse dependency injection with inheritance or dependency inversion."
+    ],
+    "answer": "**What is Dependency Injection?**\n\nDependency Injection (DI) is a design pattern that helps make your code more flexible, modular, and easier to test. It's like giving an object the tools it needs to do its job, rather than having it create those tools itself.\n\nThink of it like a car. In traditional programming, the car might have a \"make\" method that creates its own engine, transmission, and wheels. But with Dependency Injection, the car is given these components by someone else (like a mechanic). The car doesn't need to know how to make its own engine or transmission; it just needs to use the ones provided.\n\n**Practical Example:**\n\nLet's say we have a `PaymentProcessor` class that needs to process payments. We want to be able to switch between different payment methods, like PayPal and Stripe, without having to change the code for the `PaymentProcessor`.\n\nWithout Dependency Injection:\n```python\nclass PaymentProcessor:\n    def __init__(self):\n        self.paypal = PayPal()\n\n    def process_payment(self):\n        return self.paypal.charge_card()\n```\nWith Dependency Injection:\n```python\nclass PaymentProcessor:\n    def __init__(self, payment_method):\n        self.payment_method = payment_method\n\n    def process_payment(self):\n        return self.payment_method.charge_card()\n```\nNow we can create a `PaymentProcessor` that uses PayPal like this:\n```python\npaypal_processor = PaymentProcessor(PayPal())\nresult = paypal",
+    "done_reason": "length",
+    "wall_seconds": 30.143,
+    "load_seconds": 21.344,
+    "prompt_eval_seconds": 0.839,
+    "generation_seconds": 7.955,
+    "output_tokens": 300,
+    "tokens_per_second": 37.71
+  },
+  {
+    "case_id": "general_02",
+    "task": "general",
+    "model": "llama3.2:3b",
+    "prompt": "Explain the difference between a process and a thread. Focus on memory, isolation, and when each is useful.",
+    "rubric": [
+      "Explains separate process address spaces.",
+      "Explains that threads share process resources.",
+      "Gives sensible usage tradeoffs."
+    ],
+    "answer": "**Process vs Thread: Key Differences**\n\nA **process** and a **thread** are two fundamental concepts in computer science that are often confused with each other.\n\n### Memory:\n\n*   A **process** has its own memory space, which is separate from the memory of other processes. This means that changes made to one process's memory do not affect other processes.\n*   A **thread**, on the other hand, shares the same memory space as other threads within the same process. This can lead to issues if multiple threads are accessing and modifying shared data simultaneously.\n\n### Isolation:\n\n*   A **process** is a separate entity from other processes, providing isolation between them. This means that a process cannot access or be affected by another process's resources.\n*   A **thread**, within the same process, shares the same resources and memory space as other threads. While each thread has its own stack and local variables, they are not isolated from each other.\n\n### When Each is Useful:\n\n*   Use **processes** when:\n    *   You need to run multiple applications simultaneously without them interfering with each other.\n    *   You want to isolate a resource-intensive task from the rest of the system.\n    *   You're working on a multi-user system where each user needs their own isolated environment.\n*   Use **threads** when:\n    *   You need to improve responsiveness and throughput in an application by running multiple tasks concurrently within the same process.\n    *   You want to",
+    "done_reason": "length",
+    "wall_seconds": 8.8,
+    "load_seconds": 0.252,
+    "prompt_eval_seconds": 0.278,
+    "generation_seconds": 7.978,
+    "output_tokens": 300,
+    "tokens_per_second": 37.6
+  },
+  {
+    "case_id": "explain_code_01",
+    "task": "explain-code",
+    "model": "llama3.2:3b",
+    "prompt": "Explain this Python function step by step, including what happens to duplicates and why order is preserved:\n\n```python\ndef unique(values):\n    seen = set()\n    result = []\n    for value in values:\n        if value in seen:\n            continue\n        seen.add(value)\n        result.append(value)\n    return result\n```",
+    "rubric": [
+      "Explains the purpose of seen.",
+      "Explains continue correctly.",
+      "Explains why result preserves first-occurrence order."
+    ],
+    "answer": "Here's a step-by-step explanation of the `unique` function:\n\n1. **Initialization**: The function initializes two variables:\n   - `seen`: an empty set to keep track of values that have already been encountered.\n   - `result`: an empty list to store unique values.\n\n2. **Iteration**: The function iterates over each value in the input `values`.\n\n3. **Duplicate Check**:\n   - For each value, it checks if the value is already present in the `seen` set using the `in` operator.\n   - If the value is found in `seen`, it skips to the next iteration of the loop using the `continue` statement.\n\n4. **Add to Seen and Result**:\n   - If the value is not found in `seen`, it adds the value to the `seen` set using the `add()` method.\n   - It then appends the value to the `result` list.\n\n5. **Return Unique Values**: After iterating over all values, the function returns the `result` list containing unique values.\n\n**Why Order is Preserved:**\n\nThe order of elements in the original input list is preserved because sets are unordered data structures in Python. When a duplicate value is found, it's skipped and not added to the set or the result list. This means that the next occurrence of the same value will be processed again from the beginning.\n\nHowever, when a new unique value is encountered, it's added to both the `seen` set and the `result` list in the order they were first seen. Since sets are unordered, this doesn't affect the overall order of elements in the result list.\n\n**Handling Duplicates:**\n\nDuplicates are handled by skipping them during iteration.",
+    "done_reason": "length",
+    "wall_seconds": 10.543,
+    "load_seconds": 0.292,
+    "prompt_eval_seconds": 0.469,
+    "generation_seconds": 9.511,
+    "output_tokens": 350,
+    "tokens_per_second": 36.8
+  },
+  {
+    "case_id": "explain_code_02",
+    "task": "explain-code",
+    "model": "llama3.2:3b",
+    "prompt": "Explain the control flow of this JavaScript function and what it returns for an HTTP 404 response:\n\n```javascript\nasync function loadUser(id) {\n  const response = await fetch(`/api/users/${id}`);\n  if (!response.ok) {\n    return null;\n  }\n  return response.json();\n}\n```",
+    "rubric": [
+      "Explains await fetch.",
+      "Explains response.ok.",
+      "Correctly says a 404 normally returns null rather than parsing JSON."
+    ],
+    "answer": "The control flow of this JavaScript function is as follows:\n\n1. The `fetch` API is used to send a GET request to the `/api/users/${id}` endpoint.\n2. The `await` keyword is used to wait for the response from the server, which returns an `Response` object.\n3. If the response's `ok` property is false (i.e., the HTTP status code is not 200), the function immediately returns `null`.\n4. If the response is OK (HTTP status code 200 or higher), the function attempts to parse the response body as JSON using the `json()` method.\n5. The parsed JSON data is then returned by the function.\n\nFor an HTTP 404 response, which typically has a status code of 404, the control flow would be:\n\n1. The `fetch` API sends a GET request to the `/api/users/${id}` endpoint.\n2. The server responds with an HTTP 404 status code.\n3. Since the response's `ok` property is false (i.e., the HTTP status code is not 200), the function immediately returns `null`.\n\nIn this case, the function would return `null`, indicating that no user data was found for the specified ID.",
+    "done_reason": "stop",
+    "wall_seconds": 7.709,
+    "load_seconds": 0.269,
+    "prompt_eval_seconds": 0.456,
+    "generation_seconds": 6.919,
+    "output_tokens": 252,
+    "tokens_per_second": 36.42
+  },
+  {
+    "case_id": "debug_01",
+    "task": "debug",
+    "model": "llama3.2:3b",
+    "prompt": "Diagnose the smallest fix for this Python error:\n\n```python\nage = 25\nmessage = \"Age: \" + age\nprint(message)\n```\n\nRuntime error:\n`TypeError: can only concatenate str (not \"int\") to str`",
+    "rubric": [
+      "Identifies string plus integer concatenation as the cause.",
+      "Suggests str(age) or an f-string.",
+      "Does not propose unrelated changes."
+    ],
+    "answer": "The issue is that you're trying to concatenate a string (`\"Age: \"`) with an integer (`25`). In Python, you can't directly concatenate strings and integers.\n\nTo fix this, convert the `age` variable to a string before concatenating:\n\n```python\nage = 25\nmessage = \"Age: \" + str(age)\nprint(message)  # Output: Age: 25\n```\n\nAlternatively, you could use f-strings (available in Python 3.6+):\n\n```python\nage = 25\nmessage = f\"Age: {age}\"\nprint(message)  # Output: Age: 25\n```",
+    "done_reason": "stop",
+    "wall_seconds": 5.147,
+    "load_seconds": 0.32,
+    "prompt_eval_seconds": 0.446,
+    "generation_seconds": 4.1,
+    "output_tokens": 133,
+    "tokens_per_second": 32.44
+  },
+  {
+    "case_id": "debug_02",
+    "task": "debug",
+    "model": "llama3.2:3b",
+    "prompt": "This JavaScript function unexpectedly returns undefined. Identify the cause and give the smallest fix:\n\n```javascript\nfunction getName(user) {\n  if (user) {\n    user.name;\n  }\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```",
+    "rubric": [
+      "Identifies the missing return statement.",
+      "Provides a minimal corrected function.",
+      "Does not invent unrelated runtime problems."
+    ],
+    "answer": "The cause of the unexpected return value is that the `if` statement in the function does not explicitly return a value. In JavaScript, an expression that is not explicitly returned or thrown will implicitly return `undefined`.\n\nTo fix this, you can add a return statement to the `if` block:\n\n```javascript\nfunction getName(user) {\n  if (user) {\n    return user.name; // Add this line\n  }\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```\n\nAlternatively, you could also use the optional chaining operator (`?.`) to safely access the `name` property without explicitly returning a value:\n\n```javascript\nfunction getName(user) {\n  return user?.name;\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```",
+    "done_reason": "stop",
+    "wall_seconds": 4.979,
+    "load_seconds": 0.267,
+    "prompt_eval_seconds": 0.369,
+    "generation_seconds": 4.279,
+    "output_tokens": 154,
+    "tokens_per_second": 35.99
+  },
+  {
+    "case_id": "implement_01",
+    "task": "implement",
+    "model": "llama3.2:3b",
+    "prompt": "Write a Python function `unique_strings(values)` that removes duplicate strings while preserving the order of the first occurrence. Keep the implementation minimal and include one example.",
+    "rubric": [
+      "Returns unique strings in first-occurrence order.",
+      "Uses valid Python.",
+      "Does not unnecessarily sort the input."
+    ],
+    "answer": "```python\ndef unique_strings(values):\n    \"\"\"Returns a list of unique strings from the input iterable, preserving order.\"\"\"\n    seen = set()\n    return [x for x in values if not (x in seen or seen.add(x))]\n\n# Example usage:\nvalues = ['apple', 'banana', 'apple', 'orange', 'banana']\nunique_values = unique_strings(values)\nprint(unique_values)  # Output: ['apple', 'banana', 'orange']\n```",
+    "done_reason": "stop",
+    "wall_seconds": 3.333,
+    "load_seconds": 0.26,
+    "prompt_eval_seconds": 0.255,
+    "generation_seconds": 2.617,
+    "output_tokens": 96,
+    "tokens_per_second": 36.68
+  },
+  {
+    "case_id": "implement_02",
+    "task": "implement",
+    "model": "llama3.2:3b",
+    "prompt": "Add exponential-backoff retry to this Python function. Make at most 3 attempts and wait 1 second, then 2 seconds between retries. Make the smallest coherent change.\n\n```python\nimport requests\n\ndef fetch_json(url):\n    response = requests.get(url, timeout=5)\n    response.raise_for_status()\n    return response.json()\n```",
+    "rubric": [
+      "Uses at most three attempts.",
+      "Uses one-second then two-second waits.",
+      "Retries appropriate request failures.",
+      "Preserves the basic behavior of the function."
+    ],
+    "answer": "Here's the modified function with exponential backoff retry:\n\n```python\nimport requests\nimport time\n\ndef fetch_json(url, max_attempts=3, initial_delay=1):\n    attempts = 0\n    delay = initial_delay\n    \n    while attempts < max_attempts:\n        try:\n            response = requests.get(url, timeout=5)\n            response.raise_for_status()\n            return response.json()\n        except requests.RequestException as e:\n            attempts += 1\n            print(f\"Attempt {attempts} failed: {e}. Retrying in {delay} seconds...\")\n            time.sleep(delay)\n            delay *= 2  # exponential backoff\n            \n    raise Exception(f\"All {max_attempts} attempts failed\")\n```\n\nYou can call this function with the desired number of attempts and initial delay:\n\n```python\nurl = \"https://example.com\"\ntry:\n    json_data = fetch_json(url, max_attempts=3, initial_delay=1)\nexcept Exception as e:\n    print(e)\n```",
+    "done_reason": "stop",
+    "wall_seconds": 6.459,
+    "load_seconds": 0.329,
+    "prompt_eval_seconds": 0.461,
+    "generation_seconds": 5.537,
+    "output_tokens": 202,
+    "tokens_per_second": 36.48
+  },
+  {
+    "case_id": "architecture_01",
+    "task": "architecture",
+    "model": "llama3.2:3b",
+    "prompt": "Compare a monolith, modular monolith, and microservices architecture for a small SaaS application maintained by one or two developers. Recommend a starting architecture and explain when migration would become justified.",
+    "rubric": [
+      "Distinguishes all three architectures.",
+      "Discusses operational complexity and team size.",
+      "Makes a staged recommendation rather than assuming microservices are always better."
+    ],
+    "answer": "For a small SaaS application maintained by one or two developers, I recommend starting with a **monolithic architecture**.\n\nA monolithic architecture is a single, self-contained unit that includes all the necessary components, such as database, business logic, and user interface. This approach is suitable for small teams and applications because it:\n\n1. Simplifies development: With a monolith, you can develop and test the entire application at once.\n2. Reduces overhead: There's no need to worry about communication between separate services or managing multiple dependencies.\n3. Fosters rapid prototyping: Monolithic architecture allows for quick iteration and testing of new features.\n\nHowever, as your application grows in complexity and size, you may encounter issues such as:\n\n1. Tight coupling: Changes to one part of the monolith can affect other parts, making it harder to maintain.\n2. Limited scalability: A single point of failure can occur if a critical component is down.\n\nWhen would migration to a **modular monolith** or **microservices architecture** be justified?\n\nMigration to a modular monolith:\n\n* When your application has multiple independent features that need to be developed and maintained separately.\n* When you want to improve scalability by distributing the load across multiple services.\n* When you anticipate significant growth in user base or data volume.\n\nMigration to microservices architecture:\n\n* When your application is highly complex, with many interconnected components.\n* When you need to support multiple deployment environments (e.g., dev, staging, prod).\n* When you want to take advantage of cloud-native features and scalability offered by containerization (e.g., Docker).\n\nIn general, if your application has the following characteristics:\n\n* Fewer than 10-20 users\n* Simple business logic\n* Limited data volume\n\nA monolithic architecture is likely sufficient. However, as your application grows in complexity or size, consider migrating to a modular monolith or microservices architecture to improve maintainability, scalability, and flexibility.\n\n**Example code for a simple monolithic SaaS application:**\n\n```python\n# app.py (example Flask API)\nfrom flask import Flask, jsonify\n\napp = Flask(__name__)\n\n# Database connection\ndb = connect_to_database()\n\n# Business logic\ndef get_user_data(user_id):\n    # Query database and return user data\n    pass\n\n@app.route('/users/<int:user_id>', methods=['GET'])\ndef get_user(user_id):\n    user_data = get_user_data(user_id)\n    return jsonify(user_data)\n\nif __name__ == '__main__':\n    app.run(debug=True)\n```\n\nThis example demonstrates a simple monolithic architecture with Flask, a Python web framework. The `app.py` file includes the database connection and business logic for retrieving user data",
+    "done_reason": "length",
+    "wall_seconds": 16.391,
+    "load_seconds": 0.251,
+    "prompt_eval_seconds": 0.294,
+    "generation_seconds": 15.576,
+    "output_tokens": 550,
+    "tokens_per_second": 35.31
+  },
+  {
+    "case_id": "architecture_02",
+    "task": "architecture",
+    "model": "llama3.2:3b",
+    "prompt": "A web application currently handles HTTP requests and long-running video processing in one server process. Design a staged migration that separates request handling from background processing without immediately introducing many microservices. Explain the boundaries, queue role, deployment sequence, and failure handling.",
+    "rubric": [
+      "Separates request handling from background workers.",
+      "Explains why a queue is useful.",
+      "Provides an incremental migration.",
+      "Discusses failures or retries.",
+      "Avoids unnecessary service proliferation."
+    ],
+    "answer": "**Staged Migration Design:**\n\nThe proposed design involves three stages:\n\n1. **Stage 1: Request Handling Separation**\n\t* Introduce a new process for request handling (e.g., `request_handler`).\n\t* The existing server process remains unchanged.\n\t* The `request_handler` process receives incoming requests and sends them to the background processing queue.\n2. **Stage 2: Background Processing Decoupling**\n\t* Create a new process for background video processing (e.g., `video_processor`).\n\t* The `request_handler` process sends requests to the `video_processor` process using a message broker (e.g., RabbitMQ, Apache Kafka).\n\t* The existing server process is no longer responsible for long-running video processing.\n3. **Stage 3: Microservices Introduction**\n\t* Introduce microservices for each component:\n\t\t+ `request_handler` becomes a RESTful API service.\n\t\t+ `video_processor` becomes a containerized, stateless service.\n\n**Boundaries and Queue Role:**\n\n* The boundaries between stages are as follows:\n\t+ Stage 1: Existing server process -> request_handler process\n\t+ Stage 2: request_handler process -> video_processor process\n\t+ Stage 3: No new boundaries; existing services continue to communicate with each other.\n* The message broker (e.g., RabbitMQ, Apache Kafka) plays a crucial role in decoupling the components between stages.\n\n**Deployment Sequence:**\n\n1. **Stage 1:** Deploy the `request_handler` process alongside the existing server process.\n2. **Stage 2:** Deploy the `video_processor` process and configure it to receive requests from the `request_handler` process using the message broker.\n3. **Stage 3:** Deploy the microservices (RESTful API for `request_handler`, containerized service for `video_processor`) alongside the existing server process.\n\n**Failure Handling:**\n\n* Implement retry mechanisms for failed requests in each stage:\n\t+ Stage 1: Retry failed requests in the `request_handler` process.\n\t+ Stage 2: Retry failed requests in the `video_processor` process using the message broker's built-in retry features.\n* Monitor and log errors in each stage to facilitate debugging and troubleshooting.\n\n**Example Architecture Diagram:**\n\n```\n                      +---------------+\n                      |  Existing    |\n                      |  Server Process|\n                      +---------------+\n                             |\n                             |\n                             v\n                      +---------------+\n                      |  Request Handler  |\n                      |  (RESTful API)   |\n                      +---------------+\n                             |\n                             |\n                             v\n                      +---------------+\n                      |  Message Broker  |\n                      |  (RabbitMQ, Kafka)|\n                      +---------------+\n                             |\n                             |\n                             v\n                      +---------------+\n                      |  Video Processor  |\n                      |  (Containerized)  |\n                      +---------------+\n```\n\nThis design allows for a gradual separation of concerns while minimizing the introduction of new",
+    "done_reason": "length",
+    "wall_seconds": 17.495,
+    "load_seconds": 0.288,
+    "prompt_eval_seconds": 0.369,
+    "generation_seconds": 16.427,
+    "output_tokens": 600,
+    "tokens_per_second": 36.53
+  },
+  {
+    "case_id": "research_01",
+    "task": "research",
+    "model": "llama3.2:3b",
+    "prompt": "Using only the source summaries below, compare three privacy approaches and explain when each is useful.\n\nSource A: Privacy by Design integrates privacy requirements throughout the system lifecycle and emphasizes minimizing unnecessary collection.\n\nSource B: Differential privacy adds carefully calibrated statistical noise so aggregate analysis reveals less about individual records, with a privacy-versus-accuracy tradeoff.\n\nSource C: Federated learning trains across decentralized devices without centrally collecting raw training data, but model updates can still leak information unless additional protections are used.\n\nGive a synthesis rather than merely repeating each source.",
+    "rubric": [
+      "Distinguishes system-design, statistical, and distributed-training roles.",
+      "Explains meaningful tradeoffs.",
+      "Synthesizes the approaches instead of only listing them.",
+      "Does not invent unsupported claims."
+    ],
+    "answer": "Based on the provided summaries, here's a comparison of three privacy approaches and their usefulness:\n\n**Privacy by Design**: This approach is useful when you want to ensure that privacy is integrated into every aspect of your system from the outset. It's particularly suitable for applications where data collection is minimal or unnecessary, such as in simple IoT devices or low-data-rate sensors.\n\n**Differential Privacy**: Differential privacy is a good choice when you need to balance individual record protection with aggregate analysis requirements. This approach is useful in scenarios where accuracy is crucial, but individual records must remain private, such as in medical research or financial transactions.\n\n**Federated Learning**: Federated learning is suitable for decentralized applications where data collection is not feasible or desirable. It's particularly useful when you need to train models on diverse devices without compromising individual device security, such as in edge computing or IoT networks.\n\nIn summary, each approach has its strengths and weaknesses, and the choice of which one to use depends on the specific requirements of your application.",
+    "done_reason": "stop",
+    "wall_seconds": 6.754,
+    "load_seconds": 0.313,
+    "prompt_eval_seconds": 0.62,
+    "generation_seconds": 5.391,
+    "output_tokens": 203,
+    "tokens_per_second": 37.65
+  },
+  {
+    "case_id": "research_02",
+    "task": "research",
+    "model": "llama3.2:3b",
+    "prompt": "Using only these source summaries, compare three strategies for migrating a monolithic application and recommend a low-risk approach.\n\nSource A: A big-bang rewrite replaces the old application at once. It can simplify the final architecture but has high delivery and integration risk.\n\nSource B: The strangler pattern gradually routes individual capabilities to new components while the original system continues operating.\n\nSource C: A modularization-first strategy improves boundaries inside the monolith before extracting services, reducing premature distributed-system complexity.\n\nCompare the evidence and recommend a staged path for a small development team.",
+    "rubric": [
+      "Compares all three strategies.",
+      "Recognizes big-bang risk.",
+      "Explains the benefits of gradual extraction.",
+      "Makes a recommendation suitable for a small team."
+    ],
+    "answer": "Based on the source summaries, here's a comparison of the three strategies:\n\n1. **Big-bang rewrite (Source A)**: High delivery and integration risk due to replacing the entire application at once.\n2. **Strangler pattern (Source B)**: Gradual replacement of individual capabilities with new components, reducing integration risk by allowing the original system to continue operating.\n3. **Modularization-first strategy (Source C)**: Improves boundaries inside the monolith before extracting services, reducing premature distributed-system complexity.\n\nConsidering a small development team and low-risk approach, I recommend the **Strangler pattern** as the best initial strategy. This approach allows for gradual replacement of individual capabilities with new components, minimizing integration risk and enabling the team to focus on one aspect at a time.\n\nThe Strangler pattern's staged approach also aligns well with the constraints of a small development team, allowing them to make incremental progress without feeling overwhelmed by the complexity of the entire application.",
+    "done_reason": "stop",
+    "wall_seconds": 6.713,
+    "load_seconds": 0.326,
+    "prompt_eval_seconds": 0.702,
+    "generation_seconds": 5.343,
+    "output_tokens": 195,
+    "tokens_per_second": 36.5
+  },
+  {
+    "case_id": "general_01",
+    "task": "general",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Explain dependency injection in plain English and give one small practical example.",
+    "rubric": [
+      "Correctly explains receiving dependencies rather than constructing them internally.",
+      "Uses a practical example.",
+      "Does not confuse dependency injection with inheritance or dependency inversion."
+    ],
+    "answer": "Dependency Injection (DI) is a design pattern that allows you to decouple the dependencies of an object from its implementation details. In other words, it enables an object to receive its dependencies through constructor parameters or setter methods instead of creating them itself.\n\n### Explanation\n\n1. **Decoupling**: DI promotes loose coupling between components. This means that objects do not need to know how to create their dependencies; they simply ask for them when needed.\n2. **Flexibility**: By using DI, you can easily swap out one implementation with another without changing the code that uses it.\n3. **Testability**: DI makes unit testing easier because you can inject mock or stub objects into your tests.\n\n### Practical Example\n\nLet's consider a simple example of a `Logger` interface and two implementations: `FileLogger` and `ConsoleLogger`.\n\n```java\n// Logger interface\npublic interface Logger {\n    void log(String message);\n}\n\n// FileLogger implementation\npublic class FileLogger implements Logger {\n    @Override\n    public void log(String message) {\n        System.out.println(\"Logging to file: \" + message);\n    }\n}\n\n// ConsoleLogger implementation\npublic class ConsoleLogger implements Logger {\n    @Override\n    public void log(String message) {\n        System.out.println(\"Logging to console: \" + message);\n    }\n}\n```\n\nNow, let's create a `Service` class that uses the `Logger` interface:\n\n```java\n// Service class using Dependency Injection\npublic class Service {",
+    "done_reason": "length",
+    "wall_seconds": 27.478,
+    "load_seconds": 20.805,
+    "prompt_eval_seconds": 0.685,
+    "generation_seconds": 5.983,
+    "output_tokens": 300,
+    "tokens_per_second": 50.14
+  },
+  {
+    "case_id": "general_02",
+    "task": "general",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Explain the difference between a process and a thread. Focus on memory, isolation, and when each is useful.",
+    "rubric": [
+      "Explains separate process address spaces.",
+      "Explains that threads share process resources.",
+      "Gives sensible usage tradeoffs."
+    ],
+    "answer": "A process and a thread are both fundamental concepts in operating systems that manage concurrent execution of tasks, but they differ significantly in terms of memory management, isolation, and use cases.\n\n### Process\n\n1. **Memory Management**:\n   - A process has its own separate address space, which means it can have its own set of memory pages and virtual addresses.\n   - This allows processes to run independently and prevents them from interfering with each other's memory usage.\n\n2. **Isolation**:\n   - Processes are isolated from each other in terms of their memory, file descriptors, and environment variables.\n   - Each process has its own separate stack, heap, and other resources, which helps prevent one process from affecting another.\n\n3. **Use Cases**:\n   - Suitable for tasks that require a high level of isolation and independence, such as running multiple applications simultaneously or executing complex computations.\n   - Processes are often used in multi-user systems where each user has their own separate environment.\n\n### Thread\n\n1. **Memory Management**:\n   - Threads share the same address space as the process they belong to.\n   - This means that threads can access and modify shared memory, which is more efficient than creating a new process for each thread.\n\n2. **Isolation**:\n   - Threads are isolated from each other within the same process but not from other processes.\n   - Each thread has its own stack and local variables, but they share the same heap and global data.\n\n3. **Use Cases**",
+    "done_reason": "length",
+    "wall_seconds": 6.452,
+    "load_seconds": 0.286,
+    "prompt_eval_seconds": 0.188,
+    "generation_seconds": 5.936,
+    "output_tokens": 300,
+    "tokens_per_second": 50.54
+  },
+  {
+    "case_id": "explain_code_01",
+    "task": "explain-code",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Explain this Python function step by step, including what happens to duplicates and why order is preserved:\n\n```python\ndef unique(values):\n    seen = set()\n    result = []\n    for value in values:\n        if value in seen:\n            continue\n        seen.add(value)\n        result.append(value)\n    return result\n```",
+    "rubric": [
+      "Explains the purpose of seen.",
+      "Explains continue correctly.",
+      "Explains why result preserves first-occurrence order."
+    ],
+    "answer": "This Python function `unique` takes a list of values as input and returns a new list with duplicates removed while preserving the original order of elements. Here's a step-by-step breakdown of how it works:\n\n1. **Initialization**:\n   - A set named `seen` is initialized to keep track of values that have already been encountered.\n   - An empty list named `result` is initialized to store the unique values in their original order.\n\n2. **Iteration through the input list**:\n   - The function iterates over each value in the input list `values`.\n\n3. **Check for duplicates**:\n   - For each value, it checks if the value is already in the `seen` set.\n   - If the value is found in `seen`, it means the value has been encountered before, so the function skips to the next iteration.\n\n4. **Add unique values to the result list**:\n   - If the value is not in `seen`, it adds the value to both the `seen` set and the `result` list.\n   - This ensures that each value appears only once in the `result` list, preserving their original order of first appearance.\n\n5. **Return the result list**:\n   - After iterating through all values, the function returns the `result` list containing unique elements in their original order.\n\n### Example Usage\n\nLet's consider an example to illustrate how this function works:\n\n```python\nvalues = [1, 2, 3, 2, 4, 5, 3, 6]\nunique_values = unique(values)\nprint(unique_values)  # Output: [1, 2, 3, 4, 5, 6]\n```",
+    "done_reason": "length",
+    "wall_seconds": 7.693,
+    "load_seconds": 0.247,
+    "prompt_eval_seconds": 0.424,
+    "generation_seconds": 6.992,
+    "output_tokens": 350,
+    "tokens_per_second": 50.06
+  },
+  {
+    "case_id": "explain_code_02",
+    "task": "explain-code",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Explain the control flow of this JavaScript function and what it returns for an HTTP 404 response:\n\n```javascript\nasync function loadUser(id) {\n  const response = await fetch(`/api/users/${id}`);\n  if (!response.ok) {\n    return null;\n  }\n  return response.json();\n}\n```",
+    "rubric": [
+      "Explains await fetch.",
+      "Explains response.ok.",
+      "Correctly says a 404 normally returns null rather than parsing JSON."
+    ],
+    "answer": "The control flow of the `loadUser` function is as follows:\n\n1. The function `loadUser` takes an `id` parameter, which represents the user ID.\n2. It uses the `fetch` function to make a GET request to the `/api/users/${id}` endpoint.\n3. The `await` keyword is used to pause the execution of the function until the promise returned by `fetch` resolves or rejects.\n4. If the response status code is not in the range 200-299 (indicating an error), the function returns `null`.\n5. If the response status code is within the valid range, the function uses the `json()` method to parse the JSON data from the response and returns it.\n\nFor an HTTP 404 response, the control flow would be as follows:\n\n1. The `fetch` request would return a promise that resolves with a response object.\n2. The `response.ok` property would evaluate to `false` because the status code is 404 (Not Found).\n3. The function would immediately return `null` without attempting to parse the JSON data.\n\nTherefore, for an HTTP 404 response, the function will return `null`.",
+    "done_reason": "stop",
+    "wall_seconds": 5.66,
+    "load_seconds": 0.2,
+    "prompt_eval_seconds": 0.417,
+    "generation_seconds": 5.009,
+    "output_tokens": 251,
+    "tokens_per_second": 50.11
+  },
+  {
+    "case_id": "debug_01",
+    "task": "debug",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Diagnose the smallest fix for this Python error:\n\n```python\nage = 25\nmessage = \"Age: \" + age\nprint(message)\n```\n\nRuntime error:\n`TypeError: can only concatenate str (not \"int\") to str`",
+    "rubric": [
+      "Identifies string plus integer concatenation as the cause.",
+      "Suggests str(age) or an f-string.",
+      "Does not propose unrelated changes."
+    ],
+    "answer": "The error occurs because you're trying to concatenate a string with an integer. To fix this, convert the integer `age` to a string using the `str()` function before concatenation.\n\nHere's the corrected code:\n\n```python\nage = 25\nmessage = \"Age: \" + str(age)\nprint(message)\n```\n\nThis will output:\n```\nAge: 25\n```",
+    "done_reason": "stop",
+    "wall_seconds": 2.23,
+    "load_seconds": 0.226,
+    "prompt_eval_seconds": 0.341,
+    "generation_seconds": 1.633,
+    "output_tokens": 82,
+    "tokens_per_second": 50.22
+  },
+  {
+    "case_id": "debug_02",
+    "task": "debug",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "This JavaScript function unexpectedly returns undefined. Identify the cause and give the smallest fix:\n\n```javascript\nfunction getName(user) {\n  if (user) {\n    user.name;\n  }\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```",
+    "rubric": [
+      "Identifies the missing return statement.",
+      "Provides a minimal corrected function.",
+      "Does not invent unrelated runtime problems."
+    ],
+    "answer": "The issue with the provided code is that it attempts to access `user.name` without checking if `user` is an object. If `user` is not defined or is null, accessing its properties will result in undefined.\n\nTo fix this, you should add a check to ensure that `user` is an object before attempting to access its properties:\n\n```javascript\nfunction getName(user) {\n  if (typeof user === 'object' && user !== null) {\n    return user.name;\n  }\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```\n\nThis fix ensures that the function only attempts to access `user.name` if `user` is a non-null object, preventing the undefined result.",
+    "done_reason": "stop",
+    "wall_seconds": 3.431,
+    "load_seconds": 0.2,
+    "prompt_eval_seconds": 0.336,
+    "generation_seconds": 2.874,
+    "output_tokens": 144,
+    "tokens_per_second": 50.11
+  },
+  {
+    "case_id": "implement_01",
+    "task": "implement",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Write a Python function `unique_strings(values)` that removes duplicate strings while preserving the order of the first occurrence. Keep the implementation minimal and include one example.",
+    "rubric": [
+      "Returns unique strings in first-occurrence order.",
+      "Uses valid Python.",
+      "Does not unnecessarily sort the input."
+    ],
+    "answer": "```python\ndef unique_strings(values):\n    seen = set()\n    result = []\n    for value in values:\n        if value not in seen:\n            seen.add(value)\n            result.append(value)\n    return result\n\n# Example usage\nvalues = [\"apple\", \"banana\", \"apple\", \"orange\", \"banana\", \"kiwi\"]\nunique_values = unique_strings(values)\nprint(unique_values)  # Output: ['apple', 'banana', 'orange', 'kiwi']\n```\n\nThis function iterates through the input list `values`, maintaining a set of seen strings. For each string, it checks if it has already been encountered. If not, it adds the string to both the set and the result list, ensuring that only the first occurrence of each string is retained in order.",
+    "done_reason": "stop",
+    "wall_seconds": 3.649,
+    "load_seconds": 0.205,
+    "prompt_eval_seconds": 0.221,
+    "generation_seconds": 3.201,
+    "output_tokens": 161,
+    "tokens_per_second": 50.29
+  },
+  {
+    "case_id": "implement_02",
+    "task": "implement",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Add exponential-backoff retry to this Python function. Make at most 3 attempts and wait 1 second, then 2 seconds between retries. Make the smallest coherent change.\n\n```python\nimport requests\n\ndef fetch_json(url):\n    response = requests.get(url, timeout=5)\n    response.raise_for_status()\n    return response.json()\n```",
+    "rubric": [
+      "Uses at most three attempts.",
+      "Uses one-second then two-second waits.",
+      "Retries appropriate request failures.",
+      "Preserves the basic behavior of the function."
+    ],
+    "answer": "To add exponential-backoff retry to the `fetch_json` function, you can modify it as follows:\n\n```python\nimport requests\nfrom time import sleep\n\ndef fetch_json(url):\n    attempts = 0\n    max_attempts = 3\n    delay = 1  # Initial delay in seconds\n\n    while attempts < max_attempts:\n        try:\n            response = requests.get(url, timeout=5)\n            response.raise_for_status()\n            return response.json()\n        except requests.exceptions.RequestException as e:\n            print(f\"Attempt {attempts + 1} failed: {e}\")\n            attempts += 1\n            if attempts < max_attempts:\n                sleep(delay)\n                delay *= 2  # Double the delay for the next attempt\n\n    raise Exception(\"All attempts failed\")\n```\n\nThis code adds a loop that retries the `requests.get` call up to three times. If an exception occurs, it prints the error message and waits for the current delay before retrying. The delay is doubled after each failure, starting from 1 second.",
+    "done_reason": "stop",
+    "wall_seconds": 4.965,
+    "load_seconds": 0.222,
+    "prompt_eval_seconds": 0.42,
+    "generation_seconds": 4.304,
+    "output_tokens": 215,
+    "tokens_per_second": 49.95
+  },
+  {
+    "case_id": "architecture_01",
+    "task": "architecture",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Compare a monolith, modular monolith, and microservices architecture for a small SaaS application maintained by one or two developers. Recommend a starting architecture and explain when migration would become justified.",
+    "rubric": [
+      "Distinguishes all three architectures.",
+      "Discusses operational complexity and team size.",
+      "Makes a staged recommendation rather than assuming microservices are always better."
+    ],
+    "answer": "A monolith is a single, unified codebase that handles all aspects of the application. A modular monolith breaks down the monolith into smaller, more manageable components but still remains a single entity. Microservices architecture involves breaking down the application into independent services that communicate with each other over APIs.\n\nFor a small SaaS application maintained by one or two developers, a **modular monolith** is recommended. Here's why:\n\n1. **Simplicity**: A modular monolith allows for easier development and maintenance since all components are part of the same codebase. This reduces the overhead of managing multiple services and their dependencies.\n\n2. **Scalability**: With a single application, scaling can be more straightforward as you don't need to manage separate clusters or infrastructure for each service.\n\n3. **Development Speed**: Since everything is in one place, developers can work on different parts of the application simultaneously without worrying about communication between services.\n\n4. **Cost Efficiency**: Deploying and managing a monolith is generally less expensive than deploying multiple microservices, especially if you're using cloud-native technologies like Kubernetes for orchestration.\n\nWhen migration to a microservices architecture becomes justified:\n\n1. **Complexity Growth**: As the application grows in size and features, it may become increasingly difficult to manage a single monolithic codebase. This includes managing dependencies, scaling, and maintaining different versions of components.\n\n2. **Increased Team Size**: If you plan to expand the team or hire additional developers, a microservices architecture can help distribute workload more evenly across multiple teams.\n\n3. **Improved Collaboration**: With microservices, different teams can work on separate services independently, leading to better collaboration and faster development cycles.\n\n4. **Enhanced Scalability**: As the application scales, you can scale each service independently, which is easier than scaling a monolith that relies on shared infrastructure.\n\n5. **Better Testing**: Microservices allow for more granular testing of individual components, making it easier to identify and fix issues without affecting other parts of the system.\n\nIn summary, for a small SaaS application maintained by one or two developers, a modular monolith is the most suitable architecture due to its simplicity, scalability, and cost efficiency. Migration to microservices would be justified when complexity grows, team size increases, collaboration improves, scalability becomes an issue, and testing becomes more effective.",
+    "done_reason": "stop",
+    "wall_seconds": 9.941,
+    "load_seconds": 0.202,
+    "prompt_eval_seconds": 0.263,
+    "generation_seconds": 9.453,
+    "output_tokens": 474,
+    "tokens_per_second": 50.14
+  },
+  {
+    "case_id": "architecture_02",
+    "task": "architecture",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "A web application currently handles HTTP requests and long-running video processing in one server process. Design a staged migration that separates request handling from background processing without immediately introducing many microservices. Explain the boundaries, queue role, deployment sequence, and failure handling.",
+    "rubric": [
+      "Separates request handling from background workers.",
+      "Explains why a queue is useful.",
+      "Provides an incremental migration.",
+      "Discusses failures or retries.",
+      "Avoids unnecessary service proliferation."
+    ],
+    "answer": "To design a staged migration that separates request handling from background processing without immediately introducing many microservices, we can follow these steps:\n\n### 1. **Identify Boundaries**\n\n- **Request Handling Layer**: This layer will handle incoming HTTP requests and serve static content or perform quick tasks.\n- **Background Processing Layer**: This layer will manage long-running video processing tasks.\n\n### 2. **Queue Role**\n\n- **Message Queue (e.g., RabbitMQ, Kafka)**: This queue will act as a buffer between the request handling layer and the background processing layer. It will store incoming requests that need to be processed asynchronously.\n\n### 3. **Deployment Sequence**\n\n1. **Deploy Request Handling Layer**: Start by deploying the current single-server setup for handling HTTP requests and serving static content.\n2. **Deploy Background Processing Layer**: Deploy a separate server or container for managing background processing tasks.\n3. **Integrate Queue**: Integrate the message queue between the request handling layer and the background processing layer.\n\n### 4. **Failure Handling**\n\n- **Queue Failure Handling**: Implement retry mechanisms for messages in the queue to handle transient failures. Use exponential backoff to avoid overwhelming the system with retries.\n- **Error Logging**: Log errors from both the request handling and background processing layers to facilitate debugging and monitoring.\n- **Monitoring**: Set up monitoring tools to track the health of the message queue, request handling layer, and background processing layer. This will help in identifying and resolving issues quickly.\n\n### Example Implementation\n\n#### Request Handling Layer (Single Server)\n\n```python\nfrom flask import Flask, jsonify\nimport requests\n\napp = Flask(__name__)\n\n@app.route('/video/<video_id>')\ndef process_video(video_id):\n    # Simulate a quick task\n    response = requests.get(f'https://api.example.com/video/{video_id}')\n    if response.status_code == 200:\n        return jsonify({'status': 'success', 'message': 'Video processed successfully'})\n    else:\n        return jsonify({'status': 'error', 'message': 'Failed to process video'}), 500\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=80)\n```\n\n#### Background Processing Layer (Separate Server)\n\n```python\nimport time\nfrom queue import Queue\nimport threading\n\ndef process_video(video_id):\n    # Simulate a long-running task\n    print(f\"Processing video {video_id}\")\n    time.sleep(10)  # Simulate processing time\n    print(f\"Video {video_id} processed\")\n\nqueue = Queue()\n\ndef worker():\n    while True:\n        video_id = queue.get()\n        process_video(video_id)\n        queue.task_done()\n\nif __name__ == '__main__':\n    # Start the worker thread\n    threading.Thread(target=worker).start()\n\n    # Simulate incoming requests\n    for i in range(5):\n        queue.put(i)\n```\n\n#### Message",
+    "done_reason": "length",
+    "wall_seconds": 12.509,
+    "load_seconds": 0.202,
+    "prompt_eval_seconds": 0.337,
+    "generation_seconds": 11.934,
+    "output_tokens": 600,
+    "tokens_per_second": 50.28
+  },
+  {
+    "case_id": "research_01",
+    "task": "research",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Using only the source summaries below, compare three privacy approaches and explain when each is useful.\n\nSource A: Privacy by Design integrates privacy requirements throughout the system lifecycle and emphasizes minimizing unnecessary collection.\n\nSource B: Differential privacy adds carefully calibrated statistical noise so aggregate analysis reveals less about individual records, with a privacy-versus-accuracy tradeoff.\n\nSource C: Federated learning trains across decentralized devices without centrally collecting raw training data, but model updates can still leak information unless additional protections are used.\n\nGive a synthesis rather than merely repeating each source.",
+    "rubric": [
+      "Distinguishes system-design, statistical, and distributed-training roles.",
+      "Explains meaningful tradeoffs.",
+      "Synthesizes the approaches instead of only listing them.",
+      "Does not invent unsupported claims."
+    ],
+    "answer": "Privacy by Design (PBD) is useful when the system's design inherently incorporates privacy considerations from the outset. It minimizes unnecessary data collection and ensures that only necessary data is processed, which helps protect user privacy without requiring extensive post-processing or additional safeguards.\n\nDifferential Privacy (DP) is beneficial in scenarios where aggregate analysis of data is required but individual records need to be protected. DP adds statistical noise to data so that the aggregated results do not reveal too much about any single record. This approach balances privacy with accuracy by allowing for some level of information leakage, which can be controlled through parameters like epsilon and delta.\n\nFederated Learning (FL) is suitable when data must remain decentralized due to privacy concerns or regulatory requirements. In FL, models are trained across multiple devices without collecting raw training data centrally. However, if not properly protected, model updates can still leak sensitive information about individual users. Additional protections, such as differential privacy applied to the model updates, are necessary to maintain user privacy in this context.",
+    "done_reason": "stop",
+    "wall_seconds": 4.803,
+    "load_seconds": 0.194,
+    "prompt_eval_seconds": 0.575,
+    "generation_seconds": 4.004,
+    "output_tokens": 203,
+    "tokens_per_second": 50.7
+  },
+  {
+    "case_id": "research_02",
+    "task": "research",
+    "model": "qwen2.5-coder:3b",
+    "prompt": "Using only these source summaries, compare three strategies for migrating a monolithic application and recommend a low-risk approach.\n\nSource A: A big-bang rewrite replaces the old application at once. It can simplify the final architecture but has high delivery and integration risk.\n\nSource B: The strangler pattern gradually routes individual capabilities to new components while the original system continues operating.\n\nSource C: A modularization-first strategy improves boundaries inside the monolith before extracting services, reducing premature distributed-system complexity.\n\nCompare the evidence and recommend a staged path for a small development team.",
+    "rubric": [
+      "Compares all three strategies.",
+      "Recognizes big-bang risk.",
+      "Explains the benefits of gradual extraction.",
+      "Makes a recommendation suitable for a small team."
+    ],
+    "answer": "Based on the provided source summaries, here's a comparison of three strategies for migrating a monolithic application:\n\n1. **Big-Bang Rewrite**:\n   - **Pros**: Simplifies the final architecture by replacing the entire system at once.\n   - **Cons**: High delivery and integration risk due to potential disruptions in service availability during the rewrite.\n\n2. **Strangler Pattern**:\n   - **Pros**: Gradually routes individual capabilities to new components, allowing the original system to continue operating while introducing new features.\n   - **Cons**: May introduce complexity as different parts of the application are migrated, and it can be challenging to manage the integration between old and new systems.\n\n3. **Modularization-First Strategy**:\n   - **Pros**: Improves boundaries inside the monolith before extracting services, reducing premature distributed-system complexity.\n   - **Cons**: May require significant upfront effort in refactoring the codebase, which could be time-consuming for a small development team.\n\nGiven these considerations, a low-risk approach for a small development team would be:\n\n**Recommendation: Modularization-First Strategy**\n\nThis strategy is recommended because it allows the development team to focus on improving the internal structure of the monolith before attempting to extract services. This phased approach reduces the risk of introducing complexity and ensures that the migration process can be managed more effectively by a smaller team.",
+    "done_reason": "stop",
+    "wall_seconds": 6.392,
+    "load_seconds": 0.2,
+    "prompt_eval_seconds": 0.655,
+    "generation_seconds": 5.515,
+    "output_tokens": 275,
+    "tokens_per_second": 49.87
+  },
+  {
+    "case_id": "general_01",
+    "task": "general",
+    "model": "qwen3:1.7b",
+    "prompt": "Explain dependency injection in plain English and give one small practical example.",
+    "rubric": [
+      "Correctly explains receiving dependencies rather than constructing them internally.",
+      "Uses a practical example.",
+      "Does not confuse dependency injection with inheritance or dependency inversion."
+    ],
+    "answer": "Dependency injection is a design pattern that allows a class to receive its dependencies from external sources rather than creating them itself. This makes the code more flexible and easier to test.\n\n**Example:**\n\nSuppose you have a class `Calculator` that needs a `Logger` to record results.\n\n```python\nclass Logger:\n    def log(self, message):\n        print(f\"Logged: {message}\")\n\nclass Calculator:\n    def __init__(self, logger):\n        self.logger = logger\n\n    def calculate(self, a, b):\n        self.logger.log(f\"Result: {a + b}\")\n        return a + b\n\n# Usage\nlogger = Logger()\ncalculator = Calculator(logger)\nresult = calculator.calculate(3, 5)\n```\n\nIn this example, the `Calculator` class receives its `Logger` dependency during initialization. The `Logger` is not created inside `Calculator`, making the code more modular and easier to test.",
+    "done_reason": "stop",
+    "wall_seconds": 14.753,
+    "load_seconds": 11.829,
+    "prompt_eval_seconds": 0.56,
+    "generation_seconds": 2.357,
+    "output_tokens": 189,
+    "tokens_per_second": 80.18
+  },
+  {
+    "case_id": "general_02",
+    "task": "general",
+    "model": "qwen3:1.7b",
+    "prompt": "Explain the difference between a process and a thread. Focus on memory, isolation, and when each is useful.",
+    "rubric": [
+      "Explains separate process address spaces.",
+      "Explains that threads share process resources.",
+      "Gives sensible usage tradeoffs."
+    ],
+    "answer": "**Process** and **thread** are both units of execution in an operating system, but they differ in several key aspects:\n\n### 1. **Memory**\n- **Process**: Each process has its own private memory space. This means that data and code within a process are not accessible to other processes.\n- **Thread**: Threads share the memory space of the process. Data and code accessed by a thread are visible to other threads in the same process.\n\n### 2. **Isolation**\n- **Process**: Processes are isolated from each other. They have their own memory, file descriptors, and environment variables.\n- **Thread**: Threads are not isolated from other threads in the same process. Data and state can be shared and modified by multiple threads.\n\n### 3. **Use Cases**\n- **Process**: Useful when:\n  - You need isolation between different applications or tasks.\n  - You need to ensure that the failure of one process does not affect others.\n  - You want to limit resource usage (e.g., memory, CPU) by isolating processes.\n\n- **Thread**: Useful when:\n  - You need to perform concurrent execution within a single process.\n  - You want to share data and resources efficiently between multiple threads.\n  - You need to improve performance by leveraging parallelism.\n\n### Summary\n- **Process** is isolated and has its own memory, suitable for independent tasks.\n- **Thread** shares memory and is more efficient for concurrent execution within a single process.",
+    "done_reason": "stop",
+    "wall_seconds": 4.172,
+    "load_seconds": 0.206,
+    "prompt_eval_seconds": 0.139,
+    "generation_seconds": 3.785,
+    "output_tokens": 300,
+    "tokens_per_second": 79.27
+  },
+  {
+    "case_id": "explain_code_01",
+    "task": "explain-code",
+    "model": "qwen3:1.7b",
+    "prompt": "Explain this Python function step by step, including what happens to duplicates and why order is preserved:\n\n```python\ndef unique(values):\n    seen = set()\n    result = []\n    for value in values:\n        if value in seen:\n            continue\n        seen.add(value)\n        result.append(value)\n    return result\n```",
+    "rubric": [
+      "Explains the purpose of seen.",
+      "Explains continue correctly.",
+      "Explains why result preserves first-occurrence order."
+    ],
+    "answer": "The function `unique(values)` removes duplicates from a list `values` while preserving the original order of elements.\n\n### Step-by-step explanation:\n\n1. **Initialization**:\n   - `seen` is a set initialized to empty.\n   - `result` is an empty list.\n\n2. **Loop through `values`**:\n   - For each `value` in `values`:\n     - Check if `value` is in `seen` (this detects duplicates).\n     - If `value` is already in `seen`, it is skipped (no action is taken).\n     - If `value` is not in `seen`, it is added to `seen` and appended to `result`.\n\n3. **Return**:\n   - The `result` list contains only unique elements from `values`, in the same order as they first appeared.\n\n### Handling Duplicates:\n- Duplicates are identified by checking if a value is already in the `seen` set.\n- If a value is a duplicate, it is not added to the result list.\n\n### Order Preservation:\n- The function preserves the original order of elements by appending each unique value to the `result` list as it encounters them.\n- Even if a value appears multiple times, only the first occurrence is kept, and subsequent duplicates are skipped.\n\n### Example:\n```python\nvalues = [3, 1, 3, 2, 3, 4]\nunique(values)  # Returns [3, 1, 2, 3, 4]\n```\n\nThis implementation is efficient and maintains the order of elements.",
+    "done_reason": "stop",
+    "wall_seconds": 4.66,
+    "load_seconds": 0.201,
+    "prompt_eval_seconds": 0.264,
+    "generation_seconds": 4.132,
+    "output_tokens": 324,
+    "tokens_per_second": 78.41
+  },
+  {
+    "case_id": "explain_code_02",
+    "task": "explain-code",
+    "model": "qwen3:1.7b",
+    "prompt": "Explain the control flow of this JavaScript function and what it returns for an HTTP 404 response:\n\n```javascript\nasync function loadUser(id) {\n  const response = await fetch(`/api/users/${id}`);\n  if (!response.ok) {\n    return null;\n  }\n  return response.json();\n}\n```",
+    "rubric": [
+      "Explains await fetch.",
+      "Explains response.ok.",
+      "Correctly says a 404 normally returns null rather than parsing JSON."
+    ],
+    "answer": "The function `loadUser` is an asynchronous function that performs the following steps:\n\n1. **Fetch Data**: It uses `fetch` to make a GET request to the endpoint `/api/users/${id}`.\n2. **Await Response**: It awaits the response using `await fetch(...)`.\n3. **Check Status**: It checks if the response is not OK (i.e., status code is not in the range 200-299).\n4. **Return Value**: If the response is not OK, it returns `null`. If the response is OK, it returns the JSON content of the response.\n\n**Control Flow Explanation**:\n- The function is asynchronous, so it uses `await` to handle the promise.\n- If the fetch fails (HTTP 404), the function returns `null`.\n- If the fetch is successful (e.g., HTTP 200), it returns the parsed JSON data.\n\n**Return Value for HTTP 404**:\n- The function returns `null`.",
+    "done_reason": "stop",
+    "wall_seconds": 3.215,
+    "load_seconds": 0.251,
+    "prompt_eval_seconds": 0.263,
+    "generation_seconds": 2.643,
+    "output_tokens": 208,
+    "tokens_per_second": 78.71
+  },
+  {
+    "case_id": "debug_01",
+    "task": "debug",
+    "model": "qwen3:1.7b",
+    "prompt": "Diagnose the smallest fix for this Python error:\n\n```python\nage = 25\nmessage = \"Age: \" + age\nprint(message)\n```\n\nRuntime error:\n`TypeError: can only concatenate str (not \"int\") to str`",
+    "rubric": [
+      "Identifies string plus integer concatenation as the cause.",
+      "Suggests str(age) or an f-string.",
+      "Does not propose unrelated changes."
+    ],
+    "answer": "Replace the integer `age` with a string in the concatenation:\n\n```python\nage = \"25\"\nmessage = \"Age: \" + age\nprint(message)\n```",
+    "done_reason": "stop",
+    "wall_seconds": 0.969,
+    "load_seconds": 0.208,
+    "prompt_eval_seconds": 0.261,
+    "generation_seconds": 0.454,
+    "output_tokens": 37,
+    "tokens_per_second": 81.49
+  },
+  {
+    "case_id": "debug_02",
+    "task": "debug",
+    "model": "qwen3:1.7b",
+    "prompt": "This JavaScript function unexpectedly returns undefined. Identify the cause and give the smallest fix:\n\n```javascript\nfunction getName(user) {\n  if (user) {\n    user.name;\n  }\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```",
+    "rubric": [
+      "Identifies the missing return statement.",
+      "Provides a minimal corrected function.",
+      "Does not invent unrelated runtime problems."
+    ],
+    "answer": "The function returns `undefined` because the `user` parameter is an object, but the function is accessing `user.name` without checking if `user` is defined. However, in the provided code, `user` is assigned an object ({ name: \"Ana\" }), so `user.name` should be valid.\n\n**Cause:** The function assumes `user` is a valid object, but it does not check if `user` is defined before accessing `user.name`.\n\n**Fix:** Add a check to ensure `user` is defined before accessing `user.name`.\n\n```javascript\nfunction getName(user) {\n  if (user && user.name) {\n    return user.name;\n  }\n  return undefined;\n}\n\nconsole.log(getName({ name: \"Ana\" }));\n```\n\n**Explanation:** The fix ensures that `user` is checked for existence before accessing `user.name`, preventing potential errors when `user` is not defined.",
+    "done_reason": "stop",
+    "wall_seconds": 2.876,
+    "load_seconds": 0.269,
+    "prompt_eval_seconds": 0.2,
+    "generation_seconds": 2.377,
+    "output_tokens": 188,
+    "tokens_per_second": 79.1
+  },
+  {
+    "case_id": "implement_01",
+    "task": "implement",
+    "model": "qwen3:1.7b",
+    "prompt": "Write a Python function `unique_strings(values)` that removes duplicate strings while preserving the order of the first occurrence. Keep the implementation minimal and include one example.",
+    "rubric": [
+      "Returns unique strings in first-occurrence order.",
+      "Uses valid Python.",
+      "Does not unnecessarily sort the input."
+    ],
+    "answer": "```python\ndef unique_strings(values):\n    seen = set()\n    result = []\n    for val in values:\n        if val not in seen:\n            seen.add(val)\n            result.append(val)\n    return result\n\n# Example usage\nprint(unique_strings([\"a\", \"b\", \"a\", \"c\", \"b\"]))  # Output: [\"a\", \"b\", \"c\"]\n```",
+    "done_reason": "stop",
+    "wall_seconds": 1.427,
+    "load_seconds": 0.215,
+    "prompt_eval_seconds": 0.158,
+    "generation_seconds": 1.009,
+    "output_tokens": 81,
+    "tokens_per_second": 80.27
+  },
+  {
+    "case_id": "implement_02",
+    "task": "implement",
+    "model": "qwen3:1.7b",
+    "prompt": "Add exponential-backoff retry to this Python function. Make at most 3 attempts and wait 1 second, then 2 seconds between retries. Make the smallest coherent change.\n\n```python\nimport requests\n\ndef fetch_json(url):\n    response = requests.get(url, timeout=5)\n    response.raise_for_status()\n    return response.json()\n```",
+    "rubric": [
+      "Uses at most three attempts.",
+      "Uses one-second then two-second waits.",
+      "Retries appropriate request failures.",
+      "Preserves the basic behavior of the function."
+    ],
+    "answer": "Add exponential backoff to the `fetch_json` function. The function should attempt up to 3 times, with delays of 1 second, 2 seconds, and 4 seconds respectively.\n\n```python\nimport requests\nimport time\n\ndef fetch_json(url):\n    attempts = 0\n    delay = 1  # Start with 1 second\n    while attempts < 3:\n        try:\n            response = requests.get(url, timeout=5)\n            response.raise_for_status()\n            return response.json()\n        except requests.exceptions.HTTPError as e:\n            if response.status_code == 503:  # Service unavailable\n                time.sleep(delay)\n                attempts += 1\n                delay *= 2\n            else:\n                raise e\n```\n\nExplanation: The function now includes a loop that attempts to fetch the JSON up to 3 times. It starts with a 1-second delay and doubles the delay after each failure (except for the 3rd attempt, which does not double). The `time.sleep()` function is used to introduce the delay between retries.",
+    "done_reason": "stop",
+    "wall_seconds": 3.36,
+    "load_seconds": 0.204,
+    "prompt_eval_seconds": 0.302,
+    "generation_seconds": 2.821,
+    "output_tokens": 220,
+    "tokens_per_second": 77.98
+  },
+  {
+    "case_id": "architecture_01",
+    "task": "architecture",
+    "model": "qwen3:1.7b",
+    "prompt": "Compare a monolith, modular monolith, and microservices architecture for a small SaaS application maintained by one or two developers. Recommend a starting architecture and explain when migration would become justified.",
+    "rubric": [
+      "Distinguishes all three architectures.",
+      "Discusses operational complexity and team size.",
+      "Makes a staged recommendation rather than assuming microservices are always better."
+    ],
+    "answer": "**Architecture Comparison for a Small SaaS Application**\n\n| Architecture Type | Description | Pros | Cons | When Migration Justifies |\n|-------------------|-------------|------|------|------------------------|\n| **Monolith** | A single application built as one unit. | Simple, fast, easy to develop. | Hard to scale, difficult to maintain, poor in flexibility. | When the application is small and does not require scalability. |\n| **Modular Monolith** | A single application with multiple modules. | Better scalability than monolith, easier to maintain. | Still difficult to scale, requires coordination between modules. | When the application needs moderate scalability or modular development. |\n| **Microservices** | Multiple independent services that communicate over APIs. | High scalability, flexibility, easier to maintain. | Complex to develop, requires significant coordination, higher maintenance. | When the application needs high scalability, flexibility, or is expected to grow significantly. |\n\n**Recommendation:**  \n**Modular Monolith** is the best starting architecture for a small SaaS application maintained by one or two developers. It balances simplicity with flexibility, allowing for gradual scaling and easier maintenance.\n\n**Migration Justification:**  \nMigration to microservices becomes justified when the application requires **significant scalability**, **flexibility in functionality**, or **rapid development cycles**. At this stage, the modular monolith may become too complex to manage, and the benefits of microservices (such as independent deployment and scaling) become valuable.",
+    "done_reason": "stop",
+    "wall_seconds": 4.315,
+    "load_seconds": 0.199,
+    "prompt_eval_seconds": 0.198,
+    "generation_seconds": 3.856,
+    "output_tokens": 299,
+    "tokens_per_second": 77.53
+  },
+  {
+    "case_id": "architecture_02",
+    "task": "architecture",
+    "model": "qwen3:1.7b",
+    "prompt": "A web application currently handles HTTP requests and long-running video processing in one server process. Design a staged migration that separates request handling from background processing without immediately introducing many microservices. Explain the boundaries, queue role, deployment sequence, and failure handling.",
+    "rubric": [
+      "Separates request handling from background workers.",
+      "Explains why a queue is useful.",
+      "Provides an incremental migration.",
+      "Discusses failures or retries.",
+      "Avoids unnecessary service proliferation."
+    ],
+    "answer": "**Staged Migration Design: Separating Request Handling from Background Processing**\n\n**Boundaries:**\n- **Request Handling Layer:** Handles HTTP requests, authentication, routing, and business logic.\n- **Background Processing Layer:** Handles video processing, data storage, and long-running tasks.\n\n**Queue Role:**\n- A **message queue** (e.g., RabbitMQ, Kafka) acts as a bridge between the two layers.\n- Requests are processed by the request handling layer and enqueued for background processing.\n- Background processing tasks are dequeued and executed by the background layer.\n\n**Deployment Sequence:**\n1. **Deploy Request Handling Layer:** Ensure it can handle HTTP requests and route them to the background processing layer.\n2. **Deploy Message Queue:** Set up the queue to handle enqueues from the request handling layer.\n3. **Deploy Background Processing Layer:** Implement the logic for video processing and long-running tasks.\n4. **Enqueue Requests:** Configure the request handling layer to enqueue requests for background processing.\n5. **Monitor and Scale:** Monitor performance and scale as needed.\n\n**Failure Handling:**\n- **Queue Failover:** If the message queue is unavailable, requests are queued and retried.\n- **Task Failover:** If a background task fails, it is retried or logged, and the request is reprocessed.\n- **Error Recovery:** Implement retries, dead-letter queues, and fallback mechanisms for failed tasks.\n\n**Example Implementation (Python with RabbitMQ):**\n\n```python\n# Request Handling Layer (Python)\nimport requests\nfrom rabbitmq import publish\n\ndef handle_request(data):\n    # Process request\n    result = process_data(data)\n    publish(\"video-processing\", result)\n\n# Background Processing Layer (Python)\nimport pika\n\ndef process_video(data):\n    # Video processing logic\n    return {\"status\": \"completed\", \"data\": data}\n\ndef consume_messages():\n    connection = pika.connect(\"amqp://localhost\")\n    channel = connection.channel()\n    channel.queue_declare(queue=\"video-processing\")\n    def callback(ch, method, properties, body):\n        data = body.decode()\n        result = process_video(data)\n        print(f\"Processed {data} -> {result}\")\n    channel.basic_consume(callback, queue=\"video-processing\", no_ack=True)\n    channel.start_consuming()\n```\n\n**Explanation:**\n- The request handling layer sends requests to the background processing layer via a message queue.\n- The message queue ensures reliable delivery of requests to the background layer.\n- The background layer processes tasks and returns results to the request handling layer.\n- Failure handling includes retries, dead-letter queues, and fallback mechanisms.",
+    "done_reason": "stop",
+    "wall_seconds": 7.737,
+    "load_seconds": 0.253,
+    "prompt_eval_seconds": 0.2,
+    "generation_seconds": 6.92,
+    "output_tokens": 531,
+    "tokens_per_second": 76.74
+  },
+  {
+    "case_id": "research_01",
+    "task": "research",
+    "model": "qwen3:1.7b",
+    "prompt": "Using only the source summaries below, compare three privacy approaches and explain when each is useful.\n\nSource A: Privacy by Design integrates privacy requirements throughout the system lifecycle and emphasizes minimizing unnecessary collection.\n\nSource B: Differential privacy adds carefully calibrated statistical noise so aggregate analysis reveals less about individual records, with a privacy-versus-accuracy tradeoff.\n\nSource C: Federated learning trains across decentralized devices without centrally collecting raw training data, but model updates can still leak information unless additional protections are used.\n\nGive a synthesis rather than merely repeating each source.",
+    "rubric": [
+      "Distinguishes system-design, statistical, and distributed-training roles.",
+      "Explains meaningful tradeoffs.",
+      "Synthesizes the approaches instead of only listing them.",
+      "Does not invent unsupported claims."
+    ],
+    "answer": "Three privacy approaches—Privacy by Design, Differential Privacy, and Federated Learning—each address privacy concerns in different contexts and trade-offs:\n\n1. **Privacy by Design** focuses on embedding privacy requirements into system design, ensuring that privacy is a default feature. It is most useful in scenarios where minimizing data collection and ensuring transparency are critical, such as in healthcare or financial systems.\n\n2. **Differential Privacy** introduces statistical noise to protect individual data in aggregate analysis, balancing privacy and accuracy. It is effective in large-scale data analysis and public datasets where precise individual inference is not required.\n\n3. **Federated Learning** enables model training across decentralized devices without centralizing raw data, reducing data exposure. It is suitable for applications where data localization is important, such as mobile health or smart devices, but requires additional safeguards to prevent information leakage.\n\nEach approach is context-dependent, with Privacy by Design prioritizing proactive privacy, Differential Privacy focusing on statistical protection, and Federated Learning emphasizing decentralized data handling.",
+    "done_reason": "stop",
+    "wall_seconds": 3.611,
+    "load_seconds": 0.203,
+    "prompt_eval_seconds": 0.385,
+    "generation_seconds": 2.595,
+    "output_tokens": 201,
+    "tokens_per_second": 77.46
+  },
+  {
+    "case_id": "research_02",
+    "task": "research",
+    "model": "qwen3:1.7b",
+    "prompt": "Using only these source summaries, compare three strategies for migrating a monolithic application and recommend a low-risk approach.\n\nSource A: A big-bang rewrite replaces the old application at once. It can simplify the final architecture but has high delivery and integration risk.\n\nSource B: The strangler pattern gradually routes individual capabilities to new components while the original system continues operating.\n\nSource C: A modularization-first strategy improves boundaries inside the monolith before extracting services, reducing premature distributed-system complexity.\n\nCompare the evidence and recommend a staged path for a small development team.",
+    "rubric": [
+      "Compares all three strategies.",
+      "Recognizes big-bang risk.",
+      "Explains the benefits of gradual extraction.",
+      "Makes a recommendation suitable for a small team."
+    ],
+    "answer": "**Comparison of Strategies:**\n\n- **Source A** describes a *big-bang rewrite* where the entire application is replaced at once. It simplifies the final architecture but carries high risk due to the need for full system integration.\n- **Source B** describes the *strangler pattern*, where capabilities are gradually migrated to new components while the original system continues operating. This approach reduces risk by allowing incremental migration and maintaining system functionality.\n- **Source C** describes a *modularization-first strategy*, where the monolith is refactored into smaller, manageable components before extracting services. This reduces complexity and avoids premature distribution.\n\n**Recommendation:**\n\nA **staged path** that combines elements of **Source B** and **Source C** is low-risk for a small development team. The team can:\n\n1. **Modularize the monolith** by breaking it into smaller, manageable components (using Source C).\n2. **Gradually migrate capabilities** to new components using the *stranger pattern* (Source B), ensuring the original system remains functional during migration.\n3. **Incrementally deploy** changes, testing and validating each step before moving to the next.\n\nThis approach balances risk and progress, allowing the team to build incrementally without overwhelming the system.",
+    "done_reason": "stop",
+    "wall_seconds": 4.203,
+    "load_seconds": 0.282,
+    "prompt_eval_seconds": 0.385,
+    "generation_seconds": 3.315,
+    "output_tokens": 257,
+    "tokens_per_second": 77.53
+  },
+  {
+    "case_id": "architecture_01",
+    "task": "architecture",
+    "model": "phi4-mini:latest",
+    "prompt": "Compare a monolith, modular monolith, and microservices architecture for a small SaaS application maintained by one or two developers. Recommend a starting architecture and explain when migration would become justified.",
+    "rubric": [
+      "Distinguishes all three architectures.",
+      "Discusses operational complexity and team size.",
+      "Makes a staged recommendation rather than assuming microservices are always better."
+    ],
+    "answer": "For your described scenario—a small SaaS app with 1-2 developers—the best initial choice is likely the **modular monolith** approach.\n\nReasons:\n\n*   Simplicity: Eases onboarding for new team members.\n*   Cohesion: Promotes better understanding of business logic as a whole, which can be beneficial in smaller teams where context switching between modules isn't ideal. \n\nMigration to microservices would become justified when the following conditions are met:\n\n1.  The application grows significantly larger (e.g., more than ten developers).\n2.  Business requirements change frequently and require independent scaling of different parts.\n3.  Performance becomes a bottleneck due to tightly coupled components, making it difficult for individual modules or services within microservices architecture.\n\nIn this case, the modular monolith provides an excellent balance between simplicity (for small teams) while still allowing some degree of separation in terms of business domains and functionalities that can later be migrated into separate services if needed.",
+    "done_reason": "stop",
+    "wall_seconds": 38.785,
+    "load_seconds": 26.673,
+    "prompt_eval_seconds": 1.005,
+    "generation_seconds": 11.098,
+    "output_tokens": 196,
+    "tokens_per_second": 17.66
+  },
+  {
+    "case_id": "architecture_02",
+    "task": "architecture",
+    "model": "phi4-mini:latest",
+    "prompt": "A web application currently handles HTTP requests and long-running video processing in one server process. Design a staged migration that separates request handling from background processing without immediately introducing many microservices. Explain the boundaries, queue role, deployment sequence, and failure handling.",
+    "rubric": [
+      "Separates request handling from background workers.",
+      "Explains why a queue is useful.",
+      "Provides an incremental migration.",
+      "Discusses failures or retries.",
+      "Avoids unnecessary service proliferation."
+    ],
+    "answer": "**Staged Migration Plan for Web Application Separation of Concerns:**\n\n\n1. **Boundary Definition:**\n\n   - Frontend remains unchanged.\n\n   - Backend is split into two services:\n\n     a) A lightweight HTTP server (e.g., using Flask or Express.js).\n\n     b) Video processing service that handles long-running tasks.\n\n\n2. **Queue Role and Implementation:**\n\n   - Introduce an asynchronous job queue like RabbitMQ, Redis Queue, etc.\n\n   - The new video processing backend publishes jobs to the queue upon receiving a request for background task initiation from the HTTP server frontend.\n\n\n3. **Deployment Sequence:**\n\n\n   Stage 1:\n\n   - Deploy only the lightweight HTTP server with minimal changes (if any).\n\n   - Test basic communication between this service and existing infrastructure.\n\n\n\nStage 2: \n\n- Introduce video processing backend.\n\n- Connect it to job queue for task management, ensuring it's ready before deploying.\n\n\n4. **Failure Handling:**\n\n\n   a) Job Queue:\n\n      - Implement retry mechanisms with exponential backoff in the case of failures or timeouts when jobs are processed by workers.\n\n      - Dead-letter exchange setup if retries fail after certain attempts.\n\n\n\nb) Video Processing Service Failures: \n\n- Monitor service health and auto-restart failed instances using container orchestration tools like Kubernetes.\n\n\nc) HTTP Server Failures:\n\n   - Implement a circuit breaker pattern to prevent cascading failures when the video processing backend is down.\n\n   - Use load balancers with failover capabilities for high availability.",
+    "done_reason": "stop",
+    "wall_seconds": 16.398,
+    "load_seconds": 0.317,
+    "prompt_eval_seconds": 0.603,
+    "generation_seconds": 15.243,
+    "output_tokens": 303,
+    "tokens_per_second": 19.88
+  },
+  {
+    "case_id": "research_01",
+    "task": "research",
+    "model": "phi4-mini:latest",
+    "prompt": "Using only the source summaries below, compare three privacy approaches and explain when each is useful.\n\nSource A: Privacy by Design integrates privacy requirements throughout the system lifecycle and emphasizes minimizing unnecessary collection.\n\nSource B: Differential privacy adds carefully calibrated statistical noise so aggregate analysis reveals less about individual records, with a privacy-versus-accuracy tradeoff.\n\nSource C: Federated learning trains across decentralized devices without centrally collecting raw training data, but model updates can still leak information unless additional protections are used.\n\nGive a synthesis rather than merely repeating each source.",
+    "rubric": [
+      "Distinguishes system-design, statistical, and distributed-training roles.",
+      "Explains meaningful tradeoffs.",
+      "Synthesizes the approaches instead of only listing them.",
+      "Does not invent unsupported claims."
+    ],
+    "answer": "Privacy by Design (Source A) is ideal for systems where minimizing the collection of personal details from inception reduces privacy risks and aligns with regulatory requirements like GDPR's principle of 'data minimization.' Differential Privacy (Source B), on the other hand, suits scenarios requiring aggregate data analysis while protecting individual identities; it's a balance between utility loss due to noise addition versus protection level. Federated Learning (Source C) is beneficial for decentralized environments where raw user data can't be aggregated centrally—useful in mobile health apps or social networks—but it necessitates additional measures like secure multi-party computation when model updates could inadvertently expose sensitive information.",
+    "done_reason": "stop",
+    "wall_seconds": 7.179,
+    "load_seconds": 0.28,
+    "prompt_eval_seconds": 0.799,
+    "generation_seconds": 5.898,
+    "output_tokens": 125,
+    "tokens_per_second": 21.19
+  },
+  {
+    "case_id": "research_02",
+    "task": "research",
+    "model": "phi4-mini:latest",
+    "prompt": "Using only these source summaries, compare three strategies for migrating a monolithic application and recommend a low-risk approach.\n\nSource A: A big-bang rewrite replaces the old application at once. It can simplify the final architecture but has high delivery and integration risk.\n\nSource B: The strangler pattern gradually routes individual capabilities to new components while the original system continues operating.\n\nSource C: A modularization-first strategy improves boundaries inside the monolith before extracting services, reducing premature distributed-system complexity.\n\nCompare the evidence and recommend a staged path for a small development team.",
+    "rubric": [
+      "Compares all three strategies.",
+      "Recognizes big-bang risk.",
+      "Explains the benefits of gradual extraction.",
+      "Makes a recommendation suitable for a small team."
+    ],
+    "answer": "Comparing Source A (big-bang rewrite), B (strangler pattern) with Source C (modularization-first approach):\n\n- Big-Bang Rewrite: High risk due to simultaneous replacement of all components.\n- Strangler Pattern: Lowered incremental migration, less disruption as it gradually replaces capabilities without stopping the old system entirely. \n- Modularization First Approach: Focuses on improving internal boundaries before moving services outwards; reduces complexity and risks associated with premature distribution.\n\nRecommendation for a small development team:\n\nThe strangler pattern (Source B) offers an intermediate approach that balances risk by allowing gradual migration of individual components, thus minimizing disruption to the existing system. This strategy is less risky compared to Source A's big-bang rewrite due to its incremental nature but still avoids some complexities associated with premature distribution as seen in modularization-first strategies like C.\n\n\nExample code for a strangler pattern could involve creating new services that replicate functionality of parts within an old monolith, then slowly redirecting traffic from the original service once it's stable. This would be done iteratively and incrementally to ensure minimal risk at each stage.\n\n```python\n# Example Python pseudocode demonstrating incremental migration using Strangler Pattern\n\ndef migrate_service(old_monolith_functionality):\n    # New microservice replicating old monolith functionality.\n    new_microservice = create_new_microservice()\n\n    def strangle_route(request, original_endpoint=old_monolith_functionality.endpoint):\n        if should_use_new_service():\n            return call_to(new_microservice)\n        else:\n            return call_to(original_endpoint)\n\n# Gradually redirect traffic to the microservice as it becomes stable.\nredirect_traffic(strangle_route, incrementally=True)\n```",
+    "done_reason": "stop",
+    "wall_seconds": 17.822,
+    "load_seconds": 0.279,
+    "prompt_eval_seconds": 0.806,
+    "generation_seconds": 16.628,
+    "output_tokens": 339,
+    "tokens_per_second": 20.39
+  }
+]

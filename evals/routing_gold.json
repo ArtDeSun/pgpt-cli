@@ -1,0 +1,632 @@
+[
+  {
+    "id": "stable_general_01",
+    "prompt": "What is dependency injection?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "stable_general_02",
+    "prompt": "Explain how HTTP cookies work.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "stable_general_03",
+    "prompt": "What is the difference between a process and a thread?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "stable_general_04",
+    "prompt": "Explain the dependency inversion principle with a simple example.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "stable_general_05",
+    "prompt": "Why are database indexes useful?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "current_web_lookup_01",
+    "prompt": "What is the latest stable version of Node.js?",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "current_web_lookup_02",
+    "prompt": "Who is currently the CEO of Microsoft?",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "current_web_lookup_03",
+    "prompt": "Who won the most recent NBA championship?",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "current_web_lookup_04",
+    "prompt": "What is the current price of Bitcoin?",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "current_web_lookup_05",
+    "prompt": "What does the founder of Nvidia currently do at the company?",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "explicit_web_01",
+    "prompt": "Search the web for the official Rust documentation.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "unknown",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "explicit_web_02",
+    "prompt": "Find the official website for Blender online.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "unknown",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "explicit_web_03",
+    "prompt": "Look up the current pricing page for Vercel.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "explicit_web_04",
+    "prompt": "Browse the web and find the official documentation for Stripe Checkout.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "unknown",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "explicit_web_05",
+    "prompt": "Use the internet to verify whether Python 3.14 has been released.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "web_research_01",
+    "prompt": "Research the current approaches to AI privacy and compare several independent sources.",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "web_research_02",
+    "prompt": "Compare current serverless database platforms using multiple recent sources.",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "web_research_03",
+    "prompt": "Research the current state of browser support for WebGPU and compare the major browsers.",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "web_research_04",
+    "prompt": "Compare recent approaches to regulating generative AI in the United States and European Union using multiple sources.",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "web_research_05",
+    "prompt": "Research current trends in local LLM deployment and compare the tradeoffs reported by several sources.",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "project_explicit_01",
+    "prompt": "Explain how authentication works in my project.",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "explain-code",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "project_explicit_02",
+    "prompt": "Find where user sessions are loaded in my repository and explain the flow.",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "explain-code",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "project_explicit_03",
+    "prompt": "Why does this component in my app rerender when its parent state changes?",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "debug",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "project_explicit_04",
+    "prompt": "Add input validation to the create action in my project.",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "implement",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "project_explicit_05",
+    "prompt": "Review the caching strategy used in my application and explain its current design.",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "project_symbol_01",
+    "prompt": "Explain getYoutubeVideoMetadata.",
+    "symbol_hit": true,
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "explain-code",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "project_symbol_02",
+    "prompt": "Why does setFeaturedLandscapeVideo start a transaction?",
+    "symbol_hit": true,
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "explain-code",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "project_symbol_03",
+    "prompt": "Modify prepareLandscapeVideo so it rejects empty titles.",
+    "symbol_hit": true,
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "implement",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "debug_local_01",
+    "prompt": "Why does this Python code raise TypeError when I add an integer to a string?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "debug",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "debug_local_02",
+    "prompt": "Diagnose this traceback and explain the smallest likely fix.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "debug",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "debug_local_03",
+    "prompt": "My JavaScript function returns undefined even though I expect a string. What should I check?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "debug",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "debug_web_01",
+    "prompt": "Search online for this npm error and explain the most likely cause.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "debug",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "debug_web_02",
+    "prompt": "Look up this current Docker error message on the web and suggest the smallest fix.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "debug",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "implement_local_01",
+    "prompt": "Write a Python function that removes duplicate strings while preserving order.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "implement",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "implement_local_02",
+    "prompt": "Add retry logic with exponential backoff to this function.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "implement",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "implement_local_03",
+    "prompt": "Refactor this class so that its database dependency is injected through the constructor.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "implement",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "architecture_local_01",
+    "prompt": "Compare a monolith, modular monolith, and microservices architecture for a small SaaS application.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "architecture_local_02",
+    "prompt": "Design a staged migration from a single application server to separate API and worker services.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "architecture_local_03",
+    "prompt": "Should this workload use a message queue or synchronous HTTP calls? Compare the tradeoffs.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "architecture_web_01",
+    "prompt": "Compare the current AWS services available for running containerized web applications and recommend an architecture.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "architecture",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "minimal_pair_general_01",
+    "prompt": "Explain caching.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "minimal_pair_project_01",
+    "prompt": "Explain the caching used in my project.",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "explain-code",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "minimal_pair_debug_01",
+    "prompt": "Why does this error happen?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "debug",
+      "freshness": "unknown",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "minimal_pair_debug_web_01",
+    "prompt": "Search the web for why this error happens.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "debug",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "minimal_pair_debug_web_02",
+    "prompt": "Search the web for current information about this error and explain why it happens.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "debug",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "minimal_pair_version_stable_01",
+    "prompt": "What does semantic versioning mean?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "minimal_pair_version_current_01",
+    "prompt": "What is the current stable version of React?",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "multi_intent_01",
+    "prompt": "Look up the latest stable Next.js release and explain the main changes.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "multi_intent_02",
+    "prompt": "Research the current Stripe subscription APIs and compare the recommended integration patterns.",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "multi_intent_03",
+    "prompt": "Use current Next.js documentation to explain why this API is deprecated.",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "negative_project_01",
+    "prompt": "What is MongoDB?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "negative_project_02",
+    "prompt": "What is Next.js server-side rendering?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "negative_project_03",
+    "prompt": "Who won the most recent Stanley Cup?",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "conversation_general_01",
+    "prompt": "Can you explain that more simply?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "unknown",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "conversation_general_02",
+    "prompt": "What do you mean by that?",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "unknown",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "writing_01",
+    "prompt": "Rewrite this paragraph so it sounds more professional.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "writing_02",
+    "prompt": "Give me five concise subject lines for a meeting follow-up email.",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  }
+]

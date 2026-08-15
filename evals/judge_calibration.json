@@ -1,0 +1,206 @@
+[
+  {
+    "id": "debug_good_01",
+    "prompt": "Why does this Python code fail, and what is the smallest fix?\n\nage = 25\nmessage = 'Age: ' + age",
+    "rubric": {
+      "required_points": [
+        "Identifies concatenation between a string and an integer as the failure.",
+        "Provides a minimal correction using explicit string conversion or formatting."
+      ],
+      "forbidden_points": [
+        "Claims Python automatically converts the integer before string concatenation."
+      ]
+    },
+    "answer": "The expression fails because Python cannot concatenate a string and an integer. Convert age explicitly: message = 'Age: ' + str(age).",
+    "expect": {
+      "passed": true,
+      "min_score": 4
+    }
+  },
+  {
+    "id": "debug_bad_forbidden_01",
+    "prompt": "Why does this Python code fail, and what is the smallest fix?\n\nage = 25\nmessage = 'Age: ' + age",
+    "rubric": {
+      "required_points": [
+        "Identifies concatenation between a string and an integer as the failure.",
+        "Provides a minimal correction using explicit string conversion or formatting."
+      ],
+      "forbidden_points": [
+        "Claims Python automatically converts the integer before string concatenation."
+      ]
+    },
+    "answer": "Python first tries to automatically convert the integer into a string, but that conversion fails. Use str(age) to fix it.",
+    "expect": {
+      "passed": false,
+      "max_score": 3
+    }
+  },
+  {
+    "id": "debug_bad_missing_fix_01",
+    "prompt": "Why does this Python code fail, and what is the smallest fix?\n\nage = 25\nmessage = 'Age: ' + age",
+    "rubric": {
+      "required_points": [
+        "Identifies concatenation between a string and an integer as the failure.",
+        "Provides a minimal correction using explicit string conversion or formatting."
+      ],
+      "forbidden_points": [
+        "Claims Python automatically converts the integer before string concatenation."
+      ]
+    },
+    "answer": "The problem is caused by incompatible types.",
+    "expect": {
+      "passed": false,
+      "max_score": 3
+    }
+  },
+  {
+    "id": "architecture_good_01",
+    "prompt": "Design a staged migration from a monolith to separate API and background worker services.",
+    "rubric": {
+      "required_points": [
+        "Separates synchronous request handling from long-running background work.",
+        "Introduces a queue or equivalent durable handoff between API and workers.",
+        "Explains a staged migration rather than an all-at-once rewrite.",
+        "Addresses worker failure, retry, or idempotency."
+      ],
+      "forbidden_points": [
+        "Assumes the user's project uses a specific framework without evidence.",
+        "Recommends immediately splitting the system into many microservices."
+      ]
+    },
+    "answer": "First keep the monolith serving requests while introducing a durable queue. Move one long-running task behind the queue and process it with a worker. The API should enqueue work and return without waiting for the job to finish. Add retry handling and make jobs idempotent before migrating additional background tasks. Once that boundary is stable, extract the API layer incrementally rather than rewriting everything at once.",
+    "expect": {
+      "passed": true,
+      "min_score": 4
+    }
+  },
+  {
+    "id": "architecture_bad_no_queue_01",
+    "prompt": "Design a staged migration from a monolith to separate API and background worker services.",
+    "rubric": {
+      "required_points": [
+        "Separates synchronous request handling from long-running background work.",
+        "Introduces a queue or equivalent durable handoff between API and workers.",
+        "Explains a staged migration rather than an all-at-once rewrite.",
+        "Addresses worker failure, retry, or idempotency."
+      ],
+      "forbidden_points": [
+        "Assumes the user's project uses a specific framework without evidence.",
+        "Recommends immediately splitting the system into many microservices."
+      ]
+    },
+    "answer": "Create a separate API server and a worker server. Test both services and deploy them when they are ready.",
+    "expect": {
+      "passed": false,
+      "max_score": 3
+    }
+  },
+  {
+    "id": "architecture_bad_big_bang_01",
+    "prompt": "Design a staged migration from a monolith to separate API and background worker services.",
+    "rubric": {
+      "required_points": [
+        "Separates synchronous request handling from long-running background work.",
+        "Introduces a queue or equivalent durable handoff between API and workers.",
+        "Explains a staged migration rather than an all-at-once rewrite.",
+        "Addresses worker failure, retry, or idempotency."
+      ],
+      "forbidden_points": [
+        "Assumes the user's project uses a specific framework without evidence.",
+        "Recommends immediately splitting the system into many microservices."
+      ]
+    },
+    "answer": "Rewrite the entire monolith as many independent microservices, switch all traffic to them at once, and remove the original application after deployment.",
+    "expect": {
+      "passed": false,
+      "max_score": 2
+    }
+  },
+  {
+    "id": "architecture_good_queue_retry_02",
+    "prompt": "Design a staged migration from a monolith to separate API and background worker services.",
+    "rubric": {
+      "required_points": [
+        "Separates synchronous request handling from long-running background work.",
+        "Introduces a queue or equivalent durable handoff between API and workers.",
+        "Explains a staged migration rather than an all-at-once rewrite.",
+        "Addresses worker failure, retry, or idempotency."
+      ],
+      "forbidden_points": [
+        "Assumes the user's project uses a specific framework without evidence.",
+        "Recommends immediately splitting the system into many microservices."
+      ]
+    },
+    "answer": "Keep HTTP request handling separate from asynchronous processing. Introduce RabbitMQ between the API and background workers so requests can enqueue work without waiting for completion. Migrate one background task first, observe it in production, and then move additional tasks incrementally. Add retry handling for failed jobs.",
+    "expect": {
+      "passed": true,
+      "min_score": 4
+    }
+  },
+  {
+    "id": "research_footer_only_bad_01",
+    "prompt": "Research current approaches and compare several independent sources.",
+    "rubric": {
+      "evaluation_context": [
+        "Source identifiers such as [S1] and [S2] are valid application citation identifiers.",
+        "The Sources section is automatically appended and does not count as inline citation use."
+      ],
+      "required_points": [
+        "Presents substantive findings rather than instructions for conducting research.",
+        "Uses inline source IDs.",
+        "Uses at least two different source IDs inline.",
+        "Meaningfully compares evidence from multiple sources."
+      ],
+      "forbidden_points": [
+        "Invents source IDs that do not correspond to supplied sources.",
+        "Tells the user to perform the research themselves."
+      ]
+    },
+    "answer": "Approach A reduces centralized data collection while Approach B protects individual records statistically. Both address privacy but at different stages of the system.\n\n### Sources\n\n- [S1 — Source One](https://example.com/one)\n- [S2 — Source Two](https://example.com/two)",
+    "expect": {
+      "passed": false,
+      "max_score": 3
+    }
+  },
+  {
+    "id": "research_inline_good_01",
+    "prompt": "Research current approaches and compare several independent sources.",
+    "rubric": {
+      "evaluation_context": [
+        "Source identifiers such as [S1] and [S2] are valid application citation identifiers.",
+        "The Sources section is automatically appended and does not count as inline citation use."
+      ],
+      "required_points": [
+        "Presents substantive findings rather than instructions for conducting research.",
+        "Uses inline source IDs.",
+        "Uses at least two different source IDs inline.",
+        "Meaningfully compares evidence from multiple sources."
+      ],
+      "forbidden_points": [
+        "Invents source IDs that do not correspond to supplied sources.",
+        "Tells the user to perform the research themselves."
+      ]
+    },
+    "answer": "Approach A reduces centralized data collection [S1], whereas Approach B protects individual records through statistical guarantees [S2]. Both target privacy, but they operate at different stages and therefore address different threat models [S1][S2].",
+    "expect": {
+      "passed": true,
+      "min_score": 4
+    }
+  },
+  {
+    "id": "research_no_self_instruction_01",
+    "prompt": "Research current approaches and compare several independent sources.",
+    "rubric": {
+      "evaluation_context": [
+        "Source identifiers such as [S1] and [S2] are valid application citation identifiers."
+      ],
+      "required_points": ["Presents substantive findings."],
+      "forbidden_points": ["Tells the user to perform the research themselves."]
+    },
+    "answer": "The sources emphasize different privacy mechanisms. One focuses on reducing centralized exposure [S1], while another focuses on limiting inference about individuals [S2].",
+    "expect": {
+      "passed": true,
+      "min_score": 4
+    }
+  }
+]

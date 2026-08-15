@@ -1,0 +1,1 @@
+Use deep reasoning only for genuinely difficult work involving multiple interacting systems, competing constraints, ambiguous evidence, substantial architecture or migration tradeoffs, or sustained synthesis.

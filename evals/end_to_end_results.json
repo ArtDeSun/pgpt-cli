@@ -1,0 +1,204 @@
+[
+  {
+    "id": "general_concept_01",
+    "prompt": "What is dependency injection?",
+    "route_checks": {
+      "execution": {
+        "expected": "local",
+        "actual": "local",
+        "passed": true
+      },
+      "template": {
+        "expected": "general",
+        "actual": "general",
+        "passed": true
+      },
+      "model": {
+        "expected": "qwen3:1.7b",
+        "actual": "qwen3:1.7b",
+        "passed": true
+      },
+      "project": {
+        "expected": null,
+        "actual": null,
+        "passed": true
+      }
+    },
+    "route_passed": true,
+    "quality_rubric": {
+      "required_points": [
+        "Explains that dependencies are supplied from outside rather than constructed internally.",
+        "Explains at least one benefit such as loose coupling or testability."
+      ],
+      "forbidden_points": [
+        "Claims dependency injection requires a dependency injection container."
+      ]
+    },
+    "answer": "Dependency injection is a design pattern used to manage the dependencies of a class. It allows a class to receive its dependencies from external sources rather than creating them itself. This promotes loose coupling and makes the code more maintainable and testable.\n\n**Example:**\nInstead of a class creating its own database connection, it receives it from a dependency injection container. This means the class is not responsible for managing the connection, making it easier to replace the database implementation with a different one.",
+    "response_path": "/home/stesun/ai/pgpt-cli/responses/20260814-185958-what-is-dependency-injection.md",
+    "elapsed_seconds": 21.652
+  },
+  {
+    "id": "debug_local_01",
+    "prompt": "Why does this Python code fail, and what is the smallest fix?\n\nage = 25\nmessage = 'Age: ' + age",
+    "route_checks": {
+      "execution": {
+        "expected": "local",
+        "actual": "local",
+        "passed": true
+      },
+      "template": {
+        "expected": "debug",
+        "actual": "debug",
+        "passed": true
+      },
+      "model": {
+        "expected": "llama3.2:3b",
+        "actual": "llama3.2:3b",
+        "passed": true
+      },
+      "project": {
+        "expected": null,
+        "actual": null,
+        "passed": true
+      }
+    },
+    "route_passed": true,
+    "quality_rubric": {
+      "required_points": [
+        "Identifies concatenation between a string and an integer as the failure.",
+        "Provides a minimal correction using explicit string conversion or formatting."
+      ],
+      "forbidden_points": [
+        "Claims Python automatically converts the integer before string concatenation."
+      ]
+    },
+    "answer": "The provided Python code fails because you cannot concatenate an integer (`age`) with a string (`'Age: '`). In Python, you need to convert the integer to a string using the `str()` function or use string formatting.\n\nHere's the smallest targeted fix:\n\n```python\nage = 25\nmessage = 'Age: ' + str(age)\n```\n\nQuick verification step:\n- Run the code and verify that it produces the expected output.",
+    "response_path": "/home/stesun/ai/pgpt-cli/responses/20260814-183001-why-does-this-python-code-fail-and-what-is-the-s.md",
+    "elapsed_seconds": 29.436
+  },
+  {
+    "id": "implement_local_01",
+    "prompt": "Write a Python function that removes duplicate strings while preserving order.",
+    "route_checks": {
+      "execution": {
+        "expected": "local",
+        "actual": "local",
+        "passed": true
+      },
+      "template": {
+        "expected": "implement",
+        "actual": "implement",
+        "passed": true
+      },
+      "model": {
+        "expected": "qwen2.5-coder:3b",
+        "actual": "qwen2.5-coder:3b",
+        "passed": true
+      },
+      "project": {
+        "expected": null,
+        "actual": null,
+        "passed": true
+      }
+    },
+    "route_passed": true,
+    "quality_rubric": {
+      "required_points": [
+        "Provides valid Python.",
+        "Removes duplicates.",
+        "Preserves first-occurrence order."
+      ],
+      "forbidden_points": [
+        "Sorts the input as the mechanism for removing duplicates."
+      ]
+    },
+    "answer": "To remove duplicate strings while preserving their original order in a list, you can use a set to track seen strings and iterate through the list to build a new list with duplicates removed. Here's how you can implement this:\n\n```python\ndef remove_duplicates_preserve_order(strings):\n    seen = set()\n    result = []\n    \n    for string in strings:\n        if string not in seen:\n            seen.add(string)\n            result.append(string)\n    \n    return result\n\n# Example usage:\nstrings = [\"apple\", \"banana\", \"apple\", \"orange\", \"banana\", \"kiwi\"]\nunique_strings = remove_duplicates_preserve_order(strings)\nprint(unique_strings)  # Output: ['apple', 'banana', 'orange', 'kiwi']\n```\n\n### Explanation:\n- **`seen` Set**: This set keeps track of strings that have already been encountered.\n- **`result` List**: This list stores the final result with duplicates removed and in their original order.\n- **Iteration**: The function iterates over each string in the input list. If a string is not in the `seen` set, it adds the string to both the `seen` set and the `result` list.\n- **Preservation of Order**: Since sets are unordered collections, this approach ensures that the order of first appearance is preserved.\n\nThis function efficiently removes duplicates while maintaining the original order of elements.",
+    "response_path": "/home/stesun/ai/pgpt-cli/responses/20260814-190020-write-a-python-function-that-removes-duplicate-s.md",
+    "elapsed_seconds": 34.472
+  },
+  {
+    "id": "architecture_generic_01",
+    "prompt": "Design a staged migration from a monolith to separate API and background worker services.",
+    "route_checks": {
+      "execution": {
+        "expected": "local",
+        "actual": "local",
+        "passed": true
+      },
+      "template": {
+        "expected": "architecture",
+        "actual": "architecture",
+        "passed": true
+      },
+      "model": {
+        "expected": "qwen2.5-coder:3b",
+        "actual": "qwen2.5-coder:3b",
+        "passed": true
+      },
+      "project": {
+        "expected": null,
+        "actual": null,
+        "passed": true
+      }
+    },
+    "route_passed": true,
+    "quality_rubric": {
+      "required_points": [
+        "Separates synchronous request handling from long-running background work.",
+        "Introduces a queue or equivalent durable handoff between API and workers.",
+        "Explains a staged migration rather than an all-at-once rewrite.",
+        "Addresses worker failure, retry, or idempotency."
+      ],
+      "forbidden_points": [
+        "Assumes the user's project uses a specific framework without evidence.",
+        "Recommends immediately splitting the system into many microservices."
+      ]
+    },
+    "answer": "To design a staged migration from a monolith to separate API and background worker services, follow these steps:\n\n1. **Define Objectives**: Clearly outline the goals of the migration, such as improving scalability, reducing latency, or enhancing security.\n\n2. **Identify Components**: Break down the monolith into distinct components that can be migrated independently. Common components include:\n   - **API Layer**: Handles HTTP requests and responses.\n   - **Business Logic**: Contains core business logic and data access.\n   - **Data Storage**: Manages database operations.\n   - **Background Workers**: Processes tasks asynchronously.\n\n3. **Design API Services**: Create RESTful APIs for each component. Ensure that the APIs are well-documented and follow best practices for scalability and security.\n\n4. **Implement Background Workers**: Use a message queue (e.g., RabbitMQ, Kafka) to handle background tasks. This allows you to decouple task processing from the main application.\n\n5. **Migrate Data**: Develop a migration strategy to transfer data from the monolith to the new services. Consider using tools like `pg_dump` for PostgreSQL or `mysqldump` for MySQL.\n\n6. **Test Each Component Independently**: Before integrating components, thoroughly test each one in isolation to ensure they work as expected.\n\n7. **Integrate Components**: Gradually integrate each component into the system. Start with a small subset of data and gradually expand coverage.\n\n8. **Monitor Performance**: Continuously monitor performance metrics to identify any issues or bottlenecks during migration.\n\n9. **Implement Failover Strategies**: Develop strategies for handling failures, such as retry mechanisms and fallback options.\n\n10. **Documentation and Training**: Provide comprehensive documentation for the new architecture and train relevant team members on how to use the new services.\n\nBy following these steps, you can ensure a smooth and successful migration from a monolith to separate API and background worker services.",
+    "response_path": "/home/stesun/ai/pgpt-cli/responses/20260814-183028-design-a-staged-migration-from-a-monolith-to-sep.md",
+    "elapsed_seconds": 27.036
+  },
+  {
+    "id": "research_web_01",
+    "prompt": "Research current AI privacy approaches and compare several independent sources.",
+    "route_checks": {
+      "execution": {
+        "expected": "web_research",
+        "actual": "web_research",
+        "passed": true
+      },
+      "template": {
+        "expected": "research-web",
+        "actual": "research-web",
+        "passed": true
+      },
+      "model": {
+        "expected": "qwen3:1.7b",
+        "actual": "qwen3:1.7b",
+        "passed": true
+      },
+      "project": {
+        "expected": null,
+        "actual": null,
+        "passed": true
+      }
+    },
+    "route_passed": true,
+    "quality_rubric": {
+      "required_points": [
+        "Presents substantive findings rather than instructions for conducting research.",
+        "Uses inline source IDs.",
+        "Uses at least two different source IDs.",
+        "Meaningfully compares evidence from multiple sources."
+      ],
+      "forbidden_points": [
+        "Invents source IDs.",
+        "Tells the user to perform the research themselves."
+      ]
+    },
+    "answer": "Current AI privacy approaches include data minimization, anonymization, encryption, and privacy-preserving data mining (PPDM). These methods aim to protect personal information while enabling AI systems to function effectively. For example, data minimization requires companies to collect only the data necessary for a specific purpose, while anonymization removes personally identifiable information from datasets. Encryption ensures data remains secure during transmission and at rest, and PPDM focuses on techniques that maintain privacy during data processing.\n\nThese approaches are often compared in the context of regulatory requirements, such as the General Data Protection Regulation (GDPR), which mandates data minimization and purpose limitation. Additionally, the use of privacy-preserving data mining techniques is highlighted in research emphasizing the need for transparency and accountability in AI systems.\n\nLimitations include the challenge of balancing data utility with privacy protection, and the potential for technical solutions to be insufficient in addressing complex privacy issues. Further research is needed to refine these approaches and ensure they align with evolving regulatory and ethical standards.\n\n### Sources\n\n- [S1 — Privacy in an AI Era: How Do We Protect Our Personal ...](https://hai.stanford.edu/news/privacy-ai-era-how-do-we-protect-our-personal-information)\n- [S2 — Frontiers | Both ends of artificial intelligence impacting privacy: a review of violation and protection](https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2026.1686454/full)\n- [S3 — Frontiers | Structuring privacy policy: an AI approach](https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2025.1720547/full)\n- [S4 — Both ends of artificial intelligence impacting privacy: a review ...](https://pmc.ncbi.nlm.nih.gov/articles/PMC12957209/)\n- [S5 — AI-driven Personalized Privacy Assistants: a Systematic Literature Review](https://arxiv.org/html/2502.07693v3)\n- [S6 — Exploring privacy issues in the age of AI | IBM](https://www.ibm.com/think/insights/ai-privacy)",
+    "response_path": "/home/stesun/ai/pgpt-cli/responses/20260814-190049-research-current-ai-privacy-approaches-and-compa.md",
+    "elapsed_seconds": 37.964
+  }
+]

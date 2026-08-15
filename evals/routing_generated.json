@@ -1,0 +1,574 @@
+[
+  {
+    "id": "generated_001_01",
+    "prompt": "I'm planning a trip to Europe and I want to visit all the famous landmarks in Rome, Italy within 3 days. Can you help me create an itinerary?",
+    "generator_model": "llama3.2:3b",
+    "domain": "daily_life",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_001_02",
+    "prompt": "explain the difference between async and await in JavaScript, using an example code snippet from the 'async/await' documentation on MDN Web Docs as reference, assuming I'm implementing a promise-based API endpoint for my own project repository at https://github.com/user/project-repo",
+    "generator_model": "llama3.2:3b",
+    "domain": "daily_life",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "explain-code",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_002_01",
+    "prompt": "Can you help me debug a issue with my new e-commerce app where orders are not being processed correctly and I need to identify the root cause of the problem?",
+    "generator_model": "llama3.2:3b",
+    "domain": "work",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "research",
+      "freshness": "unknown",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_002_02",
+    "prompt": "Can you explain how a microservices architecture would be designed for a real-time chat application?",
+    "generator_model": "llama3.2:3b",
+    "domain": "work",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_003_01",
+    "prompt": "What is the best way to organize my code for a new project using Python and Django?",
+    "generator_model": "llama3.2:3b",
+    "domain": "software",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_003_02",
+    "prompt": "Can you help me design a scalable architecture for my company's e-commerce platform that integrates with our existing CRM system and supports high traffic during peak sales seasons? The platform should also be able to handle secure payments and have a user-friendly interface.",
+    "generator_model": "llama3.2:3b",
+    "domain": "software",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_004_01",
+    "prompt": "Can you explain the logic behind your function that calculates the average time taken by each user to complete a task in my project? I need to understand how it handles edge cases where users have extremely long completion times.",
+    "generator_model": "llama3.2:3b",
+    "domain": "relationships",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "explain-code",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_004_02",
+    "prompt": "I'm creating a dating app and I want to know how to implement a feature that suggests users who have similar relationship goals but are currently single. Can you help me write some code in Python to get started?",
+    "generator_model": "llama3.2:3b",
+    "domain": "relationships",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_005_01",
+    "prompt": "I'm experiencing a crash in my React Native app on iOS and I need help debugging the issue with the exact line number where it's failing. Can you take a look at my project code? The error is: \"TypeError: Cannot read property 'name' of undefined\". I've tried restarting the simulator, cleaning the build folder, but nothing seems to work. Can you point me in the right direction?",
+    "generator_model": "llama3.2:3b",
+    "domain": "health",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "debug",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_005_02",
+    "prompt": "What are the symptoms of a low blood sugar episode in children?",
+    "generator_model": "llama3.2:3b",
+    "domain": "health",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "debug",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_006_01",
+    "prompt": "Can you help me understand the implications of using a 30-day free trial on a cloud-based accounting software like QuickBooks Online? I'm planning to use it for my small business and want to know how long the free period actually lasts and what happens after that.",
+    "generator_model": "llama3.2:3b",
+    "domain": "finance",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_006_02",
+    "prompt": "What are the differences between Apple Card and Chase Sapphire Preferred? Which one is better for someone who needs a 60k sign-up bonus and has good credit?",
+    "generator_model": "llama3.2:3b",
+    "domain": "finance",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "general",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_007_01",
+    "prompt": "Can you write a Python script that implements a simple machine learning algorithm for regression tasks using scikit-learn and Keras, specifically the ARIMA model, and integrate it with a Flask web application to create an API endpoint to predict continuous values based on historical data?",
+    "generator_model": "llama3.2:3b",
+    "domain": "education",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "implement",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_007_02",
+    "prompt": "What are the most effective strategies for improving student engagement in online courses? A recent study found that incorporating gamification elements and personalization techniques can significantly increase student motivation and participation. However, I'm looking for more comprehensive solutions that consider various factors such as course content, instructor-student interaction, and technical platform features. Can you investigate and synthesize evidence from multiple current external sources to provide a more detailed analysis of the most effective strategies for improving student engagement in online courses?",
+    "generator_model": "llama3.2:3b",
+    "domain": "education",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_008_01",
+    "prompt": "What are the typical classroom sizes in primary schools in England? I'm planning a new project and need accurate data to inform my design.",
+    "generator_model": "llama3.2:3b",
+    "domain": "teaching",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "research",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_008_02",
+    "prompt": "I've been using a new LMS and I'm experiencing issues with users being logged out after every lesson. Can you help me figure out why this might be happening?",
+    "generator_model": "llama3.2:3b",
+    "domain": "teaching",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "debug",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_009_01",
+    "prompt": "Can you create a basic script in Python that generates a simple melody using only notes C, D, and E?",
+    "generator_model": "llama3.2:3b",
+    "domain": "music",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "implement",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_009_02",
+    "prompt": "Can someone explain the difference between a for loop and a while loop in JavaScript? I'm working on a project and need to optimize my code. Please provide an example of how each is used in practice.",
+    "generator_model": "llama3.2:3b",
+    "domain": "music",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "explain-code",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_010_01",
+    "prompt": "What are the system requirements for the new e-commerce app I'm building and how can I ensure that my database schema meets these requirements?",
+    "generator_model": "llama3.2:3b",
+    "domain": "business",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_010_02",
+    "prompt": "Can you explain how a scalable architecture would be implemented in a cloud-based e-commerce platform?",
+    "generator_model": "llama3.2:3b",
+    "domain": "business",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "unknown",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_011_01",
+    "prompt": "What does the `required` parameter do in the `User` class of the React Hook Form library?",
+    "generator_model": "llama3.2:3b",
+    "domain": "shopping",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "explain-code",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_011_02",
+    "prompt": "Can you help me find the best 5-year warranty policy on the web that covers electronics from top brands like Apple and Samsung? I need to compare at least 3 different sellers (Amazon, Best Buy, and Newegg) and make sure they offer similar coverage terms and conditions. Additionally, could you provide information on any potential pitfalls or exclusions that might affect my purchase decision?",
+    "generator_model": "llama3.2:3b",
+    "domain": "shopping",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "unknown",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_012_01",
+    "prompt": "What are the opening hours of the Eiffel Tower in Paris this weekend?",
+    "generator_model": "llama3.2:3b",
+    "domain": "travel",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "research",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_012_02",
+    "prompt": "What are the best hiking trails in Yellowstone National Park with scenic views of the Grand Prismatic Spring?",
+    "generator_model": "llama3.2:3b",
+    "domain": "travel",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_013_01",
+    "prompt": "Can you explain the recent changes made by the NFL to their concussion protocol and how they might impact player safety? Investigate this change based on recent news articles and studies published in reputable medical journals within the last year.",
+    "generator_model": "llama3.2:3b",
+    "domain": "sports",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_013_02",
+    "prompt": "What are the key differences between React and Angular in terms of state management? I need to decide which one to use for my new project, a sports website that displays real-time player stats and scores, and can be accessed by users from different locations around the world.",
+    "generator_model": "llama3.2:3b",
+    "domain": "sports",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "explain-code",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_014_01",
+    "prompt": "What are the implications of using a custom font in our company's internal project on GitHub, and can you provide examples of similar companies that have successfully implemented this practice?",
+    "generator_model": "llama3.2:3b",
+    "domain": "legal",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "research",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_014_02",
+    "prompt": "Explain the usage and implications of the 'no-cache' HTTP header in a web application context, including its potential security risks and best practices for implementation.",
+    "generator_model": "llama3.2:3b",
+    "domain": "legal",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "explain-code",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_015_01",
+    "prompt": "Can you research and help me understand the current state of the EU's renewable energy policy, specifically focusing on the impact of net-zero targets on green financing and investment in European countries like Germany and France? I need to gather evidence from reputable sources such as the European Commission, the International Renewable Energy Agency (IRENA), and academic journals to inform my project on sustainable infrastructure development for a new European smart grid initiative.",
+    "generator_model": "llama3.2:3b",
+    "domain": "government",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "research",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_015_02",
+    "prompt": "Can you help me debug my open-source project's API endpoint that returns an error when a specific query parameter is set to null?",
+    "generator_model": "llama3.2:3b",
+    "domain": "government",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "debug",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_016_01",
+    "prompt": "I am working on a project that uses Python and I want to know how to implement a simple web scraping script using BeautifulSoup. Can you provide an example code snippet and explain the process step by step?",
+    "generator_model": "llama3.2:3b",
+    "domain": "science",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_016_02",
+    "prompt": "What are the most effective methods for optimizing protein synthesis in E. coli cells under varying temperature conditions? The request belongs to this life/work domain: biochemistry, and it must have these properties: SOURCE: web, SOURCE MEANING: The request needs a focused external lookup, current fact, public status, navigation result, or specific verification. WEB MODE: lookup, TASK: research, FRESHNESS: stable, COMPLEXITY: complex",
+    "generator_model": "llama3.2:3b",
+    "domain": "science",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "research",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_017_01",
+    "prompt": "Design a data storage system for my new e-commerce app that can handle high traffic and large amounts of product data. I use Node.js, Express, and MongoDB as the backend technology stack. Can you suggest an architecture that would work well with these technologies?",
+    "generator_model": "llama3.2:3b",
+    "domain": "creative_writing",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_017_02",
+    "prompt": "Can you help me redesign the database schema for my e-commerce app to improve performance and scalability? I've been struggling with slow query times and high storage usage. I've tried a few different approaches in the past, but nothing seems to be working. Can you provide some guidance on how to create a more efficient schema that can handle increased traffic and data growth?",
+    "generator_model": "llama3.2:3b",
+    "domain": "creative_writing",
+    "expect": {
+      "source": "project",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_018_01",
+    "prompt": "I need to design a scalable and secure system architecture for my company's e-commerce platform, which relies heavily on third-party APIs. Can you help me compare the pros and cons of using AWS Lambda versus Google Cloud Functions for serverless computing? I'm particularly interested in how these services handle concurrency and error handling. I've been researching this topic for a while, but I'd like to get some fresh insights from multiple sources, such as tech blogs and industry reports.",
+    "generator_model": "llama3.2:3b",
+    "domain": "home",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_018_02",
+    "prompt": "What are some common household pest control methods for a large farm in the United States? Which method would you recommend for an organic pesticide application?",
+    "generator_model": "llama3.2:3b",
+    "domain": "home",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "research",
+      "freshness": "unknown",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_019_01",
+    "prompt": "How does the new feature in GitHub Desktop affect version control for developers working on open-source projects? Can you provide an example of how it improves collaboration and reduces conflicts?",
+    "generator_model": "llama3.2:3b",
+    "domain": "career",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_019_02",
+    "prompt": "Can you implement a function to automatically deploy a new feature in our e-commerce app if it receives more than 500 successful reviews within the last month?",
+    "generator_model": "llama3.2:3b",
+    "domain": "career",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "implement",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_020_01",
+    "prompt": "Can you help me design a scalable and secure architecture for my e-commerce platform that integrates with multiple third-party payment gateways? I'm currently using Stripe but want to explore options for expanding to PayPal and Authorize.net as well. I've been reading about service boundaries and microservices, but I'd like some guidance on how to implement this in my application. Can you provide a high-level overview of the architecture and any tradeoffs I should consider?",
+    "generator_model": "llama3.2:3b",
+    "domain": "parenting",
+    "expect": {
+      "source": "web",
+      "web_mode": "research",
+      "task": "architecture",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_020_02",
+    "prompt": "What are some strategies that parents can use to help their children develop a healthy relationship with technology and balance screen time with physical activity?",
+    "generator_model": "llama3.2:3b",
+    "domain": "parenting",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "research",
+      "freshness": "current",
+      "complexity": "complex"
+    }
+  },
+  {
+    "id": "generated_021_01",
+    "prompt": "What does the 'console.log' function in JavaScript do and how is it used in real-world scenarios?",
+    "generator_model": "llama3.2:3b",
+    "domain": "emergency",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "explain-code",
+      "freshness": "current",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "generated_021_02",
+    "prompt": "Can you help me design a scalable architecture for a web application that handles high traffic and provides good performance? I'm currently using Node.js and Express, but I'm concerned about the limitations of my current setup and need to know if it can handle 1000 concurrent users without significant performance degradation. Can you provide some recommendations or alternatives to consider?",
+    "generator_model": "llama3.2:3b",
+    "domain": "emergency",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "architecture",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_022_01",
+    "prompt": "What are the best practices for securing a self-hosted Next.js application?",
+    "generator_model": "llama3.2:3b",
+    "domain": "technology",
+    "expect": {
+      "source": "none",
+      "web_mode": null,
+      "task": "general",
+      "freshness": "current",
+      "complexity": "standard"
+    }
+  },
+  {
+    "id": "generated_022_02",
+    "prompt": "What are the key differences between a graph database and a NoSQL database? Provide an example of how I can use each in my own project to improve data storage efficiency and scalability?",
+    "generator_model": "llama3.2:3b",
+    "domain": "technology",
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "stable",
+      "complexity": "complex"
+    }
+  }
+]
