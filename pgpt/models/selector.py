@@ -7,44 +7,11 @@ from pgpt.generation.ollama import list_models
 from pgpt.config import CONFIG
 
 
-_TASK_MODELS: dict[str, tuple[str, ...]] = {
-    "general": (
-        "qwen3:1.7b",
-        "qwen2.5-coder:3b",
-        "llama3.2:3b",
-    ),
-    "research": (
-        "qwen3:1.7b",
-        "qwen2.5-coder:3b",
-        "llama3.2:3b",
-    ),
-    "explain-code": (
-        "qwen2.5-coder:3b",
-        "llama3.2:3b",
-        "qwen3:1.7b",
-    ),
-    "debug": (
-        "llama3.2:3b",
-        "qwen2.5-coder:3b",
-        "qwen3:1.7b",
-    ),
-    "implement": (
-        "qwen2.5-coder:3b",
-        "llama3.2:3b",
-        "qwen3:1.7b",
-    ),
-    "architecture": (
-        "qwen2.5-coder:3b",
-        "qwen3:1.7b",
-        "llama3.2:3b",
-    ),
-}
-
-
 @dataclass(frozen=True)
 class ModelSelection:
     model: str
     reason: str
+
 
 def _task_preferences(
     task: str,

@@ -25,6 +25,19 @@ def _repair_prompt() -> str:
     ).strip()
 
 
+def _repair_request_prompt() -> str:
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "prompts"
+        / "quality"
+        / "repair-request.md"
+    )
+
+    return path.read_text(
+        encoding="utf-8"
+    ).strip()
+
+
 def _remove_markdown_section(
     answer: str,
     heading_text: str,
@@ -160,13 +173,10 @@ def stream_repair(
         + _repair_prompt()
     )
 
-    request = (
-        "ORIGINAL REQUEST\n"
-        f"{original_prompt}\n\n"
-        "VERIFICATION ISSUES\n"
-        f"{issue_text}\n\n"
-        "DRAFT ANSWER\n"
-        f"{draft_answer}"
+    request = _repair_request_prompt().format(
+        original_prompt=original_prompt,
+        issue_text=issue_text,
+        draft_answer=draft_answer,
     )
 
     return stream_chat(

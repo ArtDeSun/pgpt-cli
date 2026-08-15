@@ -54,6 +54,21 @@ PROMPT_SCHEMA: dict[str, Any] = {
 }
 
 
+def _routing_prompt(
+    name: str,
+) -> str:
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "prompts"
+        / "routing"
+        / f"{name}.md"
+    )
+
+    return path.read_text(
+        encoding="utf-8"
+    ).strip()
+
+
 def _load_json(
     path: Path,
 ) -> Any:
@@ -107,68 +122,20 @@ def _scenario_instruction(
         "web_mode"
     )
 
-    return f"""
-Write exactly ONE realistic user request.
-
-The request belongs to this life/work domain:
-
-{domain}
-
-It must have these properties:
-
-SOURCE:
-{source["source"]}
-
-SOURCE MEANING:
-{source["description"]}
-
-WEB MODE:
-{web_mode}
-
-TASK:
-{task["task"]}
-
-TASK MEANING:
-{task["description"]}
-
-FRESHNESS:
-{freshness["freshness"]}
-
-FRESHNESS MEANING:
-{freshness["description"]}
-
-COMPLEXITY:
-{complexity["complexity"]}
-
-COMPLEXITY MEANING:
-{complexity["description"]}
-
-Requirements:
-
-- Write only a realistic request an ordinary ChatGPT user might send.
-- Keep the request natural.
-- Do not mention routing.
-- Do not mention classification.
-- Do not mention evaluation.
-- Do not mention these labels.
-- Do not explain your work.
-- Do not answer the request.
-- Do not write more than one request.
-- The domain must genuinely match.
-- If source is project, explicitly make the request depend on
-  the user's own project, repository, app, source, or implementation.
-- If source is web, make external information genuinely necessary.
-- If web mode is research, make multi-source research genuinely
-  necessary.
-- If task is debug, describe something that needs diagnosis.
-- If task is implement, explicitly ask to create or modify code.
-- If task is explain-code, ask about actual code or an implementation.
-- If task is architecture, ask about system or infrastructure design.
-- If task is research, ask to investigate or compare evidence.
-- If freshness is current, make changing information genuinely relevant.
-- If freshness is stable, do not ask for latest, current, live,
-  recent, today's, or other changing information.
-""".strip()
+    return _routing_prompt(
+        "generate-case-request"
+    ).format(
+        domain=domain,
+        source=source["source"],
+        source_description=source["description"],
+        web_mode=web_mode,
+        task=task["task"],
+        task_description=task["description"],
+        freshness=freshness["freshness"],
+        freshness_description=freshness["description"],
+        complexity=complexity["complexity"],
+        complexity_description=complexity["description"],
+    )
 
 
 def _generate_one(
@@ -178,12 +145,12 @@ def _generate_one(
         "model": GENERATOR_MODEL,
         "messages": [
             {
-                "role": "system",
-                "content": (
-                    "Generate one realistic user request. "
-                    "Follow all supplied constraints. "
-                    "Do not answer the request."
-                ),
+                {
+                    "role": "system",
+                    "content": _routing_prompt(
+                        "generate-case-system"
+                    ),
+                },
             },
             {
                 "role": "user",
