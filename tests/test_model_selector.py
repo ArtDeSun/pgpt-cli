@@ -65,7 +65,7 @@ class TestModelSelector(
 
         self.assertEqual(
             result.model,
-            "llama3.2:3b",
+            "qwen2.5-coder:3b",
         )
 
     def test_implement(
