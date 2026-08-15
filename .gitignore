@@ -47,3 +47,9 @@ dist/
 secrets.env
 *.secrets.env
 backups/
+
+# Runtime-generated state
+state/
+
+# Local test chats
+chats/testing-v3/

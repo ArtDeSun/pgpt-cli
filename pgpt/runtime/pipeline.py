@@ -111,6 +111,28 @@ def _load_prompt(
         .strip()
     )
 
+def _load_runtime_prompt(
+    name: str,
+    **values: str,
+) -> str:
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "prompts"
+        / "runtime"
+        / f"{name}.md"
+    )
+
+    text = path.read_text(
+        encoding="utf-8"
+    ).strip()
+
+    if values:
+        return text.format(
+            **values
+        )
+
+    return text
+
 
 def _system_prompt(
     route: Route,
@@ -127,15 +149,18 @@ def _system_prompt(
 
     if route.execution == "project":
         runtime.append(
-            "PROJECT CONTEXT below contains the source retrieved "
-            "for this request."
+            _load_runtime_prompt(
+                "project-context"
+            )
         )
 
         if project_files:
             runtime.append(
-                "Retrieved files: "
-                + ", ".join(
-                    project_files
+                _load_runtime_prompt(
+                    "retrieved-files",
+                    files=", ".join(
+                        project_files
+                    ),
                 )
             )
 
@@ -144,21 +169,24 @@ def _system_prompt(
         and not offline_web
     ):
         runtime.append(
-            "WEB CONTEXT below contains the live sources retrieved "
-            "for this request. Source IDs such as [S1] correspond "
-            "to those retrieved sources."
+            _load_runtime_prompt(
+                "web-context"
+            )
         )
 
     if offline_web:
         runtime.append(
-            "Live web retrieval was required but unavailable for "
-            "this run. Do not present non-live knowledge as current."
+            _load_runtime_prompt(
+                "offline-web"
+            )
         )
 
     if context:
         runtime.append(
-            "\nCONTEXT\n"
-            + context
+            _load_runtime_prompt(
+                "context",
+                context=context,
+            )
         )
 
     if not runtime:
@@ -168,8 +196,7 @@ def _system_prompt(
         base
         + "\n\n"
         + "\n".join(
-            f"- {item}"
-            for item in runtime
+            runtime
         )
     )
 
@@ -617,11 +644,9 @@ def run(
                     {
                         "role": "user",
                         "content": (
-                            "Continue exactly where the "
-                            "previous answer stopped. "
-                            "Do not repeat material already "
-                            "written. Finish the answer "
-                            "completely and concisely."
+                            _load_runtime_prompt(
+                                "continue"
+                            )
                         ),
                     },
                 ]
