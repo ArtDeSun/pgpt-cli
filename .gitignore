@@ -53,3 +53,11 @@ state/
 
 # Local test chats
 chats/testing-v3/
+
+# Generated evaluation outputs
+evals/end_to_end_results.json
+evals/end_to_end_scored.json
+evals/reliability_results.json
+evals/model_benchmark_results.json
+evals/routing_generated.json
+evals/archive/
