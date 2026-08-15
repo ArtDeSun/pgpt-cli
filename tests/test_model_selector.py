@@ -137,6 +137,19 @@ class TestModelSelector(
                 available_models=AVAILABLE,
             )
 
+    def test_unknown_task_uses_general_preferences(
+        self,
+    ) -> None:
+        result = select_model(
+            "unknown-task",
+            available_models=AVAILABLE,
+        )
+
+        self.assertEqual(
+            result.model,
+            "qwen3:1.7b",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

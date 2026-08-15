@@ -31,13 +31,20 @@
       "general": "llama3.2:3b",
       "coder": "qwen2.5-coder:3b",
       "reasoning": "phi4-mini",
-
       "deep": "phi4-mini",
-
       "embedding": "qwen3-embedding:0.6b"
     },
 
-    "coder_templates": ["debug", "implement", "explain-code"]
+    "coder_templates": ["debug", "implement", "explain-code"],
+
+    "task_preferences": {
+      "general": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
+      "research": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
+      "explain-code": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
+      "debug": ["llama3.2:3b", "qwen2.5-coder:3b", "qwen3:1.7b"],
+      "implement": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
+      "architecture": ["qwen2.5-coder:3b", "qwen3:1.7b", "llama3.2:3b"]
+    }
   },
 
   "routing": {

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from pgpt.generation.ollama import list_models
 
+from pgpt.config import CONFIG
+
 
 _TASK_MODELS: dict[str, tuple[str, ...]] = {
     "general": (
@@ -43,6 +45,35 @@ _TASK_MODELS: dict[str, tuple[str, ...]] = {
 class ModelSelection:
     model: str
     reason: str
+
+def _task_preferences(
+    task: str,
+) -> tuple[str, ...]:
+    configured = (
+        CONFIG.get(
+            "models",
+            {}
+        )
+        .get(
+            "task_preferences",
+            {}
+        )
+    )
+
+    values = configured.get(
+        task
+    )
+
+    if values is None:
+        values = configured.get(
+            "general",
+            []
+        )
+
+    return tuple(
+        str(value)
+        for value in values
+    )
 
 
 def _resolve_available_name(
@@ -94,10 +125,15 @@ def select_model(
             reason="explicit model override",
         )
 
-    candidates = _TASK_MODELS.get(
-        task,
-        _TASK_MODELS["general"],
+    candidates = _task_preferences(
+        task
     )
+
+    if not candidates:
+        raise RuntimeError(
+            "No answer-model preferences are configured "
+            f"for task={task!r}."
+        )
 
     for candidate in candidates:
         resolved = _resolve_available_name(
