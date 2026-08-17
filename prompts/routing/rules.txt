@@ -43,6 +43,15 @@ still\s+(?:available|operating|supported|active|in\s+office)
 has\s+been\s+released
 is\s+deprecated
 
+[live-lookup]
+(?:what(?:'s|\s+is)|how(?:'s|\s+is)|show|give\s+me|tell\s+me).{0,50}(?:weather|forecast)
+(?:weather|forecast).{0,50}(?:today|tonight|tomorrow|this\s+week|right\s+now)
+(?:what\s+time\s+is\s+it|current\s+time|time\s+in\s+[a-z])
+(?:opening\s+hours|open\s+now|when\s+does\s+.+?\s+open)
+(?:live\s+score|score\s+right\s+now|current\s+score)
+(?:current\s+|latest\s+)?(?:stock|share|bitcoin|crypto|exchange)\s+(?:price|rate)
+(?:flight\s+status|train\s+status|traffic\s+right\s+now)
+
 [research]
 research
 multiple\s+(?:independent\s+)?sources
@@ -55,6 +64,7 @@ compare\s+.+?\s+using\s+several\s+sources
 synthesize\s+(?:the\s+)?evidence
 evidence\s+synthesis
 independent\s+sources
+investigate.{0,80}(?:sources|articles|studies|evidence)
 
 [architecture]
 architecture

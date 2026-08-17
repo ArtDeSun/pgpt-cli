@@ -5,177 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>pgpt-cli</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: #101214; color: #eceff1; }
-    main { width: min(1000px, 100%); margin: 0 auto; min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
-    header { position: sticky; top: 0; z-index: 5; padding: 14px 18px; background: rgba(16,18,20,.94); border-bottom: 1px solid #2b3035; backdrop-filter: blur(10px); }
-    .top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    h1 { margin: 0 12px 0 0; font-size: 18px; }
-    label { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #aeb7bf; }
-    select, input, textarea, button { font: inherit; }
-    select { background: #1c2024; color: #e7ebee; border: 1px solid #343a40; border-radius: 8px; padding: 7px 9px; }
-    #chat { padding: 24px 18px 150px; }
-    .message { max-width: 82%; margin: 0 0 18px; padding: 12px 14px; border-radius: 14px; white-space: pre-wrap; line-height: 1.5; overflow-wrap: anywhere; }
-    .user { margin-left: auto; background: #28313a; }
-    .assistant { background: #191d21; border: 1px solid #2d3339; }
-    .meta { margin-top: 8px; color: #89939d; font-size: 11px; white-space: normal; }
-    footer { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, #101214 28%); padding: 36px 16px 16px; }
-    .composer { width: min(964px, 100%); margin: 0 auto; display: grid; grid-template-columns: 1fr auto; gap: 10px; background: #1a1e22; border: 1px solid #353b41; border-radius: 16px; padding: 10px; }
-    textarea { resize: none; min-height: 52px; max-height: 180px; background: transparent; color: #f4f6f7; border: 0; outline: 0; padding: 8px; }
-    button { align-self: end; border: 0; border-radius: 10px; padding: 10px 16px; background: #e8edf0; color: #101214; font-weight: 700; cursor: pointer; }
-    button:disabled { opacity: .45; cursor: wait; }
-    .status { padding: 6px 2px 0; color: #909aa3; font-size: 11px; }
-    @media (max-width: 640px) { .message { max-width: 94%; } header { position: static; } }
+    :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--bg:#171717;--panel:#202020;--panel2:#292929;--border:#383838;--muted:#a5a5a5;--text:#f2f2f2}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{height:100vh;display:grid;grid-template-columns:260px 1fr}aside{border-right:1px solid var(--border);background:#141414;padding:12px;display:flex;flex-direction:column;min-width:0}.brand{display:flex;align-items:center;gap:9px;padding:8px;font-weight:700}.brand-dot{width:11px;height:11px;border-radius:50%;background:#efefef}.side-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin:8px 0}.btn{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:9px;padding:9px 11px}.btn:hover{background:var(--panel2)}.btn.primary{background:#ededed;color:#151515;border-color:#ededed;font-weight:650}.icon-btn{width:36px;padding:0;display:grid;place-items:center}.search{width:100%;border:1px solid var(--border);background:#1b1b1b;color:var(--text);border-radius:9px;padding:9px;outline:none}.side-scroll{overflow:auto;margin-top:10px;padding-right:3px}.section-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:10px 8px 4px}.chat-row{display:grid;grid-template-columns:1fr auto auto;gap:2px;align-items:center;border-radius:8px;padding:3px 4px 3px 8px;color:#d8d8d8}.chat-row:hover,.chat-row.active{background:#272727}.chat-name{border:0;background:transparent;color:inherit;text-align:left;padding:7px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tiny{border:0;background:transparent;color:var(--muted);padding:6px;border-radius:6px}.tiny:hover{color:white;background:#343434}.sidebar-footer{margin-top:auto;border-top:1px solid var(--border);padding-top:10px;color:var(--muted);font-size:11px;line-height:1.5}main{min-width:0;display:grid;grid-template-rows:auto 1fr auto;height:100vh;position:relative}header{border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:rgba(23,23,23,.96)}header select{background:#222;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 8px}header label{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:12px}.spacer{flex:1}.usage{color:var(--muted);font-size:12px;border:1px solid var(--border);border-radius:999px;padding:6px 9px}.usage.warn{color:#ffd27d;border-color:#725b2d}.online{color:#8ed6a4}.offline{color:#e7aa82}#conversation{overflow:auto;padding:28px max(22px,calc((100% - 820px)/2)) 180px;scroll-behavior:smooth}.empty{max-width:700px;margin:15vh auto 0;text-align:center;color:var(--muted)}.empty h1{color:var(--text);font-size:28px;margin-bottom:8px}.message-wrap{margin:0 0 24px}.date-separator{text-align:center;color:#777;font-size:11px;margin:24px 0}.message{max-width:86%;border-radius:16px;padding:12px 15px;line-height:1.58;overflow-wrap:anywhere}.message.user{margin-left:auto;background:#303030}.message.assistant{padding-left:0;padding-right:0;max-width:100%}.message-time{color:#777;font-size:10px;margin-top:5px}.user+.message-time{text-align:right}.md h1,.md h2,.md h3{margin:1.2em 0 .5em;line-height:1.25}.md h1{font-size:1.45rem}.md h2{font-size:1.25rem}.md h3{font-size:1.08rem}.md p{margin:.65em 0}.md ul,.md ol{margin:.55em 0 .8em 1.4em;padding:0}.md li{margin:.22em 0}.md a{color:#9fc5ff;text-decoration:underline;text-underline-offset:2px}.md code.inline{background:#2b2b2b;border:1px solid #3b3b3b;padding:1px 5px;border-radius:5px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.code-block{position:relative;margin:13px 0}.code-block pre{margin:0;padding:14px;overflow:auto;border:1px solid #383838;background:#111;border-radius:10px}.code-block code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;white-space:pre}.copy-code{position:absolute;top:7px;right:7px;border:1px solid #3c3c3c;background:#252525;color:#ddd;border-radius:6px;padding:5px 8px;font-size:11px}blockquote{margin:.8em 0;padding-left:12px;border-left:3px solid #555;color:#ccc}.route{margin-top:10px;font-size:11px;color:#858585;display:flex;gap:10px;flex-wrap:wrap}.attachments{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.attachment{border:1px solid #444;background:#242424;border-radius:8px;padding:6px 8px;font-size:11px;color:#d0d0d0}.suggestions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.suggestion{border:1px solid #414141;background:#1e1e1e;color:#d7d7d7;border-radius:999px;padding:7px 10px;font-size:12px}.suggestion:hover{background:#2b2b2b}.thinking{display:inline-flex;align-items:center;gap:9px;color:#bdbdbd}.spinner{width:15px;height:15px;border:2px solid #555;border-top-color:#ddd;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.composer-shell{position:absolute;bottom:0;left:0;right:0;padding:38px 18px 16px;background:linear-gradient(transparent,var(--bg) 35%)}.composer{max-width:830px;margin:auto;background:#262626;border:1px solid #414141;border-radius:18px;box-shadow:0 8px 35px rgba(0,0,0,.28)}.attachment-bar{padding:8px 10px 0;display:none;gap:6px;flex-wrap:wrap}.attachment-bar.visible{display:flex}textarea{width:100%;min-height:52px;max-height:180px;resize:none;border:0;outline:0;background:transparent;color:var(--text);padding:13px 14px 6px}.composer-actions{display:flex;align-items:center;gap:6px;padding:5px 8px 8px}.composer-actions .spacer{flex:1}.round{border:0;background:transparent;color:#ccc;width:34px;height:34px;border-radius:50%;display:grid;place-items:center}.round:hover{background:#363636}.send{background:#eee;color:#111}.send:disabled{opacity:.45;cursor:wait}.status{max-width:830px;margin:6px auto 0;color:#777;font-size:10px;padding-left:6px;min-height:14px}.drawer{position:absolute;inset:0 0 0 auto;width:min(560px,92vw);background:#181818;border-left:1px solid var(--border);z-index:20;display:none;grid-template-rows:auto 1fr;box-shadow:-20px 0 50px rgba(0,0,0,.45)}.drawer.open{display:grid}.drawer-head{padding:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}.drawer-body{overflow:auto;padding:12px}.response-row{padding:10px;border:1px solid transparent;border-radius:9px;cursor:pointer}.response-row:hover{background:#242424;border-color:#333}.response-title{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.response-meta{font-size:10px;color:#777;margin-top:3px}.response-view{max-width:850px;margin:0 auto}.response-toolbar{display:flex;justify-content:space-between;gap:10px;margin-bottom:16px}@media(max-width:760px){.app{grid-template-columns:1fr}aside{position:absolute;left:0;top:0;bottom:0;width:270px;z-index:30;transform:translateX(-100%);transition:transform .2s}aside.open{transform:translateX(0)}#mobileMenu{display:inline-grid!important}header{padding-left:10px}#conversation{padding-left:14px;padding-right:14px}.message{max-width:94%}}
   </style>
 </head>
 <body>
-<main>
-  <header>
-    <div class="top">
-      <h1>pgpt-cli</h1>
+<div class="app">
+  <aside id="sidebar">
+    <div class="brand"><span class="brand-dot"></span> pgpt-cli</div>
+    <div class="side-actions"><button id="newChat" class="btn primary">New chat</button><button id="openResponses" class="btn icon-btn" title="Saved responses">▤</button></div>
+    <input id="chatSearch" class="search" placeholder="Search chats" />
+    <div id="chatList" class="side-scroll"></div>
+    <div class="sidebar-footer">Chats and attachments stay in this browser's local storage.<br />Personal skills: ~/.config/pgpt/skills/</div>
+  </aside>
+  <main>
+    <header>
+      <button id="mobileMenu" class="btn icon-btn" style="display:none" title="Chats">☰</button>
       <label>Project <select id="project"></select></label>
-      <label>Web
-        <select id="web">
-          <option value="auto">auto</option>
-          <option value="off">off</option>
-          <option value="lookup">lookup</option>
-          <option value="research">research</option>
-        </select>
-      </label>
+      <label>Web <select id="web" title="auto uses web only when routing needs current/external data; off is local-only"><option value="auto">auto</option><option value="off">off · local-only</option><option value="lookup">lookup</option><option value="research">research</option></select></label>
       <label>Skill <select id="skill"><option value="">off</option></select></label>
-      <label><input id="deep" type="checkbox" /> deep</label>
-      <button id="newChat" type="button">New chat</button>
-    </div>
-  </header>
-  <section id="chat" aria-live="polite"></section>
-</main>
-<footer>
-  <div class="composer">
-    <textarea id="prompt" rows="2" placeholder="Message pgpt-cli…" autofocus></textarea>
-    <button id="send">Send</button>
-  </div>
-  <div class="status" id="status"></div>
-</footer>
+      <label><input id="deep" type="checkbox" /> deep</label><span class="spacer"></span>
+      <button id="exportChat" class="btn">Export chat</button><span id="usage" class="usage">Brave usage…</span>
+    </header>
+    <section id="conversation" aria-live="polite"></section>
+    <div class="composer-shell"><div class="composer"><div id="attachmentBar" class="attachment-bar"></div><textarea id="prompt" rows="2" placeholder="Message pgpt-cli…" autofocus></textarea><div class="composer-actions"><input id="fileInput" type="file" multiple hidden accept=".txt,.md,.markdown,.py,.js,.jsx,.ts,.tsx,.json,.yaml,.yml,.csv,.html,.css,.sh,.toml,.ini,.log" /><button id="attach" class="round" title="Attach text/code files">＋</button><span class="spacer"></span><button id="send" class="round send" title="Send">↑</button></div></div><div id="status" class="status"></div></div>
+    <section id="responsesDrawer" class="drawer"><div class="drawer-head"><strong>Saved responses</strong><span class="spacer"></span><button id="refreshResponses" class="btn">Refresh</button><button id="closeResponses" class="btn icon-btn">×</button></div><div id="responsesBody" class="drawer-body"></div></section>
+  </main>
+</div>
 <script>
-  const chat = document.querySelector('#chat');
-  const promptBox = document.querySelector('#prompt');
-  const send = document.querySelector('#send');
-  const status = document.querySelector('#status');
-  const project = document.querySelector('#project');
-  const web = document.querySelector('#web');
-  const skill = document.querySelector('#skill');
-  const deep = document.querySelector('#deep');
-  const newChat = document.querySelector('#newChat');
-  const storageKey = 'pgpt-cli-browser-chat-v1';
-  let messages = [];
-
-  try {
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
-    if (Array.isArray(stored)) messages = stored.slice(-100);
-  } catch (_) {
-    messages = [];
-  }
-
-  function saveMessages() {
-    localStorage.setItem(storageKey, JSON.stringify(messages.slice(-100)));
-  }
-
-  function addMessage(role, text, route) {
-    const node = document.createElement('article');
-    node.className = `message ${role}`;
-    node.textContent = text;
-    if (route) {
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = `route: ${route.execution} · template: ${route.template} · model: ${route.model}`;
-      node.appendChild(meta);
-    }
-    chat.appendChild(node);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  }
-
-  async function loadMeta() {
-    const response = await fetch('/api/meta');
-    const meta = await response.json();
-    project.innerHTML = '';
-    for (const name of meta.projects || []) {
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = name;
-      option.selected = name === meta.default_project;
-      project.appendChild(option);
-    }
-    for (const name of meta.skills || []) {
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = name;
-      skill.appendChild(option);
-    }
-  }
-
-  async function submit() {
-    const text = promptBox.value.trim();
-    if (!text || send.disabled) return;
-    promptBox.value = '';
-    addMessage('user', text);
-    messages.push({ role: 'user', content: text });
-    saveMessages();
-    send.disabled = true;
-    status.textContent = 'Running local pipeline…';
-
-    try {
-      const response = await fetch('/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'pgpt-cli',
-          messages,
-          pgpt: {
-            project: project.value || undefined,
-            web: web.value,
-            deep: deep.checked || undefined,
-            skill: skill.value || undefined,
-          },
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error?.message || 'Request failed');
-      const textOut = data.choices?.[0]?.message?.content || '';
-      messages.push({ role: 'assistant', content: textOut });
-      saveMessages();
-      addMessage('assistant', textOut, data.pgpt?.route);
-      status.textContent = data.pgpt?.response_path ? `saved: ${data.pgpt.response_path}` : '';
-    } catch (error) {
-      addMessage('assistant', `Error: ${error.message}`);
-      status.textContent = '';
-    } finally {
-      send.disabled = false;
-      promptBox.focus();
-    }
-  }
-
-  for (const message of messages) {
-    addMessage(message.role, message.content);
-  }
-
-  newChat.addEventListener('click', () => {
-    messages = [];
-    saveMessages();
-    chat.innerHTML = '';
-    status.textContent = '';
-    promptBox.focus();
-  });
-
-  send.addEventListener('click', submit);
-  promptBox.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      submit();
-    }
-  });
-
-  loadMeta().catch((error) => { status.textContent = `Metadata error: ${error.message}`; });
+(()=>{const $=s=>document.querySelector(s),conversation=$('#conversation'),promptBox=$('#prompt'),send=$('#send'),status=$('#status'),project=$('#project'),web=$('#web'),skill=$('#skill'),deep=$('#deep'),chatList=$('#chatList'),chatSearch=$('#chatSearch'),sidebar=$('#sidebar'),usage=$('#usage'),attachmentBar=$('#attachmentBar'),fileInput=$('#fileInput'),responsesDrawer=$('#responsesDrawer'),responsesBody=$('#responsesBody');const STORAGE_KEY='pgpt-cli-browser-state-v2',LEGACY_KEY='pgpt-cli-browser-chat-v1',MAX_CHATS=100,MAX_MESSAGES=200,MAX_FILE_BYTES=250*1024,MAX_ATTACH_BYTES=750*1024;let pendingAttachments=[],timerHandle=null;const uid=()=>crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`;
+function freshState(){const id=uid(),now=new Date().toISOString();return{activeId:id,chats:[{id,title:'New chat',pinned:false,createdAt:now,updatedAt:now,messages:[]}]}}
+function loadState(){try{const p=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(p&&Array.isArray(p.chats)&&p.chats.length)return p}catch(_){}try{const legacy=JSON.parse(localStorage.getItem(LEGACY_KEY)||'[]');if(Array.isArray(legacy)&&legacy.length){const id=uid(),now=new Date().toISOString();return{activeId:id,chats:[{id,title:'Imported chat',pinned:false,createdAt:now,updatedAt:now,messages:legacy.map(m=>({...m,at:now}))}]}}}catch(_){}return freshState()}let state=loadState();
+function persist(){state.chats=state.chats.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,MAX_CHATS);localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function activeChat(){let chat=state.chats.find(c=>c.id===state.activeId);if(!chat){chat=freshState().chats[0];state.chats.unshift(chat);state.activeId=chat.id;persist()}return chat}
+function escapeHtml(v){return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+function inlineMarkdown(v){let t=escapeHtml(v);t=t.replace(/`([^`\n]+)`/g,'<code class="inline">$1</code>');t=t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');t=t.replace(/(?<!["'=])(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_]+)__/g,'<strong>$1</strong>').replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g,'<em>$1</em>');return t}
+function renderMarkdown(source){const blocks=[];let text=String(source||'').replace(/```([^\n]*)\n?([\s\S]*?)```/g,(_,lang,code)=>{const i=blocks.length;blocks.push({lang:String(lang||'').trim(),code:String(code||'').replace(/\n$/,'')});return`\n@@CODEBLOCK_${i}@@\n`});const out=[];let list=null;const close=()=>{if(list)out.push(`</${list}>`);list=null};for(const raw of text.split(/\r?\n/)){const line=raw.trimEnd(),code=line.match(/^@@CODEBLOCK_(\d+)@@$/);if(code){close();const item=blocks[Number(code[1])];out.push(`<div class="code-block"><button class="copy-code" data-code="${encodeURIComponent(item.code)}">Copy</button><pre><code data-language="${escapeHtml(item.lang)}">${escapeHtml(item.code)}</code></pre></div>`);continue}const h=line.match(/^(#{1,3})\s+(.+)$/);if(h){close();const n=h[1].length;out.push(`<h${n}>${inlineMarkdown(h[2])}</h${n}>`);continue}const ul=line.match(/^\s*[-*]\s+(.+)$/);if(ul){if(list!=='ul'){close();list='ul';out.push('<ul>')}out.push(`<li>${inlineMarkdown(ul[1])}</li>`);continue}const ol=line.match(/^\s*\d+[.)]\s+(.+)$/);if(ol){if(list!=='ol'){close();list='ol';out.push('<ol>')}out.push(`<li>${inlineMarkdown(ol[1])}</li>`);continue}if(/^\s*>\s?/.test(line)){close();out.push(`<blockquote>${inlineMarkdown(line.replace(/^\s*>\s?/,''))}</blockquote>`);continue}if(!line.trim()){close();continue}close();out.push(`<p>${inlineMarkdown(line)}</p>`)}close();return out.join('')}
+function extractSuggestions(text){const pattern=/\n#{1,3}\s+(?:Next ideas|Next steps|Suggested follow-ups|Follow-up suggestions)\s*\n([\s\S]*)$/i,match=String(text||'').match(pattern);if(!match)return{body:text,suggestions:[]};return{body:String(text).slice(0,match.index).trimEnd(),suggestions:match[1].split(/\r?\n/).map(l=>l.replace(/^\s*(?:[-*]|\d+[.)])\s+/,'').trim()).filter(Boolean).slice(0,4)}}
+const fallbackSuggestions=()=>['Explain the most important part in more detail.','Show me a practical example.','What should I do next?'];const formatTime=i=>new Intl.DateTimeFormat([],{hour:'numeric',minute:'2-digit'}).format(new Date(i));const formatFullTime=i=>new Intl.DateTimeFormat([],{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'}).format(new Date(i));const dateKey=i=>new Date(i).toLocaleDateString();
+function renderAttachments(items=[]){return items.length?`<div class="attachments">${items.map(f=>`<button class="attachment" data-download-attachment="${escapeHtml(f.id)}">📎 ${escapeHtml(f.name)} · ${Math.round(f.size/1024)} KB</button>`).join('')}</div>`:''}
+function renderConversation(){const chat=activeChat();conversation.innerHTML='';if(!chat.messages.length){conversation.innerHTML='<div class="empty"><h1>How can pgpt-cli help?</h1><p>Local-first chat with project retrieval, optional Brave web search, skills, and Ollama.</p></div>';return}let prev=null;chat.messages.forEach(message=>{const at=message.at||chat.createdAt,day=dateKey(at);if(day!==prev){const sep=document.createElement('div');sep.className='date-separator';sep.textContent=day;conversation.appendChild(sep);prev=day}const wrap=document.createElement('article');wrap.className='message-wrap';const bubble=document.createElement('div');bubble.className=`message ${message.role}`;if(message.role==='assistant'){const parsed=extractSuggestions(message.content);bubble.innerHTML=`<div class="md">${renderMarkdown(parsed.body)}</div>`;const route=message.meta?.route,timing=message.meta?.timing;if(route||timing){const meta=document.createElement('div');meta.className='route';const parts=[];if(route?.execution)parts.push(route.execution);if(route?.model)parts.push(route.model);if(timing?.total_seconds!=null)parts.push(`${Number(timing.total_seconds).toFixed(1)}s`);meta.textContent=parts.join(' · ');bubble.appendChild(meta)}const suggestions=parsed.suggestions.length?parsed.suggestions:fallbackSuggestions(),node=document.createElement('div');node.className='suggestions';node.innerHTML=suggestions.map(s=>`<button class="suggestion" data-suggestion="${encodeURIComponent(s)}">${escapeHtml(s)}</button>`).join('');bubble.appendChild(node)}else bubble.textContent=message.content;if(message.attachments?.length)bubble.insertAdjacentHTML('beforeend',renderAttachments(message.attachments));const tm=document.createElement('div');tm.className='message-time';tm.textContent=formatTime(at);tm.title=formatFullTime(at);wrap.appendChild(bubble);wrap.appendChild(tm);conversation.appendChild(wrap)});conversation.scrollTop=conversation.scrollHeight}
+function renderChatList(){const q=chatSearch.value.trim().toLowerCase(),chats=[...state.chats].filter(c=>!q||c.title.toLowerCase().includes(q)).sort((a,b)=>Number(b.pinned)-Number(a.pinned)||new Date(b.updatedAt)-new Date(a.updatedAt)),pinned=chats.filter(c=>c.pinned),recent=chats.filter(c=>!c.pinned),rows=items=>items.map(c=>`<div class="chat-row ${c.id===state.activeId?'active':''}"><button class="chat-name" data-open-chat="${c.id}" title="${escapeHtml(c.title)}">${escapeHtml(c.title)}</button><button class="tiny" data-pin-chat="${c.id}" title="${c.pinned?'Unpin':'Pin'}">${c.pinned?'★':'☆'}</button><button class="tiny" data-delete-chat="${c.id}" title="Delete">×</button></div>`).join('');chatList.innerHTML=(pinned.length?`<div class="section-label">Pinned</div>${rows(pinned)}`:'')+`<div class="section-label">Recents</div>${rows(recent)||'<div class="response-meta" style="padding:8px">No matching chats</div>'}`}
+function createChat(){const fresh=freshState().chats[0];state.chats.unshift(fresh);state.activeId=fresh.id;pendingAttachments=[];renderAttachmentBar();persist();renderChatList();renderConversation();promptBox.focus()}
+function removeChat(id){const chat=state.chats.find(c=>c.id===id);if(!chat||!confirm(`Delete "${chat.title}"?`))return;state.chats=state.chats.filter(c=>c.id!==id);if(!state.chats.length)state=freshState();else if(state.activeId===id)state.activeId=state.chats[0].id;persist();renderChatList();renderConversation()}
+const titleFromPrompt=t=>{const c=t.replace(/\s+/g,' ').trim();return c.length>46?`${c.slice(0,46)}…`:c||'New chat'};
+function renderAttachmentBar(){attachmentBar.classList.toggle('visible',pendingAttachments.length>0);attachmentBar.innerHTML=pendingAttachments.map(f=>`<button class="attachment" data-remove-attachment="${f.id}">📎 ${escapeHtml(f.name)} · ×</button>`).join('')}
+async function addFiles(list){let total=pendingAttachments.reduce((s,f)=>s+f.size,0);for(const file of [...list]){if(file.size>MAX_FILE_BYTES){status.textContent=`${file.name} is larger than ${MAX_FILE_BYTES/1024} KB.`;continue}if(total+file.size>MAX_ATTACH_BYTES){status.textContent='Attachment total is too large.';break}try{const content=await file.text();pendingAttachments.push({id:uid(),name:file.name,type:file.type||'text/plain',size:file.size,content});total+=file.size}catch(_){status.textContent=`Could not read ${file.name} as text.`}}renderAttachmentBar();fileInput.value=''}
+function apiMessages(chat){return chat.messages.map(m=>{if(m.role!=='user'||!m.attachments?.length)return{role:m.role,content:m.content};const files=m.attachments.map(f=>`\n\n--- Attached file: ${f.name} ---\n${f.content}\n--- End attached file: ${f.name} ---`).join('');return{role:'user',content:m.content+files}})}
+function startLoading(){const started=performance.now(),wrap=document.createElement('article');wrap.id='loadingMessage';wrap.className='message-wrap';wrap.innerHTML='<div class="message assistant"><div class="thinking"><span class="spinner"></span><span id="loadingLabel">Routing request</span><strong id="loadingTimer">0.0s</strong></div></div>';conversation.appendChild(wrap);conversation.scrollTop=conversation.scrollHeight;timerHandle=setInterval(()=>{const seconds=(performance.now()-started)/1000,label=seconds<2?'Routing request':seconds<5?'Gathering context':seconds<12?'Generating answer':'Generating and verifying';$('#loadingLabel').textContent=label;$('#loadingTimer').textContent=`${seconds.toFixed(1)}s`},100)}function stopLoading(){clearInterval(timerHandle);timerHandle=null;$('#loadingMessage')?.remove()}
+async function refreshUsage(){try{const r=await fetch('/api/web-usage'),d=await r.json(),used=d.effective_requests??d.local_requests??0,budget=d.budget||'∞';usage.textContent=`Brave ${used}/${budget} · ${d.online?'online':'offline'}`;usage.classList.toggle('warn',Boolean(d.warning));usage.classList.toggle('online',Boolean(d.online)&&!d.warning);usage.classList.toggle('offline',!d.online);usage.title=d.api_monthly_remaining!=null?`Brave API monthly remaining reported by headers: ${d.api_monthly_remaining}`:'Local request counter; Brave quota headers will be incorporated after web requests.'}catch(_){usage.textContent='Brave usage unavailable'}}
+async function loadMeta(){const r=await fetch('/api/meta'),meta=await r.json();project.innerHTML='';for(const name of meta.projects||[]){const o=document.createElement('option');o.value=name;o.textContent=name;o.selected=name===meta.default_project;project.appendChild(o)}skill.innerHTML='<option value="">off</option>';for(const name of meta.skills||[]){const o=document.createElement('option');o.value=name;o.textContent=name;skill.appendChild(o)}}
+async function submit(){const text=promptBox.value.trim();if((!text&&!pendingAttachments.length)||send.disabled)return;const chat=activeChat(),now=new Date().toISOString(),attachments=pendingAttachments.map(f=>({...f}));if(chat.title==='New chat')chat.title=titleFromPrompt(text||attachments[0]?.name);chat.messages.push({role:'user',content:text||`Attached ${attachments.length} file${attachments.length===1?'':'s'}.`,attachments,at:now});chat.messages=chat.messages.slice(-MAX_MESSAGES);chat.updatedAt=now;pendingAttachments=[];renderAttachmentBar();promptBox.value='';persist();renderChatList();renderConversation();send.disabled=true;status.textContent='Local pipeline running…';startLoading();try{const r=await fetch('/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'pgpt-cli',messages:apiMessages(chat),pgpt:{project:project.value||undefined,web:web.value,deep:deep.checked||undefined,skill:skill.value||undefined}})}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||'Request failed');chat.messages.push({role:'assistant',content:d.choices?.[0]?.message?.content||'',at:new Date().toISOString(),meta:{route:d.pgpt?.route,timing:d.pgpt?.timing,responsePath:d.pgpt?.response_path}});chat.updatedAt=new Date().toISOString();persist();status.textContent=d.pgpt?.response_path?`Saved response: ${d.pgpt.response_path}`:''}catch(error){chat.messages.push({role:'assistant',content:`Request failed: ${error.message}`,at:new Date().toISOString()});chat.updatedAt=new Date().toISOString();persist();status.textContent=''}finally{stopLoading();send.disabled=false;renderChatList();renderConversation();refreshUsage();promptBox.focus()}}
+function downloadBlob(name,content,type='text/plain'){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}function exportCurrentChat(){const chat=activeChat(),lines=[`# ${chat.title}`,''];for(const m of chat.messages){lines.push(`## ${m.role==='user'?'You':'Assistant'}`,'',m.content,'');if(m.attachments?.length)lines.push(`Attachments: ${m.attachments.map(f=>f.name).join(', ')}`,'')}downloadBlob(`${chat.title.replace(/[^\w.-]+/g,'-').slice(0,60)||'chat'}.md`,lines.join('\n'),'text/markdown')}
+async function loadResponses(){responsesBody.innerHTML='<div class="response-meta">Loading…</div>';try{const r=await fetch('/api/responses'),d=await r.json(),rows=d.responses||[];responsesBody.innerHTML=rows.length?rows.map(i=>`<div class="response-row" data-response-name="${encodeURIComponent(i.name)}"><div class="response-title">${escapeHtml(i.name)}</div><div class="response-meta">${escapeHtml(new Date(i.modified).toLocaleString())} · ${Math.round(i.size/1024)} KB</div></div>`).join(''):'<div class="response-meta">No saved responses yet.</div>'}catch(error){responsesBody.innerHTML=`<div class="response-meta">Could not load responses: ${escapeHtml(error.message)}</div>`}}
+async function openResponse(name){responsesBody.innerHTML='<div class="response-meta">Loading response…</div>';const r=await fetch(`/api/responses/${encodeURIComponent(name)}`),d=await r.json();if(!r.ok)throw new Error(d.error||'Response not found');responsesBody.innerHTML=`<div class="response-view"><div class="response-toolbar"><button class="btn" id="backResponses">← Responses</button><a class="btn" href="/api/responses/${encodeURIComponent(name)}/download">Download Markdown</a></div><div class="md">${renderMarkdown(d.content)}</div></div>`;$('#backResponses').addEventListener('click',loadResponses)}
+document.addEventListener('click',event=>{const t=event.target.closest('button,[data-response-name]');if(!t)return;if(t.dataset.openChat){state.activeId=t.dataset.openChat;persist();renderChatList();renderConversation();sidebar.classList.remove('open')}else if(t.dataset.pinChat){const c=state.chats.find(c=>c.id===t.dataset.pinChat);if(c){c.pinned=!c.pinned;c.updatedAt=new Date().toISOString();persist();renderChatList()}}else if(t.dataset.deleteChat)removeChat(t.dataset.deleteChat);else if(t.dataset.suggestion){promptBox.value=decodeURIComponent(t.dataset.suggestion);promptBox.focus()}else if(t.dataset.removeAttachment){pendingAttachments=pendingAttachments.filter(f=>f.id!==t.dataset.removeAttachment);renderAttachmentBar()}else if(t.dataset.downloadAttachment){const f=activeChat().messages.flatMap(m=>m.attachments||[]).find(f=>f.id===t.dataset.downloadAttachment);if(f)downloadBlob(f.name,f.content,f.type)}else if(t.classList.contains('copy-code')){navigator.clipboard.writeText(decodeURIComponent(t.dataset.code||''));t.textContent='Copied';setTimeout(()=>t.textContent='Copy',1000)}else if(t.dataset.responseName)openResponse(decodeURIComponent(t.dataset.responseName)).catch(error=>responsesBody.innerHTML=`<div class="response-meta">${escapeHtml(error.message)}</div>`)});
+$('#newChat').addEventListener('click',createChat);$('#openResponses').addEventListener('click',()=>{responsesDrawer.classList.add('open');loadResponses()});$('#closeResponses').addEventListener('click',()=>responsesDrawer.classList.remove('open'));$('#refreshResponses').addEventListener('click',loadResponses);$('#exportChat').addEventListener('click',exportCurrentChat);$('#attach').addEventListener('click',()=>fileInput.click());fileInput.addEventListener('change',()=>addFiles(fileInput.files));chatSearch.addEventListener('input',renderChatList);$('#mobileMenu').addEventListener('click',()=>sidebar.classList.toggle('open'));send.addEventListener('click',submit);promptBox.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submit()}});promptBox.addEventListener('input',()=>{promptBox.style.height='auto';promptBox.style.height=`${Math.min(promptBox.scrollHeight,180)}px`});const responseName=new URLSearchParams(location.search).get('response');if(responseName){responsesDrawer.classList.add('open');openResponse(responseName).catch(loadResponses)}persist();renderChatList();renderConversation();renderAttachmentBar();loadMeta().catch(error=>status.textContent=`Metadata error: ${error.message}`);refreshUsage()})();
 </script>
 </body>
 </html>

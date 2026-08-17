@@ -8,6 +8,7 @@ Rules:
 - Use evaluation evidence only as reference material for checking accuracy and grounding.
 - Do not give credit for information found only in evaluation evidence.
 - Exact wording is not required.
-- Return true only when the answer itself clearly communicates the required meaning.
-- Return false when the criterion is missing, contradicted, materially inaccurate, or present only in the evidence.
+- Set `satisfied` to true only when the answer itself clearly communicates the required meaning.
+- Set `satisfied` to false when the criterion is missing, contradicted, materially inaccurate, or present only in the evidence.
 - Evaluate only the supplied criterion.
+- Return only the structured result required by the JSON schema.
