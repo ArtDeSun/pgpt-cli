@@ -1,344 +1,465 @@
-# pgpt-cli v3
+# pgpt-cli
 
-A modular local AI assistant built around Ollama, deterministic/semantic routing, bounded project retrieval, direct Brave web retrieval, answer verification, and repeatable evaluation tooling.
+`pgpt-cli` is a local-first personal AI assistant for WSL development. It sits in front of local Ollama models and adds request routing, project-source retrieval, optional web research, persistent CLI chats, quality checks, reusable local skills, a small browser chat, and an OpenAI-compatible endpoint that can be used from VS Code.
 
-The project is intended to provide a fast personal development assistant without requiring the PrivateGPT agent loop for ordinary questions. PrivateGPT remains available for the existing sync/ingest/serve workflow, while `pgpt ask` can route directly to local generation, project source retrieval, or live web retrieval.
-
-## Where the project is now
-
-`pgpt-cli` has moved beyond the initial CLI prototype. The main runtime path exists end-to-end, routing and model-selection infrastructure have dedicated tests/evals, web research has citation verification/repair, and reliability tooling now supports repeated runs without discarding already-completed results.
-
-```mermaid
-flowchart LR
-    A[1. CLI shell] --> B[2. Routing]
-    B --> C[3. Retrieval]
-    C --> D[4. Generation]
-    D --> E[5. Verification / repair]
-    E --> F[6. Evaluation]
-    F --> G[7. Reliability calibration]
-    G --> H[8. Hardening]
-    H --> I[9. Packaging / daily-use integration]
-
-    style G stroke-width:4px
-```
-
-**Current position: Phase 7 — reliability calibration, entering hardening.**
-
-The current reliability artifact records **5/5 successful runs for `research_web_01`** using `qwen3.5:4b` as both generation override and judge: routing, deterministic citation checks, semantic judgment, and overall quality all passed on all five runs. This is encouraging but intentionally narrow: it validates that research case under that configuration, not the reliability of every route or every configured model.
-
-The next milestone is therefore **not another architectural rewrite**. It is to harden the existing boundaries, remove duplicated/generated repository state, broaden reliability coverage across local/debug/implementation/architecture/project routes, and only then treat the CLI as a stable daily-use tool.
-
-## Runtime architecture
-
-```mermaid
-flowchart TD
-    U[User prompt] --> CLI[pgpt CLI]
-    CLI --> R[Router]
-
-    R -->|local| L[No retrieval]
-    R -->|project| P[Bounded project source retrieval]
-    R -->|web_lookup| W1[Brave lookup]
-    R -->|web_research| W2[Brave multi-source research]
-
-    L --> C[Prepared context]
-    P --> C
-    W1 --> C
-    W2 --> C
-
-    C --> O[Ollama generation]
-    O --> V[Verification]
-    V -->|passes| OUT[Terminal + Markdown response]
-    V -->|deterministic issue| DR[Deterministic repair]
-    DR --> V2[Re-verify]
-    V2 -->|still failing| SR[One semantic repair]
-    SR --> V3[Final verification]
-    V2 -->|passes| OUT
-    V3 --> OUT
-```
-
-The runtime is deliberately bounded: retrieval is selected before final generation, source context is limited, generation has a token budget, and repair is bounded rather than becoming an open-ended agent loop.
-
-## Routing model
-
-```mermaid
-flowchart LR
-    P[Prompt] --> S[Source classification]
-    P --> T[Task classification]
-    P --> F[Freshness classification]
-    P --> WM[Web-mode classification]
-    P --> SYM[Exact project-symbol evidence]
-
-    S --> RR[Route resolution]
-    T --> RR
-    F --> RR
-    WM --> RR
-    SYM --> RR
-
-    RR --> EX[Execution mode]
-    RR --> TP[Prompt template]
-    RR --> M[Model]
-    RR --> D[Deep mode]
-```
-
-Natural-language routing policy belongs primarily under `prompts/routing/`; Python should implement mechanisms, parsing, scoring, and invariants rather than accumulating task-specific English keyword rules.
-
-## Repository structure
+The goal is a private ChatGPT-like development workflow where the orchestration layer is yours:
 
 ```text
-pgpt-cli/
-├── pgpt.py                     # small executable entry point
-├── config.json                 # runtime/model/retrieval configuration
-├── pgpt/
-│   ├── cli.py                  # CLI commands and interactive chat
-│   ├── config.py               # configuration + secret loading
-│   ├── maintenance.py          # PrivateGPT compatibility workflows
-│   ├── generation/ollama.py    # Ollama streaming
-│   ├── models/selector.py      # model selection
-│   ├── output/stream.py        # terminal/Markdown output
-│   ├── quality/                # citation checks, verification, repair
-│   ├── retrieval/              # project + Brave web retrieval
-│   ├── routing/                # classifiers, rules, route resolution
-│   ├── runtime/                # pipeline, route, status, timing, HTTP
-│   └── storage/chats.py        # local chat persistence
-├── prompts/
-│   ├── routing/                # semantic routing policy
-│   ├── retrieval/              # project-symbol rules/data
-│   └── quality/                # judge instructions
-├── tests/                      # deterministic/unit regression tests
-├── tools/                      # benchmarks, E2E scoring, reliability runs
-├── evals/                      # cases plus current evaluation artifacts
-├── chats/                      # local conversation state (currently tracked)
-└── state/                      # generated routing/runtime state (currently tracked)
+VS Code / browser / terminal
+            |
+            v
+      pgpt-cli interface
+            |
+            v
+   semantic + rule routing
+      /       |       \
+     /        |        \
+ local     project      web
+ model     retrieval   retrieval
+     \        |        /
+      \       |       /
+       context + prompt
+              |
+              v
+         local Ollama
+              |
+              v
+       verify / repair
+              |
+              v
+            answer
 ```
 
-## Request lifecycle
+## Current state
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant C as CLI
-    participant R as Router
-    participant X as Retrieval
-    participant O as Ollama
-    participant Q as Quality
-
-    U->>C: pgpt ask "..."
-    C->>R: classify + resolve route
-    R-->>C: execution/template/model/deep
-    opt retrieval required
-        C->>X: project or web retrieval
-        X-->>C: bounded context
-    end
-    C->>O: system + context + history + prompt
-    O-->>C: streamed answer
-    C->>Q: verify
-    opt repair required
-        Q->>O: one bounded semantic repair
-        O-->>Q: repaired answer
-    end
-    C-->>U: answer + timing + saved Markdown
-```
-
-## Models and configuration
-
-Current configured roles are defined in `config.json`. At the current commit they include:
+The repository now has a self-contained local assistant surface rather than being only an evaluation/CLI experiment:
 
 ```text
-router     qwen3:1.7b
-general    llama3.2:3b
-coder      qwen2.5-coder:3b
-reasoning  phi4-mini
-deep       phi4-mini
-embedding  qwen3-embedding:0.6b
+Foundation
+  [done] routing and model selection
+  [done] project source retrieval
+  [done] Brave web lookup/research
+  [done] streaming terminal responses and timing
+  [done] deterministic verification/repair
+
+Hardening
+  [done] prompt ownership moved out of routing Python
+  [done] model-selection regression coverage
+  [done] end-to-end and reliability harnesses
+  [done] criterion-isolated local quality judge
+  [done] repository-owned historical project fixture
+  [done] offline GitHub Actions gate
+
+Local ChatGPT / IDE surface
+  [done] persistent terminal chats
+  [done] Markdown skill system
+  [done] browser chat UI
+  [done] OpenAI-compatible /v1/chat/completions endpoint
+  [done] Continue/VS Code configuration example
+
+Optional external integrations
+  [kept] PrivateGPT sync / ingest / serve maintenance commands
+  [kept] legacy vibemaster profile when that local project exists
 ```
 
-Model choice should be treated as benchmark-driven configuration rather than a permanent architectural assumption.
+The local HTTP service intentionally does **not** advertise tool-calling capability. Continue Chat is supported through the OpenAI-compatible endpoint; a future autonomous tool loop should be added only with explicit filesystem/process permissions rather than silently giving a local model unrestricted shell access.
 
-## Brave web retrieval
+## 1. WSL setup
 
-Secrets are kept outside the repository. Create/edit:
+From your WSL checkout:
 
 ```bash
+cd ~/ai/pgpt-cli
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install -e .
+```
+
+Check your local models:
+
+```bash
+ollama list
+pgpt models
+```
+
+`config.json` contains task preferences rather than assuming one model can do every job. Install or change the configured models to match your hardware.
+
+For Brave web retrieval, keep the real key outside the repository:
+
+```bash
+mkdir -p ~/.config/pgpt
+cp secrets.env.example ~/.config/pgpt/secrets.env
+chmod 600 ~/.config/pgpt/secrets.env
 nano ~/.config/pgpt/secrets.env
 ```
 
-and set:
+The file should contain your local value:
 
 ```text
-PGPT_BRAVE_API_KEY=your_key
+PGPT_BRAVE_API_KEY=...
 ```
 
-Do not commit the real key. `secrets.env.example` intentionally contains only an empty placeholder.
+## 2. Basic CLI workflow
 
-Web execution has two modes:
-
-```text
-web_lookup    -> small bounded result set for current/factual lookup
-web_research  -> multiple independent sources + page excerpts + source IDs
-```
-
-Research answers use `[S1]`, `[S2]`, ... as application-level source identifiers and append a clickable Sources footer. The quality layer can deterministically check whether substantive research text actually contains the required inline source IDs.
-
-## Project retrieval
-
-Exact code identifiers are handled differently from broad project questions:
-
-```mermaid
-flowchart TD
-    Q[Project question] --> I{Exact identifier evidence?}
-    I -->|yes| RG[Search repository / symbol hits]
-    RG --> SW[Source window around match]
-    I -->|no| LF[Lexical file selection]
-    LF --> BC[Bounded context]
-    SW --> BC
-    BC --> GEN[Generation]
-```
-
-This keeps a named function/class lookup from depending on vector similarity to guess which source file contains the symbol.
-
-## Core commands
-
-Run from the repository root. A convenient local alias is:
+Validate routing without generating an answer:
 
 ```bash
-alias pgpt='python3 ~/ai/pgpt-cli/pgpt.py'
-```
-
-Then:
-
-```bash
-pgpt status
-pgpt models
 pgpt validate "What is dependency injection?"
+```
+
+Ask normally:
+
+```bash
 pgpt ask "What is dependency injection?"
-pgpt ask "Explain getYoutubeVideoMetadata in my project."
-pgpt ask "What's Ottawa's weather today?"
-pgpt ask "Research current AI privacy approaches and compare sources."
 ```
 
-PrivateGPT-compatible maintenance commands remain available:
+Force a project:
 
 ```bash
-pgpt sync
-pgpt ingest
-pgpt serve
+pgpt ask \
+  --project pgpt-cli \
+  --context \
+  "Explain how select_model works."
 ```
 
-`pgpt ask` does not require `pgpt serve`.
-
-## Interactive chat
+Use the repository-owned historical fixture:
 
 ```bash
-pgpt chat-new "YouTube metadata"
+pgpt ask \
+  --project pgpt-cli-history \
+  --context \
+  "Explain how select_model works in the historical pgpt-cli project."
+```
+
+The historical profile points at `tests/fixtures/historical_pgpt`, which is a small source snapshot from commit `bc2343a14db511b4103afdf45e3fa8c81067e12c`. It gives project retrieval and evaluation a reproducible source that does not depend on private data outside the repository.
+
+## 3. Persistent terminal chat
+
+Create a chat:
+
+```bash
+pgpt chat-new "pgpt development"
 pgpt chat
 ```
 
-Inside chat:
+Useful commands inside chat:
 
 ```text
-/web auto|on|off|research
-/context auto|on|off
-/deep auto|on|off
-/new TITLE
-/quit
+/web auto
+/web off
+/web lookup
+/web research
+/context auto
+/context on
+/context off
+/deep auto
+/deep on
+/deep off
+/skill code-review
+/skill off
+/exit
 ```
 
-## Tests and evaluation layers
+Chat JSON and runtime state are local-only and ignored by Git.
 
-The project now has several distinct validation layers. They should not be treated as interchangeable.
+## 4. Local skills
 
-```mermaid
-flowchart TD
-    UT[Unit / regression tests] -->|Does deterministic code behave?| A[Routing + selector confidence]
-    DS[Routing datasets] -->|Does classification match labels?| A
-    E2E[End-to-end cases] -->|Does one complete answer satisfy route + quality?| B[Functional quality confidence]
-    JC[Judge calibration] -->|Can the judge distinguish good/bad answers?| B
-    REL[Reliability runs] -->|Does quality repeat across stochastic runs?| C[Reliability confidence]
+Skills are Markdown system instructions. Built-in examples live under `skills/`; personal skills live outside the repository under `~/.config/pgpt/skills/`.
 
-    A --> C
-    B --> C
-```
-
-Useful commands:
+Create one:
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m tools.run_end_to_end_evals
-python3 -m tools.score_end_to_end_results --model qwen3.5:4b
-python3 -m tools.calibrate_quality_judge --model qwen3.5:4b
+pgpt skill-new my-review
+nano ~/.config/pgpt/skills/my-review.md
+pgpt skills
 ```
 
-Reliability evaluation is intentionally resumable: completed runs are retained unless `--fresh` or `--force` is explicitly requested. This matters because local model + judge runs are expensive.
+Use it for one request:
+
+```bash
+pgpt ask \
+  --skill my-review \
+  "Review the project retrieval implementation."
+```
+
+A personal skill with the same filename overrides the built-in version. This gives you a small, local skill-management layer without hard-coding natural-language behavior into Python.
+
+## 5. Browser GUI and local API
+
+Start the local service in WSL:
+
+```bash
+pgpt server
+```
+
+Defaults:
+
+```text
+Browser UI: http://127.0.0.1:8765/
+API base:   http://127.0.0.1:8765/v1
+Health:     http://127.0.0.1:8765/health
+```
+
+The browser UI supports project, web mode, deep mode, and skill selection. Conversation messages are kept in browser `localStorage` so a refresh does not immediately erase the local chat.
+
+The server binds only to loopback by default. A non-loopback bind is refused unless `--allow-remote` is explicitly supplied. Browser CORS is limited to loopback origins.
+
+OpenAI-compatible endpoints:
+
+```text
+GET  /v1/models
+POST /v1/chat/completions
+```
 
 Example:
 
 ```bash
-python3 -m tools.run_reliability_evals \
-  --case research_web_01 \
-  --runs 5 \
-  --judge-model qwen3.5:4b \
-  --generation-model qwen3.5:4b
+curl http://127.0.0.1:8765/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "pgpt-cli",
+    "messages": [
+      {"role": "user", "content": "Explain dependency injection."}
+    ]
+  }'
 ```
 
-## Current evidence
+Optional pgpt controls can be supplied in a top-level `pgpt` object:
 
-At this commit, the strongest stored repeated-run evidence is:
+```json
+{
+  "pgpt": {
+    "project": "pgpt-cli-history",
+    "web": "off",
+    "context": true,
+    "deep": false,
+    "skill": "code-review"
+  }
+}
+```
+
+`stream: true` is accepted for OpenAI-client compatibility, but the current HTTP adapter emits the verified answer after the internal pipeline completes rather than exposing unverified draft tokens. Terminal generation still streams directly.
+
+## 6. VS Code / Continue in WSL
+
+The intended IDE path is:
 
 ```text
-research_web_01
-  runs                    5
-  route pass              5/5
-  deterministic pass      5/5
-  semantic pass           5/5
-  judge success           5/5
-  overall quality pass    5/5
-  mean score              5.0
+VS Code Remote - WSL
+        |
+        v
+Continue chat model
+        |
+        v
+http://127.0.0.1:8765/v1
+        |
+        v
+pgpt routing / retrieval / skills / verification
+        |
+        v
+local Ollama models
 ```
 
-This result should **not** be generalized to the whole application yet. The reliability artifact currently contains one case, and it used a generation-model override. The broader E2E suite and routing tests provide additional functional evidence, but repeated reliability coverage still needs to be expanded deliberately.
+Start `pgpt server` inside WSL, then merge `docs/continue-config.yaml` into your Continue configuration.
 
-## Hardening backlog
+The example config deliberately points Continue at **pgpt**, not directly at Ollama. Going directly to Ollama would bypass pgpt's routing, project retrieval, web retrieval, skills, and quality layer.
 
-Before calling v3 stable, the repository should be cleaned up in this order:
+See [docs/VS_CODE.md](docs/VS_CODE.md) for the focused setup.
 
-1. **Move remaining natural-language runtime instructions out of Python.** `pgpt/runtime/pipeline.py` still constructs English runtime/continuation instructions in code. Those should become prompt assets or structured prompt templates so Python remains mechanism-focused.
-2. **Consolidate prompt ownership.** There are top-level answer templates such as `prompts/architecture.md` and routing templates such as `prompts/routing/templates/architecture.md`. Their responsibilities should be made explicit or consolidated to prevent two sources of truth.
-3. **Separate source-controlled fixtures from generated state.** `chats/testing-v3/`, live `state/` artifacts, current eval outputs, and archived eval outputs are presently committed. Decide which are intentional fixtures/baselines and ignore/move the rest.
-4. **Remove stale documentation assumptions.** Earlier documentation referred to an `install-v3.sh` script and a `backups/` workflow that are not part of the current repository tree. This README no longer depends on that missing installer.
-5. **Broaden reliability evaluation without discarding existing expensive runs.** Add/resume repeated coverage for general, debug, implementation, architecture, project-symbol, project-broad, web lookup, and research paths.
-6. **Add packaging only after behavior stabilizes.** The repository currently runs directly from source; a `pyproject.toml`/console entry point can come after the runtime/eval boundaries stop moving.
-7. **Add CI after deciding which tests are deterministic and hardware/network independent.** Local Ollama/Brave reliability tests should not become mandatory GitHub CI checks unless explicitly designed for that environment.
+## 7. Routing
 
-## Grand-scheme roadmap
+Routing has two layers:
 
-```mermaid
-flowchart TD
-    A[Prototype CLI] --> B[Modular runtime]
-    B --> C[Semantic routing]
-    C --> D[Project retrieval]
-    D --> E[Direct web retrieval]
-    E --> F[Quality verification + repair]
-    F --> G[E2E evaluation]
-    G --> H[Judge calibration]
-    H --> I[Repeated reliability evaluation]
-    I --> J[Repository/runtime hardening]
-    J --> K[Packaging + CI]
-    K --> L[Stable personal daily-use assistant]
-    L --> M[Optional richer IDE/UI integrations]
-
-    style I stroke-width:4px
-    style J stroke-width:4px
+```text
+user prompt
+    |
+    v
+small semantic classifiers
+    |
+    +--> task
+    +--> freshness
+    +--> complexity telemetry
+    |
+    v
+deterministic policy / explicit overrides
+    |
+    +--> local
+    +--> project
+    +--> web lookup
+    +--> web research
 ```
 
-The current work sits at the **I → J transition**: the architecture is present and a representative research path has passed repeated reliability evaluation; the immediate priority is to harden and simplify what already exists before adding another major subsystem.
+The router decides meaning; `pgpt.runtime.route` then decides execution template and answer model. Explicit CLI overrides remain authoritative.
+
+Important behavior:
+
+- project evidence can activate project retrieval;
+- strong current/external language can activate web retrieval;
+- explicit multi-source research activates web research;
+- `--web off` suppresses web retrieval;
+- `--context` forces project retrieval;
+- model selection uses ordered task preferences and only selects installed Ollama models.
+
+## 8. Project retrieval
+
+Project retrieval is intentionally source-grounded and bounded:
+
+```text
+prompt
+  |
+  +--> code-shaped identifier candidates
+  |       |
+  |       +--> ripgrep definition search
+  |       +--> source window around best definition
+  |
+  +--> lexical fallback
+          |
+          +--> path/content scoring
+          +--> bounded file context
+```
+
+Exact symbol definitions have priority. Broader architecture/review prompts fall back to lexical retrieval. If no useful file is found, the assistant receives a project manifest rather than invented source.
+
+`pgpt-cli` uses the current repository as project source. `pgpt-cli-history` uses the tracked historical fixture. The `vibemaster` profile remains available for the original local project when its external path exists, but repository tests no longer depend on it.
+
+## 9. Web retrieval
+
+Brave Search is used only when routing selects web lookup/research or you explicitly request it.
+
+```text
+prompt
+  |
+  v
+Brave search
+  |
+  +--> candidate results
+  +--> bounded page fetches
+  +--> source IDs [S1], [S2], ...
+  |
+  v
+answer + source footer
+```
+
+When connectivity is unavailable, the runtime falls back rather than pretending live web evidence exists.
+
+## 10. Quality and evaluation
+
+There are three different quality layers:
+
+```text
+runtime verification
+    |
+    +--> deterministic checks
+    +--> bounded deterministic repair
+    +--> at most one semantic repair
+
+end-to-end evaluation
+    |
+    +--> route contract
+    +--> deterministic answer checks
+    +--> semantic judge
+
+reliability evaluation
+    |
+    +--> repeated generation
+    +--> repeated judging
+    +--> pass rates + latency statistics
+```
+
+The semantic evaluator now judges **one rubric criterion per local-model call**:
+
+```text
+required #1  --> boolean + reason
+required #2  --> boolean + reason
+...
+forbidden #1 --> boolean + reason
+forbidden #2 --> boolean + reason
+                 |
+                 v
+         deterministic Python aggregation
+```
+
+This keeps criterion alignment out of one oversized judge response. Judge instructions live in Markdown prompt assets rather than Python.
+
+See [docs/TESTING.md](docs/TESTING.md).
+
+## 11. Automated CI
+
+GitHub Actions runs an offline gate on Python 3.11 and 3.13. It does not require your Ollama models, Brave key, PrivateGPT checkout, or private project directory.
+
+The gate covers syntax, packaging, model selection, mocked pipeline behavior, project-fixture integrity, skill management, HTTP integration, evaluation mechanics, and browser assets.
+
+Model-dependent routing and quality evaluations remain local integration tests because GitHub-hosted runners do not have your Ollama environment.
+
+## 12. PrivateGPT compatibility
+
+The direct pgpt pipeline does not require PrivateGPT to answer ordinary or source-grounded project questions. The older maintenance commands are preserved for the local PrivateGPT/RAG workflow:
+
+```bash
+pgpt status
+pgpt sync --project pgpt-cli
+pgpt ingest --project pgpt-cli
+pgpt serve
+```
+
+`pgpt serve` remains the legacy PrivateGPT server command. `pgpt server` is the new pgpt browser/OpenAI-compatible interface.
+
+This separation lets you keep experimenting with PrivateGPT ingestion without making the everyday CLI/VS Code chat path depend on it.
+
+## Repository map
+
+```text
+pgpt-cli/
+├── pgpt/
+│   ├── cli.py
+│   ├── config.py
+│   ├── server.py
+│   ├── skills.py
+│   ├── generation/
+│   ├── models/
+│   ├── output/
+│   ├── quality/
+│   ├── retrieval/
+│   ├── routing/
+│   ├── runtime/
+│   └── storage/
+├── prompts/
+├── skills/
+├── web/
+├── docs/
+├── tests/
+│   └── fixtures/historical_pgpt/
+├── evals/
+├── tools/
+├── .github/workflows/ci.yml
+├── config.json
+└── pyproject.toml
+```
+
+## Local-only data
+
+These should remain untracked:
+
+```text
+responses/
+state/
+local chats
+evaluation result files
+secrets.env
+.env files
+private keys
+backups/
+```
+
+Before publishing changes, always review staged content for secrets.
 
 ## Design principles
 
-- Local-first generation through Ollama.
-- Retrieval only when routing establishes a retrieval requirement.
-- Exact project symbols should use deterministic source evidence before fuzzy retrieval.
-- Web research should preserve source identity through generation and verification.
-- Natural-language behavior belongs in prompt/config assets; Python should primarily implement mechanisms and invariants.
-- Expensive evaluations should be resumable and should preserve completed runs by default.
-- Reliability claims must be scoped to the cases/models actually measured.
-- Prefer bounded, inspectable pipelines over autonomous retry/tool loops.
+1. **Local first.** Ordinary chat, project reasoning, skills, and orchestration should work against local models.
+2. **Evidence before project claims.** Project-specific explanations should come from retrieved source.
+3. **Explicit boundaries.** Routing, retrieval, model selection, generation, verification, storage, and UI are separate concerns.
+4. **Natural-language behavior belongs in prompt assets.** Python owns mechanics and policy, not buried prompt prose.
+5. **Small models need deterministic support.** Use schemas, rules, bounded retries, and tests instead of expecting one model call to do everything.
+6. **Local does not mean unrestricted.** The browser/API binds to loopback by default, and autonomous shell/filesystem tool execution is not silently enabled.
