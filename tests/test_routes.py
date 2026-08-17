@@ -47,6 +47,11 @@ class TestRoutingDecision(unittest.TestCase):
             "What's the latest on the EU AI regulation?",
             "What is the flight status of AC123?",
             "Is example.com down right now?",
+            "Who heads Microsoft?",
+            "Who is the CEO of Microsoft?",
+            "Who runs OpenAI?",
+            "Who is the prime minister of Canada?",
+            "Who coaches the Toronto Raptors?",
         ]
         with patch("pgpt.routing.router.classify_route_semantics") as classifier:
             for prompt in prompts:
@@ -67,7 +72,7 @@ class TestRoutingDecision(unittest.TestCase):
             "pgpt.routing.router.classify_route_semantics",
             return_value=semantic,
         ) as classifier:
-            result = decision("Who heads ExampleCorp?")
+            result = decision("Who leads ExampleCorp?")
         classifier.assert_called_once()
         self.assertEqual(result.source, "web")
         self.assertEqual(result.web_mode, "lookup")
@@ -98,6 +103,30 @@ class TestRoutingDecision(unittest.TestCase):
                     self.assertEqual(result.source, "none")
                     self.assertIsNone(result.web_mode)
                     self.assertEqual(result.freshness, "stable")
+
+    def test_historical_or_conceptual_role_questions_do_not_force_web(self) -> None:
+        prompts = [
+            "Who was the CEO of Microsoft in 2010?",
+            "Who founded Microsoft?",
+            "Explain what a CEO does.",
+            "Who leads the request lifecycle in this framework?",
+        ]
+        semantic = ClassifierDecision(
+            task="general",
+            freshness="stable",
+            complexity="simple",
+        )
+        with patch(
+            "pgpt.routing.router.classify_route_semantics",
+            return_value=semantic,
+        ) as classifier:
+            for prompt in prompts:
+                with self.subTest(prompt=prompt):
+                    result = decision(prompt)
+                    self.assertEqual(result.source, "none")
+                    self.assertIsNone(result.web_mode)
+                    self.assertEqual(result.freshness, "stable")
+        self.assertEqual(classifier.call_count, len(prompts))
 
     def test_multi_source_research(self) -> None:
         result = decision(
@@ -140,7 +169,7 @@ class TestRoutingDecision(unittest.TestCase):
 
     def test_web_off_suppresses_fast_current_web(self) -> None:
         result = decision(
-            "What's the weather in Toronto?",
+            "Who heads Microsoft?",
             web_override="off",
         )
         self.assertEqual(result.source, "none")
@@ -158,7 +187,7 @@ class TestRoutingDecision(unittest.TestCase):
             return_value=semantic,
         ):
             result = decision(
-                "Who heads ExampleCorp?",
+                "Who leads ExampleCorp?",
                 web_override="off",
             )
         self.assertEqual(result.source, "none")
@@ -236,7 +265,7 @@ class TestRuntimeRoute(unittest.TestCase):
             reason="test selection",
         )
         routing = resolve_route(
-            "What's the weather in Toronto?",
+            "Who heads Microsoft?",
             project_name="pgpt-cli",
             web_override=None,
             project_override=None,

@@ -18,7 +18,13 @@ Use `research` only when investigating or comparing external evidence from multi
 
 ## Freshness
 
-Use `current` when the correct answer depends on information that can change with time, such as today's weather, current time, live status, prices, schedules, availability, officeholders, recent releases, current policies, or recent news.
+Use `current` whenever the correct answer depends on a mutable real-world fact that could be different now than it was in the past, even if the user does not explicitly say `current`, `latest`, or `today`.
+
+Examples of `current` include today's weather, current time, live status, prices, schedules, availability, software versions or support status, inventory, service outages, active laws or policies, recent news, sports standings or scores, and present-tense questions about who currently holds a mutable role or office.
+
+Present-tense role-holder questions are `current`: `Who heads Microsoft?`, `Who is the CEO of ExampleCorp?`, `Who is the prime minister of Canada?`, or `Who coaches this team?` all ask for a fact whose answer can change over time.
+
+Do not mark a question `current` merely because it contains a temporal-looking word. Historical or origin questions such as `Who was the CEO in 2010?`, `Who founded Microsoft?`, or `What happened yesterday according to the supplied text?` are `stable` when established knowledge or supplied evidence is sufficient.
 
 Use `stable` when established knowledge or the supplied code/evidence is sufficient and the answer does not depend on the present moment.
 
