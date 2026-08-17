@@ -50,9 +50,17 @@ def _fast_semantics(prompt: str) -> ClassifierDecision | None:
             complexity="complex",
         )
     if _matches("writing", prompt):
-        return ClassifierDecision(task="general", freshness="stable", complexity="simple")
+        return ClassifierDecision(
+            task="general",
+            freshness="stable",
+            complexity="simple",
+        )
     if current:
-        return ClassifierDecision(task="general", freshness="current", complexity="simple")
+        return ClassifierDecision(
+            task="general",
+            freshness="current",
+            complexity="simple",
+        )
     return None
 
 
@@ -93,7 +101,12 @@ def _normalize_task(
         and task in {"research", "architecture"}
     ):
         return "general"
-    if symbol_hit and source == "project" and task == "debug" and not _matches("debug", prompt):
+    if (
+        symbol_hit
+        and source == "project"
+        and task == "debug"
+        and not _matches("debug", prompt)
+    ):
         return "explain-code"
     if project_evidence and source == "project" and task == "general":
         return "explain-code"
@@ -166,8 +179,13 @@ def resolve_route(
     explicit_web = _explicit_web(prompt)
     explicit_project = _explicit_project(prompt)
     strong_current = _current_external_hint(prompt)
+    semantic_current = freshness == "current"
     research_requested = _research_hint(prompt)
-    project_evidence = bool(symbol_hit or explicit_project or project_override is True)
+    project_evidence = bool(
+        symbol_hit
+        or explicit_project
+        or project_override is True
+    )
     reasons = [semantic_reason]
 
     if web_override == "research":
@@ -185,9 +203,12 @@ def resolve_route(
     elif project_evidence:
         source = "project"
         reasons.append("project evidence detected")
-    elif strong_current and web_override != "off":
+    elif (strong_current or semantic_current) and web_override != "off":
         source = "web"
-        reasons.append("strong current external-information evidence")
+        if strong_current:
+            reasons.append("strong current external-information evidence")
+        else:
+            reasons.append("semantic classifier marked freshness as current")
     elif research_requested and task == "research" and web_override != "off":
         source = "web"
         reasons.append("multi-source research requires web retrieval")
@@ -210,7 +231,11 @@ def resolve_route(
             web_mode = "lookup"
         elif research_requested and task == "research":
             web_mode = "research"
-        elif _matches("live-lookup", prompt) or (strong_current and not research_requested):
+        elif (
+            _matches("live-lookup", prompt)
+            or strong_current
+            or (semantic_current and not research_requested)
+        ):
             web_mode = "lookup"
         else:
             web_mode = classify_web_mode(prompt) or "lookup"
@@ -257,7 +282,12 @@ def resolve_route(
         web_mode = "lookup"
         reasons.append("web mode normalized to focused lookup")
 
-    if symbol_hit and source == "project" and template_override is None and task == "general":
+    if (
+        symbol_hit
+        and source == "project"
+        and template_override is None
+        and task == "general"
+    ):
         task = "explain-code"
         reasons.append("exact project symbol promoted general task to explain-code")
 
