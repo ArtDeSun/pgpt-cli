@@ -140,7 +140,9 @@ def _normalize_freshness(
         "implement",
         "architecture",
     }:
-        return "unknown" if freshness == "unknown" else "stable"
+        if freshness in {"current", "unknown"}:
+            return freshness
+        return "stable"
     if _matches("writing", prompt):
         return "stable"
     return freshness
