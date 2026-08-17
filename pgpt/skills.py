@@ -76,9 +76,9 @@ def skill_history(
     if not skill:
         return base
     return [
+        *base,
         {
             "role": "system",
             "content": load_skill(skill),
         },
-        *base,
     ]
