@@ -25,13 +25,13 @@ class TestSkills(unittest.TestCase):
                 self.assertEqual(skills.list_skills(), ["custom", "review"])
                 self.assertEqual(skills.load_skill("review"), "user")
 
-    def test_skill_history_prepends_system_message(self) -> None:
+    def test_skill_history_keeps_skill_at_end(self) -> None:
         with patch.object(skills, "load_skill", return_value="skill text"):
             history = [{"role": "user", "content": "old"}]
             value = skills.skill_history(history, "review")
 
-        self.assertEqual(value[0], {"role": "system", "content": "skill text"})
-        self.assertEqual(value[1:], history)
+        self.assertEqual(value[:-1], history)
+        self.assertEqual(value[-1], {"role": "system", "content": "skill text"})
         self.assertEqual(history, [{"role": "user", "content": "old"}])
 
     def test_create_skill_writes_user_markdown(self) -> None:
