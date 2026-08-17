@@ -9,5 +9,17 @@
       "task": "architecture",
       "freshness": "stable"
     }
+  },
+  {
+    "id": "mutable_role_holder_current_01",
+    "prompt": "Who heads Microsoft?",
+    "symbol_hit": false,
+    "expect": {
+      "source": "web",
+      "web_mode": "lookup",
+      "task": "general",
+      "freshness": "current",
+      "complexity": "simple"
+    }
   }
 ]
