@@ -1,27 +1,24 @@
 # pgpt-cli
 
-`pgpt-cli` is a local-first personal AI assistant for WSL development. It sits in front of local Ollama models and adds request routing, project-source retrieval, optional web research, persistent CLI chats, quality checks, reusable local skills, a small browser chat, and an OpenAI-compatible endpoint that can be used from VS Code.
-
-The goal is a private ChatGPT-like development workflow where the orchestration layer is yours:
+`pgpt-cli` is a local-first personal AI assistant for WSL development. It sits in front of local Ollama models and adds routing, project-source retrieval, optional Brave web lookup/research, persistent chats, reusable skills, response verification, a browser UI, and an OpenAI-compatible endpoint for VS Code clients.
 
 ```text
 VS Code / browser / terminal
             |
             v
-      pgpt-cli interface
+        pgpt-cli
             |
-            v
-   semantic + rule routing
-      /       |       \
-     /        |        \
- local     project      web
- model     retrieval   retrieval
-     \        |        /
-      \       |       /
-       context + prompt
+     routing + policy
+      /      |      \
+     /       |       \
+ local    project     web
+Ollama    source      Brave
+     \       |       /
+      \      |      /
+       prompt + context
               |
               v
-         local Ollama
+            Ollama
               |
               v
        verify / repair
@@ -32,153 +29,71 @@ VS Code / browser / terminal
 
 ## Quick mental model
 
-If you remember only a few things, remember these:
-
 ```text
 ~/ai/pgpt-cli/
-    = the pgpt-cli application checkout
-    = source code, built-in prompts, built-in skills, tests, docs
-    = managed with Git
+    application checkout
+    Git-managed source, prompts, tests and built-in skills
 
 ~/.config/pgpt/skills/
-    = your personal skill library
-    = created and edited by you
-    = outside the repository
+    your personal skills
+    normal place to create/edit skill Markdown
+    outside the repository
+
+~/ai/private-gpt/
+    optional PrivateGPT checkout
+    used only by pgpt sync/ingest/serve compatibility workflow
+
+~/ai/private-gpt-data/
+    optional PrivateGPT data/model home
 
 pgpt server
-    = pgpt browser UI + OpenAI-compatible API
-    = the command used for the VS Code / Continue workflow
+    pgpt browser UI + OpenAI-compatible API
 
 pgpt serve
-    = legacy PrivateGPT server command
-    = only needed for the older PrivateGPT-compatible workflow
+    PrivateGPT compatibility server
 ```
 
-For normal day-to-day skill management, use **`~/.config/pgpt/skills/`**. Treat `~/ai/pgpt-cli/skills/` as application source unless you intentionally want to change a built-in skill and commit that change to Git.
+Your current directory layout is already appropriate:
 
-## Quick start
+```text
+~/ai/
+├── pgpt-cli/
+├── private-gpt/
+├── private-gpt-data/
+└── vibemaster-knowledge/
+```
 
-From WSL:
+**You do not need to move or rename these directories.** The default `config.json` paths are designed for this arrangement.
+
+## 1. Install / update in WSL
 
 ```bash
 cd ~/ai/pgpt-cli
+git pull
 
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
+```
 
+If `.venv` already exists, activate it and rerun the editable install after a pull.
+
+Check the local services/models:
+
+```bash
 ollama list
 pgpt status
 pgpt models
-pgpt ask "What is dependency injection?"
 ```
 
-For the local browser/VS Code interface:
-
-```bash
-pgpt server
-```
-
-Then open:
-
-```text
-http://127.0.0.1:8765/
-```
-
-For a personal skill:
-
-```bash
-pgpt skill-new my-review
-nano ~/.config/pgpt/skills/my-review.md
-pgpt ask --skill my-review "Review this design."
-```
-
-## Current state
-
-The repository now has a self-contained local assistant surface rather than being only an evaluation/CLI experiment:
-
-```text
-Foundation
-  [done] routing and model selection
-  [done] project source retrieval
-  [done] Brave web lookup/research
-  [done] streaming terminal responses and timing
-  [done] deterministic verification/repair
-
-Hardening
-  [done] prompt ownership moved out of routing Python
-  [done] model-selection regression coverage
-  [done] end-to-end and reliability harnesses
-  [done] criterion-isolated local quality judge
-  [done] repository-owned historical project fixture
-  [done] offline GitHub Actions gate
-
-Local ChatGPT / IDE surface
-  [done] persistent terminal chats
-  [done] Markdown skill system
-  [done] browser chat UI
-  [done] OpenAI-compatible /v1/chat/completions endpoint
-  [done] Continue/VS Code configuration example
-
-Optional external integrations
-  [kept] PrivateGPT sync / ingest / serve maintenance commands
-  [kept] legacy vibemaster profile when that local project exists
-```
-
-The local HTTP service intentionally does **not** advertise tool-calling capability. Continue Chat is supported through the OpenAI-compatible endpoint; a future autonomous tool loop should be added only with explicit filesystem/process permissions rather than silently giving a local model unrestricted shell access.
-
-## 1. WSL setup
-
-From your WSL checkout:
-
-```bash
-cd ~/ai/pgpt-cli
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-python -m pip install -e .
-```
-
-Check your local models:
-
-```bash
-ollama list
-pgpt models
-```
-
-`config.json` contains task preferences rather than assuming one model can do every job. Install or change the configured models to match your hardware.
-
-For Brave web retrieval, keep the real key outside the repository:
-
-```bash
-mkdir -p ~/.config/pgpt
-cp secrets.env.example ~/.config/pgpt/secrets.env
-chmod 600 ~/.config/pgpt/secrets.env
-nano ~/.config/pgpt/secrets.env
-```
-
-The file should contain your local value:
-
-```text
-PGPT_BRAVE_API_KEY=...
-```
-
-## 2. Basic CLI workflow
-
-Validate routing without generating an answer:
+## 2. Basic use
 
 ```bash
 pgpt validate "What is dependency injection?"
-```
-
-Ask normally:
-
-```bash
 pgpt ask "What is dependency injection?"
 ```
 
-Force a project:
+Project-grounded request:
 
 ```bash
 pgpt ask \
@@ -187,7 +102,7 @@ pgpt ask \
   "Explain how select_model works."
 ```
 
-Use the repository-owned historical fixture:
+Reproducible historical project fixture:
 
 ```bash
 pgpt ask \
@@ -196,72 +111,141 @@ pgpt ask \
   "Explain how select_model works in the historical pgpt-cli project."
 ```
 
-The historical profile points at `tests/fixtures/historical_pgpt`, which is a small source snapshot from commit `bc2343a14db511b4103afdf45e3fa8c81067e12c`. It gives project retrieval and evaluation a reproducible source that does not depend on private data outside the repository.
+`pgpt-cli-history` points at `tests/fixtures/historical_pgpt/`, so project retrieval tests do not depend on your private external files.
 
-## 3. Persistent terminal chat
+## 3. Online vs offline chatbot usage
 
-Create a chat:
+The `--web` control is the main switch:
 
-```bash
-pgpt chat-new "pgpt development"
-pgpt chat
+```text
+--web auto
+    recommended default
+    local/stable questions stay local
+    current/live questions can use Brave when needed
+
+--web off
+    force local-only behavior
+    no Brave search request is made
+
+--web lookup
+    force a focused web lookup
+
+--web research
+    force multi-source web research
 ```
 
-Useful commands inside chat:
+Examples:
+
+```bash
+# Fully local even if Wi-Fi is available
+pgpt ask --web off "Explain dependency injection."
+
+# Automatic routing
+pgpt ask --web auto "What's the weather in Toronto today?"
+
+# Explicit live lookup
+pgpt ask --web lookup "What's the weather in Toronto today?"
+
+# Multi-source research
+pgpt ask --web research \
+  "Compare current AI privacy approaches from several independent sources."
+```
+
+Inside `pgpt chat`:
 
 ```text
 /web auto
 /web off
 /web lookup
 /web research
-/context auto
-/context on
-/context off
-/deep auto
-/deep on
-/deep off
-/skill code-review
+```
+
+The browser UI has the same `auto`, `off · local-only`, `lookup`, and `research` choices.
+
+### What happens without Wi-Fi?
+
+With `auto`, pgpt checks connectivity only when the selected route actually needs the web. If Brave cannot be reached, the pipeline falls back to local generation and explicitly marks the web context as unavailable rather than pretending it has live data.
+
+For predictable offline use, select `off`:
+
+```bash
+pgpt ask --web off "your prompt"
+```
+
+### Fast live lookups
+
+Common live surfaces such as weather, time, opening hours, current scores, prices/rates, and transport status use a deterministic fast routing path. Focused web lookup uses Brave snippets without fetching full result pages by default; deeper page fetching remains reserved for research. This avoids spending several local-model routing passes and several page downloads on a simple question such as today's weather.
+
+## 4. Brave API key and usage budget
+
+Keep the real key outside the repository:
+
+```bash
+mkdir -p ~/.config/pgpt
+cp secrets.env.example ~/.config/pgpt/secrets.env
+chmod 600 ~/.config/pgpt/secrets.env
+nano ~/.config/pgpt/secrets.env
+```
+
+Add:
+
+```text
+PGPT_BRAVE_API_KEY=your_real_key
+```
+
+`config.json` contains a local safety budget:
+
+```json
+"monthly_request_budget": 500
+```
+
+This is a **pgpt safety cap**, not a claim about the quota of your Brave subscription. Change it if your plan differs.
+
+Inspect usage:
+
+```bash
+pgpt web-usage
+```
+
+The browser UI also shows a Brave usage badge. pgpt stores its local count in:
+
+```text
+state/brave_usage.json
+```
+
+That file is runtime state and should remain untracked. When Brave returns rate-limit headers, pgpt also records the API-reported monthly limit/remaining values and uses the stricter effective count. A search is blocked when the configured safety budget is exhausted or the API reports no remaining monthly requests.
+
+## 5. Persistent terminal chat
+
+```bash
+pgpt chat-new "pgpt development"
+pgpt chat
+```
+
+Useful commands:
+
+```text
+/web auto|on|off|lookup|research
+/context auto|on|off
+/deep auto|on|off
+/skill NAME
 /skill off
+/new TITLE
 /exit
 ```
 
-Chat JSON and runtime state are local-only and ignored by Git.
+Terminal chats are stored locally and are ignored by Git.
 
-## 4. Local skills
+## 6. Skills: built-in vs personal
 
-Skills are Markdown system instructions. There are **two intentionally separate skill locations**:
+There are two intentionally separate skill locations:
 
-| Location | Purpose | Who should edit it? | Git-managed? |
+| Location | Purpose | Normal owner | Git-managed? |
 |---|---|---|---|
-| `~/ai/pgpt-cli/skills/` | Built-in skills shipped with `pgpt-cli` | Edit only when changing the application itself | Yes |
-| `~/.config/pgpt/skills/` | Your personal/local skills | Use this for normal skill creation and maintenance | No |
+| `~/ai/pgpt-cli/skills/` | Built-in skills shipped with pgpt-cli | Application development | Yes |
+| `~/.config/pgpt/skills/` | Your personal/local skills | You | No |
 
-The distinction is deliberate:
-
-```text
-~/ai/pgpt-cli/skills/
-        built-in defaults
-               |
-               v
-         available skills
-               ^
-               |
-~/.config/pgpt/skills/
-        personal overrides
-```
-
-If the same skill name exists in both locations, the **personal skill wins**. For example:
-
-```text
-~/ai/pgpt-cli/skills/code-review.md
-~/.config/pgpt/skills/code-review.md
-```
-
-`pgpt` will use the version under `~/.config/pgpt/skills/`.
-
-### Normal skill workflow
-
-Create and maintain personal skills here:
+For normal skill management, use:
 
 ```bash
 pgpt skill-new my-review
@@ -269,98 +253,70 @@ nano ~/.config/pgpt/skills/my-review.md
 pgpt skills
 ```
 
-Use one for a request:
+Use a skill:
 
 ```bash
-pgpt ask \
-  --skill my-review \
-  "Review the project retrieval implementation."
+pgpt ask --skill my-review "Review this architecture."
 ```
 
-Use one during an interactive chat:
+If the same skill name exists in both locations, the personal file under `~/.config/pgpt/skills/` overrides the built-in version.
 
-```text
-/skill my-review
-/skill off
-```
+Only edit `~/ai/pgpt-cli/skills/` when you intentionally want to change a built-in skill and commit that change to pgpt-cli.
 
-### When should you edit `~/ai/pgpt-cli/skills/`?
+## 7. Browser GUI
 
-Only when you intentionally want to change a **built-in skill that is part of pgpt-cli itself** and expect that change to be committed and distributed with the repository.
-
-For your own long-term skills, prefer:
-
-```text
-~/.config/pgpt/skills/
-```
-
-This keeps your personal instructions independent from `git pull`, repository refactors, and built-in defaults.
-
-## 5. Browser GUI and local API
-
-Start the local service in WSL:
+Start:
 
 ```bash
 pgpt server
 ```
 
-Defaults:
+Open:
 
 ```text
-Browser UI: http://127.0.0.1:8765/
-API base:   http://127.0.0.1:8765/v1
-Health:     http://127.0.0.1:8765/health
+http://127.0.0.1:8765/
 ```
 
-The browser UI supports project, web mode, deep mode, and skill selection. Conversation messages are kept in browser `localStorage` so a refresh does not immediately erase the local chat.
+The browser UI provides:
 
-The server binds only to loopback by default. A non-loopback bind is refused unless `--allow-remote` is explicitly supplied. Browser CORS is limited to loopback origins.
+- multiple chats with **Recents**, **Pinned**, search and delete;
+- per-message time stamps and date separators;
+- a visible elapsed timer while a prompt is running;
+- project, web mode, skill and deep-mode controls;
+- rendered Markdown headings/lists/inline code/code blocks rather than exposing raw `##` or backtick syntax;
+- clickable web links and copy buttons for source-code blocks;
+- follow-up suggestion chips after responses;
+- text/code file attachment and attachment download;
+- chat export;
+- browsing, rendering and downloading Markdown files from `responses/`;
+- Brave usage/online status.
 
-OpenAI-compatible endpoints:
+Text/code attachment limits are intentionally bounded (250 KB per file, 750 KB total per request). The current endpoint is text-only; binary images/PDFs are not silently passed to a non-multimodal Ollama model.
+
+Saved response Markdown also includes a creation timestamp and a clickable **Rendered view** URL so it can be opened through the browser renderer.
+
+### Local API
 
 ```text
+GET  /health
+GET  /api/meta
+GET  /api/web-usage
+GET  /api/responses
+GET  /api/responses/<name>
+GET  /api/responses/<name>/download
 GET  /v1/models
 POST /v1/chat/completions
 ```
 
-Example:
+The server binds to loopback by default. A non-loopback bind is refused unless `--allow-remote` is explicitly supplied.
 
-```bash
-curl http://127.0.0.1:8765/v1/chat/completions \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "model": "pgpt-cli",
-    "messages": [
-      {"role": "user", "content": "Explain dependency injection."}
-    ]
-  }'
-```
-
-Optional pgpt controls can be supplied in a top-level `pgpt` object:
-
-```json
-{
-  "pgpt": {
-    "project": "pgpt-cli-history",
-    "web": "off",
-    "context": true,
-    "deep": false,
-    "skill": "code-review"
-  }
-}
-```
-
-`stream: true` is accepted for OpenAI-client compatibility, but the current HTTP adapter emits the verified answer after the internal pipeline completes rather than exposing unverified draft tokens. Terminal generation still streams directly.
-
-## 6. VS Code / Continue in WSL
-
-The intended IDE path is:
+## 8. VS Code / Continue in WSL
 
 ```text
 VS Code Remote - WSL
         |
         v
-Continue chat model
+Continue
         |
         v
 http://127.0.0.1:8765/v1
@@ -372,190 +328,176 @@ pgpt routing / retrieval / skills / verification
 local Ollama models
 ```
 
-Start `pgpt server` inside WSL, then merge `docs/continue-config.yaml` into your Continue configuration.
+Start `pgpt server` in WSL, then merge `docs/continue-config.yaml` into Continue's configuration. See [docs/VS_CODE.md](docs/VS_CODE.md).
 
-The example config deliberately points Continue at **pgpt**, not directly at Ollama. Going directly to Ollama would bypass pgpt's routing, project retrieval, web retrieval, skills, and quality layer.
+Point Continue at **pgpt**, not directly at Ollama, if you want pgpt's routing, project retrieval, optional web retrieval, skills and quality layer.
 
-See [docs/VS_CODE.md](docs/VS_CODE.md) for the focused setup.
+## 9. What requires PrivateGPT?
 
-## 7. Routing
+### PrivateGPT is **not required** for the normal pgpt experience
 
-Routing has two layers:
+These paths use pgpt directly and do not require the `~/ai/private-gpt` process:
 
 ```text
-user prompt
+pgpt ask
+pgpt validate
+pgpt chat
+pgpt server
+browser UI
+VS Code / Continue -> pgpt /v1
+project source retrieval from configured source_dir
+Brave web lookup/research
+skills
+runtime verification/repair
+```
+
+Normal project retrieval reads the configured source tree directly. For example, `--project pgpt-cli` reads the current pgpt-cli checkout; `--project pgpt-cli-history` reads the tracked historical fixture.
+
+### PrivateGPT **is used only for the compatibility / RAG maintenance workflow**
+
+The following commands depend on your separate PrivateGPT checkout/data directories:
+
+```text
+pgpt sync
+pgpt ingest
+pgpt serve
+```
+
+Flow:
+
+```text
+project source
     |
+    | pgpt sync
     v
-small semantic classifiers
+project knowledge directory
     |
-    +--> task
-    +--> freshness
-    +--> complexity telemetry
-    |
+    | pgpt ingest
     v
-deterministic policy / explicit overrides
+PrivateGPT local data/index
     |
-    +--> local
-    +--> project
-    +--> web lookup
-    +--> web research
+    | pgpt serve
+    v
+PrivateGPT API on 127.0.0.1:8080
 ```
 
-The router decides meaning; `pgpt.runtime.route` then decides execution template and answer model. Explicit CLI overrides remain authoritative.
-
-Important behavior:
-
-- project evidence can activate project retrieval;
-- strong current/external language can activate web retrieval;
-- explicit multi-source research activates web research;
-- `--web off` suppresses web retrieval;
-- `--context` forces project retrieval;
-- model selection uses ordered task preferences and only selects installed Ollama models.
-
-## 8. Project retrieval
-
-Project retrieval is intentionally source-grounded and bounded:
-
-```text
-prompt
-  |
-  +--> code-shaped identifier candidates
-  |       |
-  |       +--> ripgrep definition search
-  |       +--> source window around best definition
-  |
-  +--> lexical fallback
-          |
-          +--> path/content scoring
-          +--> bounded file context
-```
-
-Exact symbol definitions have priority. Broader architecture/review prompts fall back to lexical retrieval. If no useful file is found, the assistant receives a project manifest rather than invented source.
-
-`pgpt-cli` uses the current repository as project source. `pgpt-cli-history` uses the tracked historical fixture. The `vibemaster` profile remains available for the original local project when its external path exists, but repository tests no longer depend on it.
-
-## 9. Web retrieval
-
-Brave Search is used only when routing selects web lookup/research or you explicitly request it.
-
-```text
-prompt
-  |
-  v
-Brave search
-  |
-  +--> candidate results
-  +--> bounded page fetches
-  +--> source IDs [S1], [S2], ...
-  |
-  v
-answer + source footer
-```
-
-When connectivity is unavailable, the runtime falls back rather than pretending live web evidence exists.
-
-## 10. Quality and evaluation
-
-There are three different quality layers:
-
-```text
-runtime verification
-    |
-    +--> deterministic checks
-    +--> bounded deterministic repair
-    +--> at most one semantic repair
-
-end-to-end evaluation
-    |
-    +--> route contract
-    +--> deterministic answer checks
-    +--> semantic judge
-
-reliability evaluation
-    |
-    +--> repeated generation
-    +--> repeated judging
-    +--> pass rates + latency statistics
-```
-
-The semantic evaluator judges **one rubric criterion per local-model call**:
-
-```text
-required #1  --> boolean + reason
-required #2  --> boolean + reason
-...
-forbidden #1 --> boolean + reason
-forbidden #2 --> boolean + reason
-                 |
-                 v
-         deterministic Python aggregation
-```
-
-This keeps criterion alignment out of one oversized judge response. Judge instructions live in Markdown prompt assets rather than Python.
-
-See [docs/TESTING.md](docs/TESTING.md).
-
-## 11. Automated CI
-
-GitHub Actions runs an offline gate on Python 3.11 and 3.13. It does not require your Ollama models, Brave key, PrivateGPT checkout, or private project directory.
-
-The gate covers syntax, packaging, model selection, mocked pipeline behavior, project-fixture integrity, skill management, HTTP integration, evaluation mechanics, and browser assets.
-
-Model-dependent routing and quality evaluations remain local integration tests because GitHub-hosted runners do not have your Ollama environment.
-
-## 12. PrivateGPT compatibility
-
-The direct pgpt pipeline does not require PrivateGPT to answer ordinary or source-grounded project questions. The older maintenance commands are preserved for the local PrivateGPT/RAG workflow:
+Manage it with your current directory structure:
 
 ```bash
+# Check Ollama, pgpt API and PrivateGPT reachability
 pgpt status
+
+# Copy a configured project's files into its knowledge directory
 pgpt sync --project pgpt-cli
+
+# Run PrivateGPT's ingestion script against that knowledge directory
 pgpt ingest --project pgpt-cli
+
+# Optional watched ingestion
+pgpt ingest --project pgpt-cli --watch
+
+# Start the PrivateGPT compatibility server
 pgpt serve
 ```
 
-`pgpt serve` remains the legacy PrivateGPT server command. `pgpt server` is the pgpt browser/OpenAI-compatible interface.
-
-This separation lets you keep experimenting with PrivateGPT ingestion without making the everyday CLI/VS Code chat path depend on it.
-
-## Common points of confusion
-
-### `pgpt server` vs `pgpt serve`
+The defaults expect:
 
 ```text
-pgpt server
-    -> pgpt browser UI + OpenAI-compatible endpoint
-    -> use this for browser chat and VS Code / Continue
-
-pgpt serve
-    -> legacy PrivateGPT server
-    -> use only for the PrivateGPT compatibility workflow
+~/ai/private-gpt/       PrivateGPT source checkout
+~/ai/private-gpt-data/  PGPT_HOME / PrivateGPT data
 ```
 
-### Built-in skills vs personal skills
+Those paths match your current setup, so **no directory restructuring is necessary**.
+
+Do not confuse:
 
 ```text
-~/ai/pgpt-cli/skills/
-    -> built-in application skills
-    -> Git-managed
-
-~/.config/pgpt/skills/
-    -> your personal skill library
-    -> normal place to create/edit your skills
+pgpt server   -> pgpt browser + OpenAI-compatible API (normal workflow)
+pgpt serve    -> PrivateGPT compatibility server (optional RAG workflow)
 ```
 
-### Current project vs historical project
+## 10. Routing and latency
+
+Routing intentionally separates semantic meaning from execution policy:
+
+```text
+prompt
+  |
+  +--> high-confidence deterministic fast path
+  |       live lookups / research / debug / architecture / writing
+  |
+  +--> one combined local semantic classifier when still ambiguous
+          task + freshness + complexity
+  |
+  v
+policy + explicit overrides
+  |
+  +--> local
+  +--> project
+  +--> web lookup
+  +--> web research
+```
+
+Previously, ambiguous routing required separate model calls for task, freshness and complexity. The combined classifier reduces that to one call, while common live lookups skip the classifier entirely.
+
+## 11. Project retrieval
+
+```text
+prompt
+  |
+  +--> symbol candidates
+  |       -> ripgrep definition search
+  |       -> bounded source window
+  |
+  +--> lexical fallback
+          -> path/content scoring
+          -> bounded source context
+```
+
+Exact symbols have priority. If no useful source is found, pgpt uses a project manifest rather than inventing files.
+
+Configured project profiles:
 
 ```text
 --project pgpt-cli
-    -> current repository
+    current checkout
 
 --project pgpt-cli-history
-    -> tracked historical fixture used for reproducible project retrieval/tests
+    tracked historical test fixture
 
 --project vibemaster
-    -> optional external local project profile; only works when that path exists
+    optional external project when its configured path exists
 ```
+
+## 12. Response quality and follow-ups
+
+Runtime answers pass through deterministic verification and bounded repair. Substantive answers are instructed to end with a small `Next ideas` section containing useful follow-up questions/tasks. The browser renders those suggestions as clickable chips.
+
+The end-to-end semantic judge evaluates one rubric criterion at a time. Required criteria use a `satisfied` boolean; forbidden criteria use a `violated` boolean. This prevents the polarity confusion that can occur when a generic `passed` field is used for both meanings.
+
+## 13. Testing
+
+GitHub Actions runs an offline gate on Python 3.11 and 3.13. It covers:
+
+- packaging/configuration syntax;
+- model selection;
+- mocked pipeline behavior;
+- routing decision vs runtime-route boundaries;
+- fast live lookup routing;
+- project fixture/retrieval behavior;
+- skills;
+- HTTP API and CORS;
+- Brave usage-budget bookkeeping and HTTP hooks;
+- semantic scorer polarity/retries;
+- response Markdown metadata;
+- browser UI contracts and JavaScript syntax;
+- prompt ownership/separation.
+
+Generated routing cases are exploratory diagnostics, not trusted gold labels. Authoritative regressions should be deliberate, high-value cases.
+
+See [docs/TESTING.md](docs/TESTING.md) for exact commands.
+
+Model/GPU/Brave/PrivateGPT-dependent integration tests must still be run on your WSL machine because GitHub-hosted CI does not have your Ollama models, API key, or PrivateGPT installation.
 
 ## Repository map
 
@@ -575,7 +517,7 @@ pgpt-cli/
 │   ├── runtime/
 │   └── storage/
 ├── prompts/
-├── skills/                    # built-in, Git-managed pgpt skills
+├── skills/                       # built-in, Git-managed skills
 ├── web/
 ├── docs/
 ├── tests/
@@ -587,7 +529,7 @@ pgpt-cli/
 └── pyproject.toml
 ```
 
-Your personal skill directory is intentionally **not** inside this tree:
+Personal skills deliberately live outside this tree:
 
 ```text
 ~/.config/pgpt/skills/
@@ -595,12 +537,12 @@ Your personal skill directory is intentionally **not** inside this tree:
 
 ## Local-only data
 
-These should remain untracked:
+Keep these untracked:
 
 ```text
 responses/
 state/
-local chats
+chats/
 evaluation result files
 secrets.env
 .env files
@@ -608,15 +550,4 @@ private keys
 backups/
 ```
 
-Your personal skill library also lives outside the repository at `~/.config/pgpt/skills/`, so ordinary repository pulls and source refactors do not mix it with built-in skills.
-
-Before publishing changes, always review staged content for secrets.
-
-## Design principles
-
-1. **Local first.** Ordinary chat, project reasoning, skills, and orchestration should work against local models.
-2. **Evidence before project claims.** Project-specific explanations should come from retrieved source.
-3. **Explicit boundaries.** Routing, retrieval, model selection, generation, verification, storage, and UI are separate concerns.
-4. **Natural-language behavior belongs in prompt assets.** Python owns mechanics and policy, not buried prompt prose.
-5. **Small models need deterministic support.** Use schemas, rules, bounded retries, and tests instead of expecting one model call to do everything.
-6. **Local does not mean unrestricted.** The browser/API binds to loopback by default, and autonomous shell/filesystem tool execution is not silently enabled.
+Before publishing changes, review staged content for secrets.
