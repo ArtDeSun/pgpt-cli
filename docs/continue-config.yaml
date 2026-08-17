@@ -1,0 +1,13 @@
+name: pgpt-cli local
+version: 1.0.0
+schema: v1
+
+models:
+  - name: pgpt-cli
+    provider: openai
+    model: pgpt-cli
+    apiBase: http://127.0.0.1:8765/v1
+    apiKey: local
+    useResponsesApi: false
+    roles:
+      - chat
