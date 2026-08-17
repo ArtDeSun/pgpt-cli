@@ -31,13 +31,6 @@ OUTPUT_PATH = (
     / "end_to_end_scored.json"
 )
 
-JUDGE_PROMPT_PATH = (
-    ROOT
-    / "prompts"
-    / "quality"
-    / "judge.md"
-)
-
 REQUIRED_CRITERION_PROMPT_PATH = (
     ROOT
     / "prompts"
@@ -87,293 +80,26 @@ def _save_json(
             indent=2,
             ensure_ascii=False,
         )
-
         file.write("\n")
 
 
-def _judge_schema(
-    *,
-    required_count: int,
-    forbidden_count: int,
-) -> dict[str, Any]:
+def _criterion_schema() -> dict[str, Any]:
     return {
         "type": "object",
         "properties": {
-            "passed": {
+            "matched": {
                 "type": "boolean",
             },
-            "score": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 5,
-            },
-            "required_passed": {
-                "type": "array",
-                "items": {
-                    "type": "boolean",
-                },
-                "minItems": required_count,
-                "maxItems": required_count,
-            },
-            "required_reasons": {
-                "type": "array",
-                "items": {
-                    "type": "string",
-                },
-                "minItems": required_count,
-                "maxItems": required_count,
-            },
-            "forbidden_violated": {
-                "type": "array",
-                "items": {
-                    "type": "boolean",
-                },
-                "minItems": forbidden_count,
-                "maxItems": forbidden_count,
-            },
-            "forbidden_reasons": {
-                "type": "array",
-                "items": {
-                    "type": "string",
-                },
-                "minItems": forbidden_count,
-                "maxItems": forbidden_count,
-            },
-            "issues": {
-                "type": "array",
-                "items": {
-                    "type": "string",
-                },
+            "reason": {
+                "type": "string",
             },
         },
         "required": [
-            "passed",
-            "score",
-            "required_passed",
-            "required_reasons",
-            "forbidden_violated",
-            "forbidden_reasons",
-            "issues",
+            "matched",
+            "reason",
         ],
         "additionalProperties": False,
     }
-
-
-def _validate_boolean_list(
-    value: Any,
-    *,
-    expected_length: int,
-    field: str,
-) -> list[bool]:
-    if not isinstance(
-        value,
-        list,
-    ):
-        raise ValueError(
-            f"Judge {field!r} is not a list"
-        )
-
-    if len(value) != expected_length:
-        raise ValueError(
-            f"Judge {field!r} returned "
-            f"{len(value)} entries; "
-            f"expected {expected_length}"
-        )
-
-    if not all(
-        isinstance(
-            item,
-            bool,
-        )
-        for item in value
-    ):
-        raise ValueError(
-            f"Judge {field!r} contains "
-            "non-boolean values"
-        )
-
-    return value
-
-
-def _validate_string_list(
-    value: Any,
-    *,
-    expected_length: int | None,
-    field: str,
-) -> list[str]:
-    if not isinstance(
-        value,
-        list,
-    ):
-        raise ValueError(
-            f"Judge {field!r} is not a list"
-        )
-
-    if (
-        expected_length is not None
-        and len(value)
-        != expected_length
-    ):
-        raise ValueError(
-            f"Judge {field!r} returned "
-            f"{len(value)} entries; "
-            f"expected {expected_length}"
-        )
-
-    if not all(
-        isinstance(
-            item,
-            str,
-        )
-        for item in value
-    ):
-        raise ValueError(
-            f"Judge {field!r} contains "
-            "non-string values"
-        )
-
-    return value
-
-
-def _validate_judgment(
-    value: Any,
-    *,
-    required_count: int,
-    forbidden_count: int,
-) -> dict[str, Any]:
-    if not isinstance(
-        value,
-        dict,
-    ):
-        raise ValueError(
-            "Judge result is not an object"
-        )
-
-    expected_fields = {
-        "passed",
-        "score",
-        "required_passed",
-        "required_reasons",
-        "forbidden_violated",
-        "forbidden_reasons",
-        "issues",
-    }
-
-    if set(value) != expected_fields:
-        raise ValueError(
-            "Judge result fields do not "
-            "match the required schema"
-        )
-
-    passed = value[
-        "passed"
-    ]
-
-    score = value[
-        "score"
-    ]
-
-    if not isinstance(
-        passed,
-        bool,
-    ):
-        raise ValueError(
-            "Judge 'passed' is not boolean"
-        )
-
-    if (
-        not isinstance(
-            score,
-            int,
-        )
-        or isinstance(
-            score,
-            bool,
-        )
-        or not 0 <= score <= 5
-    ):
-        raise ValueError(
-            "Judge score must be an integer "
-            "from 0 through 5"
-        )
-
-    required_passed = (
-        _validate_boolean_list(
-            value[
-                "required_passed"
-            ],
-            expected_length=(
-                required_count
-            ),
-            field=(
-                "required_passed"
-            ),
-        )
-    )
-
-    _validate_string_list(
-        value[
-            "required_reasons"
-        ],
-        expected_length=(
-            required_count
-        ),
-        field=(
-            "required_reasons"
-        ),
-    )
-
-    forbidden_violated = (
-        _validate_boolean_list(
-            value[
-                "forbidden_violated"
-            ],
-            expected_length=(
-                forbidden_count
-            ),
-            field=(
-                "forbidden_violated"
-            ),
-        )
-    )
-
-    _validate_string_list(
-        value[
-            "forbidden_reasons"
-        ],
-        expected_length=(
-            forbidden_count
-        ),
-        field=(
-            "forbidden_reasons"
-        ),
-    )
-
-    _validate_string_list(
-        value[
-            "issues"
-        ],
-        expected_length=None,
-        field="issues",
-    )
-
-    expected_pass = (
-        score >= 4
-        and all(
-            required_passed
-        )
-        and not any(
-            forbidden_violated
-        )
-    )
-
-    if passed != expected_pass:
-        raise ValueError(
-            "Judge 'passed' is inconsistent "
-            "with score and rubric results"
-        )
-
-    return value
 
 
 def _run_deterministic_check(
@@ -396,10 +122,8 @@ def _run_deterministic_check(
             before,
             str,
         ):
-            position = (
-                content.find(
-                    before
-                )
+            position = content.find(
+                before
             )
 
             if position >= 0:
@@ -513,6 +237,7 @@ def _run_deterministic_checks(
         for check in checks
     ]
 
+
 def _load_criterion_prompt(
     criterion_type: str,
 ) -> str:
@@ -539,14 +264,32 @@ def _load_criterion_prompt(
     ).strip()
 
 
-def _judge_once(
+def _judge_criterion(
     *,
     model: str,
-    system_prompt: str,
-    request: dict[str, Any],
-    required_count: int,
-    forbidden_count: int,
+    criterion_type: str,
+    prompt: str,
+    answer: str,
+    criterion: str,
+    evaluation_context: Any,
+    evaluation_evidence: Any,
 ) -> dict[str, Any]:
+    system_prompt = _load_criterion_prompt(
+        criterion_type
+    )
+
+    request = {
+        "user_request": prompt,
+        "evaluation_context": (
+            evaluation_context
+        ),
+        "evaluation_evidence": (
+            evaluation_evidence
+        ),
+        "answer": answer,
+        "criterion": criterion,
+    }
+
     response = json_request(
         "POST",
         ollama_url(
@@ -572,13 +315,8 @@ def _judge_once(
             ],
             "stream": False,
             "think": False,
-            "format": _judge_schema(
-                required_count=(
-                    required_count
-                ),
-                forbidden_count=(
-                    forbidden_count
-                ),
+            "format": (
+                _criterion_schema()
             ),
             "keep_alive": "10m",
             "options": {
@@ -597,8 +335,8 @@ def _judge_once(
                         "quality",
                         {},
                     ).get(
-                        "judge_max_tokens",
-                        550,
+                        "criterion_max_tokens",
+                        180,
                     )
                 ),
             },
@@ -648,24 +386,57 @@ def _judge_once(
             "Judge returned empty content"
         )
 
-    parsed = json.loads(
+    result = json.loads(
         content
     )
 
-    judgment = (
-        _validate_judgment(
-            parsed,
-            required_count=(
-                required_count
-            ),
-            forbidden_count=(
-                forbidden_count
-            ),
+    if not isinstance(
+        result,
+        dict,
+    ):
+        raise ValueError(
+            "Criterion result is not "
+            "an object"
         )
-    )
+
+    if set(result) != {
+        "matched",
+        "reason",
+    }:
+        raise ValueError(
+            "Criterion result fields do not "
+            "match the required schema"
+        )
+
+    matched = result[
+        "matched"
+    ]
+
+    reason = result[
+        "reason"
+    ]
+
+    if not isinstance(
+        matched,
+        bool,
+    ):
+        raise ValueError(
+            "Criterion matched result "
+            "is not boolean"
+        )
+
+    if not isinstance(
+        reason,
+        str,
+    ):
+        raise ValueError(
+            "Criterion reason is not "
+            "a string"
+        )
 
     return {
-        "judgment": judgment,
+        "matched": matched,
+        "reason": reason,
         "judge_metrics": {
             "done_reason": (
                 response.get(
@@ -712,6 +483,38 @@ def _judge_once(
     }
 
 
+def _score_judgment(
+    *,
+    required_passed: list[bool],
+    forbidden_violated: list[bool],
+) -> int:
+    if (
+        all(required_passed)
+        and not any(
+            forbidden_violated
+        )
+    ):
+        return 5
+
+    if any(
+        forbidden_violated
+    ):
+        return 2
+
+    if not required_passed:
+        return 3
+
+    ratio = (
+        sum(required_passed)
+        / len(required_passed)
+    )
+
+    if ratio >= 0.5:
+        return 3
+
+    return 1
+
+
 def _judge(
     *,
     model: str,
@@ -730,81 +533,426 @@ def _judge(
         [],
     )
 
-    required_count = len(
-        required_points
+    evaluation_context = rubric.get(
+        "evaluation_context",
+        [],
     )
 
-    forbidden_count = len(
-        forbidden_points
-    )
-
-    system_prompt = (
-        JUDGE_PROMPT_PATH
-        .read_text(
-            encoding="utf-8"
+    if not isinstance(
+        required_points,
+        list,
+    ):
+        raise ValueError(
+            "required_points must be "
+            "a list"
         )
-        .strip()
+
+    if not isinstance(
+        forbidden_points,
+        list,
+    ):
+        raise ValueError(
+            "forbidden_points must be "
+            "a list"
+        )
+
+    required_results = [
+        _judge_criterion(
+            model=model,
+            criterion_type="required",
+            prompt=prompt,
+            answer=answer,
+            criterion=criterion,
+            evaluation_context=(
+                evaluation_context
+            ),
+            evaluation_evidence=(
+                evaluation_evidence
+            ),
+        )
+        for criterion in required_points
+    ]
+
+    forbidden_results = [
+        _judge_criterion(
+            model=model,
+            criterion_type="forbidden",
+            prompt=prompt,
+            answer=answer,
+            criterion=criterion,
+            evaluation_context=(
+                evaluation_context
+            ),
+            evaluation_evidence=(
+                evaluation_evidence
+            ),
+        )
+        for criterion in forbidden_points
+    ]
+
+    required_passed = [
+        result["matched"]
+        for result in required_results
+    ]
+
+    required_reasons = [
+        result["reason"]
+        for result in required_results
+    ]
+
+    forbidden_violated = [
+        result["matched"]
+        for result in forbidden_results
+    ]
+
+    forbidden_reasons = [
+        result["reason"]
+        for result in forbidden_results
+    ]
+
+    score = _score_judgment(
+        required_passed=(
+            required_passed
+        ),
+        forbidden_violated=(
+            forbidden_violated
+        ),
     )
 
-    request = {
-        "user_request": prompt,
-        "evaluation_context": (
-            rubric.get(
-                "evaluation_context",
-                [],
+    passed = (
+        score >= 4
+        and all(
+            required_passed
+        )
+        and not any(
+            forbidden_violated
+        )
+    )
+
+    issues: list[str] = []
+
+    for result in required_results:
+        if not result[
+            "matched"
+        ]:
+            issues.append(
+                result["reason"]
             )
-        ),
-        "required_points": (
-            required_points
-        ),
-        "forbidden_points": (
-            forbidden_points
-        ),
-        "assistant_answer": answer,
-        "evaluation_evidence": (
-            evaluation_evidence
-        ),
+
+    for result in forbidden_results:
+        if result[
+            "matched"
+        ]:
+            issues.append(
+                result["reason"]
+            )
+
+    total_metrics = {
+        "load_duration": 0,
+        "prompt_eval_duration": 0,
+        "prompt_eval_count": 0,
+        "eval_duration": 0,
+        "eval_count": 0,
+        "total_duration": 0,
     }
 
-    attempts = 2
-    last_error: Exception | None = None
+    all_results = (
+        required_results
+        + forbidden_results
+    )
 
-    for attempt in range(
-        1,
-        attempts + 1,
-    ):
-        try:
-            result = _judge_once(
-                model=model,
-                system_prompt=(
-                    system_prompt
-                ),
-                request=request,
-                required_count=(
-                    required_count
-                ),
-                forbidden_count=(
-                    forbidden_count
-                ),
+    for result in all_results:
+        metrics = result[
+            "judge_metrics"
+        ]
+
+        for key in total_metrics:
+            total_metrics[key] += int(
+                metrics.get(
+                    key,
+                    0,
+                )
+                or 0
             )
 
-            result[
-                "judge_attempts"
-            ] = attempt
+    return {
+        "judgment": {
+            "passed": passed,
+            "score": score,
+            "required_passed": (
+                required_passed
+            ),
+            "required_reasons": (
+                required_reasons
+            ),
+            "forbidden_violated": (
+                forbidden_violated
+            ),
+            "forbidden_reasons": (
+                forbidden_reasons
+            ),
+            "issues": issues,
+        },
+        "judge_metrics": {
+            **total_metrics,
+            "criterion_count": len(
+                all_results
+            ),
+        },
+    }
 
-            return result
 
-        except (
-            ValueError,
-            json.JSONDecodeError,
-        ) as exc:
-            last_error = exc
+def _case_map() -> dict[
+    str,
+    dict[str, Any],
+]:
+    cases = _load_json(
+        CASES_PATH
+    )
 
-            if attempt >= attempts:
-                raise
+    return {
+        case["id"]: case
+        for case in cases
+    }
 
-    assert last_error is not None
-    raise last_error
+
+def _selected_rows(
+    rows: list[dict[str, Any]],
+    case_ids: list[str],
+) -> list[dict[str, Any]]:
+    if not case_ids:
+        return rows
+
+    wanted = set(
+        case_ids
+    )
+
+    missing = (
+        wanted
+        - {
+            row["id"]
+            for row in rows
+        }
+    )
+
+    if missing:
+        raise ValueError(
+            "Unknown or missing result cases: "
+            + ", ".join(
+                sorted(
+                    missing
+                )
+            )
+        )
+
+    return [
+        row
+        for row in rows
+        if row["id"] in wanted
+    ]
+
+
+def _score_row(
+    *,
+    row: dict[str, Any],
+    case: dict[str, Any],
+    model: str,
+) -> dict[str, Any]:
+    scored = dict(
+        row
+    )
+
+    rubric = case.get(
+        "quality_rubric",
+        {},
+    )
+
+    deterministic_checks = (
+        rubric.get(
+            "deterministic_checks",
+            [],
+        )
+    )
+
+    if not isinstance(
+        deterministic_checks,
+        list,
+    ):
+        raise ValueError(
+            "deterministic_checks must "
+            "be a list"
+        )
+
+    deterministic_results = (
+        _run_deterministic_checks(
+            answer=str(
+                row.get(
+                    "answer",
+                    "",
+                )
+            ),
+            checks=(
+                deterministic_checks
+            ),
+        )
+    )
+
+    deterministic_passed = all(
+        result["passed"]
+        for result
+        in deterministic_results
+    )
+
+    scored[
+        "deterministic_checks"
+    ] = deterministic_results
+
+    scored[
+        "deterministic_passed"
+    ] = deterministic_passed
+
+    judge_result = _judge(
+        model=model,
+        prompt=str(
+            row.get(
+                "prompt",
+                case.get(
+                    "prompt",
+                    "",
+                ),
+            )
+        ),
+        answer=str(
+            row.get(
+                "answer",
+                "",
+            )
+        ),
+        rubric=rubric,
+        evaluation_evidence=(
+            row.get(
+                "evaluation_evidence"
+            )
+        ),
+    )
+
+    judgment = judge_result[
+        "judgment"
+    ]
+
+    semantic_passed = bool(
+        judgment[
+            "passed"
+        ]
+    )
+
+    quality_passed = (
+        bool(
+            row.get(
+                "route_passed",
+                False,
+            )
+        )
+        and deterministic_passed
+        and semantic_passed
+    )
+
+    scored[
+        "judge_model"
+    ] = model
+
+    scored[
+        "judgment"
+    ] = judgment
+
+    scored[
+        "semantic_passed"
+    ] = semantic_passed
+
+    scored[
+        "quality_passed"
+    ] = quality_passed
+
+    scored[
+        "judge_attempts"
+    ] = 1
+
+    scored[
+        "judge_metrics"
+    ] = judge_result[
+        "judge_metrics"
+    ]
+
+    scored.pop(
+        "judge_error",
+        None,
+    )
+
+    return scored
+
+
+def _print_scored_row(
+    row: dict[str, Any],
+) -> None:
+    judgment = row.get(
+        "judgment",
+        {},
+    )
+
+    print(
+        "semantic passed:",
+        row.get(
+            "semantic_passed"
+        ),
+    )
+
+    print(
+        "score:",
+        judgment.get(
+            "score"
+        ),
+    )
+
+    print(
+        "deterministic passed:",
+        row.get(
+            "deterministic_passed"
+        ),
+    )
+
+    for result in row.get(
+        "deterministic_checks",
+        [],
+    ):
+        status = (
+            "PASS"
+            if result.get(
+                "passed"
+            )
+            else "FAIL"
+        )
+
+        print(
+            "  check:",
+            result.get(
+                "type"
+            ),
+            status,
+        )
+
+    print(
+        "judge attempts:",
+        row.get(
+            "judge_attempts"
+        ),
+    )
+
+    print(
+        "quality passed:",
+        row.get(
+            "quality_passed"
+        ),
+    )
 
 
 def main() -> None:
@@ -817,8 +965,9 @@ def main() -> None:
 
     parser.add_argument(
         "--case",
-        action="append",
         dest="case_ids",
+        action="append",
+        default=[],
     )
 
     args = parser.parse_args()
@@ -827,241 +976,93 @@ def main() -> None:
         RESULTS_PATH
     )
 
-    cases = _load_json(
-        CASES_PATH
-    )
-
     if not isinstance(
         rows,
         list,
     ):
-        raise RuntimeError(
-            "end_to_end_results.json "
-            "must contain a list"
+        raise ValueError(
+            "End-to-end results must "
+            "be a list"
         )
 
-    if not isinstance(
-        cases,
-        list,
-    ):
-        raise RuntimeError(
-            "end_to_end_cases.json "
-            "must contain a list"
-        )
+    cases = _case_map()
 
-    case_map = {
-        case["id"]: case
-        for case in cases
-        if (
-            isinstance(
-                case,
-                dict,
-            )
-            and "id" in case
-        )
-    }
-
-    selected = (
-        set(
-            args.case_ids
-        )
-        if args.case_ids
-        else None
+    selected = _selected_rows(
+        rows,
+        args.case_ids,
     )
 
-    scored: list[
+    scored_rows: list[
         dict[str, Any]
     ] = []
 
-    for row in rows:
-        if (
-            selected is not None
-            and row["id"]
-            not in selected
-        ):
-            continue
+    for row in selected:
+        case_id = row[
+            "id"
+        ]
+
+        case = cases.get(
+            case_id
+        )
+
+        if case is None:
+            raise ValueError(
+                "Missing end-to-end case: "
+                f"{case_id}"
+            )
 
         print()
-        print("=" * 72)
         print(
-            row["id"]
+            "=" * 72
         )
-        print("=" * 72)
+        print(
+            case_id
+        )
+        print(
+            "=" * 72
+        )
 
         try:
-            case = case_map.get(
-                row["id"]
-            )
-
-            if case is None:
-                raise ValueError(
-                    "No current eval case "
-                    "exists for "
-                    f"{row['id']!r}"
-                )
-
-            rubric = case.get(
-                "quality",
-                {},
-            )
-
-            deterministic_checks = (
-                _run_deterministic_checks(
-                    answer=(
-                        row["answer"]
-                    ),
-                    checks=rubric.get(
-                        "deterministic_checks",
-                        [],
-                    ),
-                )
-            )
-
-            deterministic_passed = (
-                all(
-                    check["passed"]
-                    for check in (
-                        deterministic_checks
-                    )
-                )
-            )
-
-            semantic_result = _judge(
+            scored = _score_row(
+                row=row,
+                case=case,
                 model=args.model,
-                prompt=row["prompt"],
-                answer=row["answer"],
-                rubric=rubric,
-                evaluation_evidence=(
-                    row.get(
-                        "evaluation_evidence"
-                    )
-                ),
             )
 
-            judgment = (
-                semantic_result[
-                    "judgment"
-                ]
-            )
-
-            semantic_passed = (
-                judgment[
-                    "passed"
-                ]
-            )
-
-            quality_passed = (
-                row.get(
-                    "route_passed",
-                    True,
-                )
-                and deterministic_passed
-                and semantic_passed
-            )
-
-            record = {
-                **row,
-                "quality_rubric": (
-                    rubric
-                ),
-                "judge_model": (
-                    args.model
-                ),
-                "deterministic_checks": (
-                    deterministic_checks
-                ),
-                "deterministic_passed": (
-                    deterministic_passed
-                ),
-                "judgment": judgment,
-                "semantic_passed": (
-                    semantic_passed
-                ),
-                "quality_passed": (
-                    quality_passed
-                ),
-                "judge_attempts": (
-                    semantic_result[
-                        "judge_attempts"
-                    ]
-                ),
-                "judge_metrics": (
-                    semantic_result[
-                        "judge_metrics"
-                    ]
-                ),
-            }
-
-            print(
-                "semantic passed:",
-                semantic_passed,
-            )
-
-            print(
-                "score:",
-                judgment[
-                    "score"
-                ],
-            )
-
-            print(
-                "deterministic passed:",
-                deterministic_passed,
-            )
-
-            for check in (
-                deterministic_checks
-            ):
-                print(
-                    "  check:",
-                    check["type"],
-                    (
-                        "PASS"
-                        if check[
-                            "passed"
-                        ]
-                        else "FAIL"
-                    ),
-                )
-
-            print(
-                "judge attempts:",
-                semantic_result[
-                    "judge_attempts"
-                ],
-            )
-
-            print(
-                "quality passed:",
-                quality_passed,
+            _print_scored_row(
+                scored
             )
 
         except Exception as exc:
-            record = {
-                **row,
-                "judge_model": (
-                    args.model
-                ),
-                "judge_error": (
-                    f"{type(exc).__name__}: "
-                    f"{exc}"
-                ),
-            }
+            scored = dict(
+                row
+            )
+
+            scored[
+                "judge_model"
+            ] = args.model
+
+            scored[
+                "judge_error"
+            ] = (
+                f"{type(exc).__name__}: "
+                f"{exc}"
+            )
 
             print(
                 "ERROR:",
-                record[
+                scored[
                     "judge_error"
                 ],
             )
 
-        scored.append(
-            record
+        scored_rows.append(
+            scored
         )
 
     _save_json(
         OUTPUT_PATH,
-        scored,
+        scored_rows,
     )
 
     print()
