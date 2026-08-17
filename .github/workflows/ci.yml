@@ -28,12 +28,27 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
 
-      - name: Validate JSON and Python syntax
+      - name: Validate configuration and Python syntax
         run: |
           python -m json.tool config.json > /dev/null
           python -m json.tool evals/end_to_end_cases.json > /dev/null
           python -m json.tool evals/judge_calibration.json > /dev/null
           python -m compileall -q pgpt tools tests
+
+      - name: Validate browser JavaScript syntax
+        run: |
+          if command -v node >/dev/null 2>&1; then
+            python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path("web/index.html").read_text(encoding="utf-8")
+          match = re.search(r"<script>([\s\S]*?)</script>", text)
+          if match is None:
+              raise SystemExit("inline browser script not found")
+          Path("/tmp/pgpt-ui.js").write_text(match.group(1), encoding="utf-8")
+          PY
+            node --check /tmp/pgpt-ui.js
+          fi
 
       - name: Run offline unit and integration tests
         run: |
@@ -42,11 +57,15 @@ jobs:
             tests.test_pipeline_mock \
             tests.test_config_paths \
             tests.test_skills \
+            tests.test_routes \
             tests.test_server \
             tests.test_server_http \
             tests.test_cli_parser \
             tests.test_maintenance \
+            tests.test_http_usage \
+            tests.test_web_usage \
             tests.test_score_end_to_end_results \
+            tests.test_response_writer \
             tests.test_historical_project_fixture \
             tests.test_project_retrieval_snapshot \
             tests.test_eval_project_selection \
