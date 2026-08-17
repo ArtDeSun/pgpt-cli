@@ -120,28 +120,27 @@
     }
   },
   {
-    "id": "project_symbol_explain_01",
-    "prompt": "Explain how setFeaturedLandscapeVideo works in my project.",
+    "id": "project_history_symbol_explain_01",
+    "prompt": "Explain how select_model works in the historical pgpt-cli project.",
     "expect": {
       "execution": "project",
       "template": "explain-code",
       "model": "qwen2.5-coder:3b",
-      "project": "vibemaster"
+      "project": "pgpt-cli-history"
     },
     "quality": {
       "required_points": [
-        "Explains that getSession() is used to authenticate or identify the current user before database work.",
-        "Explains that mongoose.startSession() creates the MongoDB session used for the transaction.",
-        "Explains that the selected video is looked up by videoId and the current user's userId.",
-        "Explains that other featured videos on the same landscape video board are set to isFeatured false.",
-        "Explains that the selected video's isFeatured field is set to true and saved using the MongoDB session.",
-        "Explains that updateTag invalidates the landscape-video-board cache tag for the current user.",
-        "Explains that mongoSession.endSession() is called in the finally block."
+        "Explains that select_model uses the supplied available_models set when provided, otherwise it obtains installed model names from Ollama through list_models().",
+        "Explains that an explicit model_override is resolved first and causes an error when the requested model is unavailable.",
+        "Explains that without an override the function obtains task-specific preferences and falls back to general preferences for an unknown task.",
+        "Explains that candidates are checked in configured preference order and the first available model is returned.",
+        "Explains that an untagged configured/requested model may match an available <name>:latest model.",
+        "Explains that the function raises an error when none of the configured candidates are available."
       ],
       "forbidden_points": [
-        "Claims getSession() creates or manages the MongoDB transaction.",
-        "Claims the function serializes the response using result.data.",
-        "Invents database operations, fields, or framework behavior that are not present in the retrieved source."
+        "Claims select_model downloads, pulls, or installs an Ollama model.",
+        "Claims select_model randomly chooses among available models.",
+        "Invents behavior that is absent from the retrieved historical source."
       ]
     }
   }
