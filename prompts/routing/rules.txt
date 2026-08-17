@@ -35,6 +35,8 @@ how\s+(?:much|many|long)\b.{0,120}\b(?:currently|right\s+now|today|tonight|as\s+
 \bstill\s+(?:available|open|closed|operating|supported|active|in\s+office|legal|valid|down|up|in\s+stock)\b
 \b(?:has|have)\b.{0,100}\b(?:been\s+released|launched|deprecated|discontinued|updated|changed)\b
 \b(?:what(?:'s|\s+is)\s+the\s+latest\s+on|latest\s+updates?\s+on|news\s+(?:on|about)|what(?:'s|\s+is)\s+happening\s+(?:with|in|to))\b
+^\s*who\s+(?:heads|runs|chairs|governs|coaches)\s+[^?]{2,100}\??\s*$
+^\s*who\s+is\s+(?:the\s+)?(?:ceo|cto|cfo|coo|president|chair|chairman|chairwoman|director|head|governor|mayor|prime\s+minister|premier|chancellor|coach|manager|commissioner|secretary)\s+(?:of|at|for)\s+[^?]{2,100}\??\s*$
 
 # Inherently live lookup forms that are common enough to bypass the semantic
 # classifier entirely. This is a latency optimization, not the correctness
