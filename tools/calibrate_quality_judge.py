@@ -24,6 +24,12 @@ def main() -> None:
         required=True,
     )
 
+    parser.add_argument(
+        "--case",
+        action="append",
+        dest="case_ids",
+    )
+
     args = parser.parse_args()
 
     with CASES_PATH.open(
@@ -31,6 +37,37 @@ def main() -> None:
         encoding="utf-8",
     ) as file:
         cases = json.load(file)
+
+    selected = (
+        set(args.case_ids)
+        if args.case_ids
+        else None
+    )
+
+    if selected is not None:
+        available = {
+            case["id"]
+            for case in cases
+        }
+
+        missing = (
+            selected
+            - available
+        )
+
+        if missing:
+            raise ValueError(
+                "Unknown calibration case(s): "
+                + ", ".join(
+                    sorted(missing)
+                )
+            )
+
+        cases = [
+            case
+            for case in cases
+            if case["id"] in selected
+        ]
 
     passed_cases = 0
 

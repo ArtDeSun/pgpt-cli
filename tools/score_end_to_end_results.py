@@ -38,6 +38,20 @@ JUDGE_PROMPT_PATH = (
     / "judge.md"
 )
 
+REQUIRED_CRITERION_PROMPT_PATH = (
+    ROOT
+    / "prompts"
+    / "quality"
+    / "required-criterion.md"
+)
+
+FORBIDDEN_CRITERION_PROMPT_PATH = (
+    ROOT
+    / "prompts"
+    / "quality"
+    / "forbidden-criterion.md"
+)
+
 _SOURCE_ID = re.compile(
     r"\[S(\d+)\]",
     re.IGNORECASE,
@@ -498,6 +512,31 @@ def _run_deterministic_checks(
         )
         for check in checks
     ]
+
+def _load_criterion_prompt(
+    criterion_type: str,
+) -> str:
+    paths = {
+        "required": (
+            REQUIRED_CRITERION_PROMPT_PATH
+        ),
+        "forbidden": (
+            FORBIDDEN_CRITERION_PROMPT_PATH
+        ),
+    }
+
+    try:
+        path = paths[
+            criterion_type
+        ]
+    except KeyError as exc:
+        raise ValueError(
+            criterion_type
+        ) from exc
+
+    return path.read_text(
+        encoding="utf-8"
+    ).strip()
 
 
 def _judge_once(

@@ -366,7 +366,7 @@
         "Invents notification behavior absent from the supplied evidence."
       ]
     },
-    "answer": "The function calls getSession(), which ensures the database operations participate in a transaction. It authenticates the user, starts a MongoDB session with mongoose.startSession(), finds the item using its ID and the user's ID, clears other featured items, and marks the selected item featured before saving it. It then updates the tag, which likely updates a cache or triggers a notification.",
+    "answer": "getSession() authenticates the current user, but it also ensures that the database operations participate in a transaction. mongoose.startSession() starts the MongoDB session. The function finds the item using itemId and the current user's userId and sets the other featured items to false. It marks the selected item as featured and saves it. updateTag() runs afterward and may invalidate a cache or trigger a notification.",
     "expect": {
       "passed": false,
       "max_score": 3,
