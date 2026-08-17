@@ -23,34 +23,33 @@ this\s+repo
 this\s+repository
 this\s+codebase
 
+# High-confidence freshness requests. These rules intentionally describe
+# request shape rather than trying to enumerate every possible live domain.
+# Ambiguous long-tail prompts fall back to the semantic freshness classifier.
 [current-external]
-currently
-latest
-newest
-most\s+recent
-recent
-recently
-today
-tonight
-yesterday
-these\s+days
-right\s+now
-current\s+information
-current\s+stable\s+(?:version|release)
-current\s+(?:version|release|price|pricing|role|ceo|president|officeholder|status|schedule|availability|score|weather|law|regulation|policy|documentation|docs|api|apis|service|services)
-current\s+(?:[a-z0-9.+_-]+\s+){1,2}(?:version|versions|release|releases|price|pricing|status|documentation|docs|api|apis|service|services|availability)
-still\s+(?:available|operating|supported|active|in\s+office)
-has\s+been\s+released
-is\s+deprecated
+(?:what|who|where|when|which)\b.{0,120}\b(?:currently|latest|newest|most\s+recent|right\s+now|today(?:'s)?|tonight(?:'s)?|as\s+of\s+(?:today|now))\b
+how(?:'s|\s+(?:is|are|has|have))\b.{0,120}\b(?:currently|latest|newest|most\s+recent|right\s+now|today|tonight|as\s+of\s+(?:today|now))\b
+how\s+(?:much|many|long)\b.{0,120}\b(?:currently|right\s+now|today|tonight|as\s+of\s+(?:today|now))\b
+\b(?:current|latest|newest|most\s+recent|today(?:'s)?|tonight(?:'s)?|live)\s+(?:[a-z0-9.+&/_-]+\s+){0,5}(?:version|versions|release|releases|price|pricing|role|officeholder|status|schedule|availability|score|standings|weather|forecast|law|regulation|policy|documentation|docs|api|apis|service|services|inventory|traffic|delay|delays|outage|outages|result|results|news|update|updates|job|jobs|event|events)\b
+\b(?:is|are|does|do|has|have|can|will)\b.{0,100}\b(?:currently|right\s+now|today|tonight|still)\b
+\bstill\s+(?:available|open|closed|operating|supported|active|in\s+office|legal|valid|down|up|in\s+stock)\b
+\b(?:has|have)\b.{0,100}\b(?:been\s+released|launched|deprecated|discontinued|updated|changed)\b
+\b(?:what(?:'s|\s+is)\s+the\s+latest\s+on|latest\s+updates?\s+on|news\s+(?:on|about)|what(?:'s|\s+is)\s+happening\s+(?:with|in|to))\b
 
+# Inherently live lookup forms that are common enough to bypass the semantic
+# classifier entirely. This is a latency optimization, not the correctness
+# boundary for freshness detection.
 [live-lookup]
-(?:what(?:'s|\s+is)|how(?:'s|\s+is)|show|give\s+me|tell\s+me).{0,50}(?:weather|forecast)
-(?:weather|forecast).{0,50}(?:today|tonight|tomorrow|this\s+week|right\s+now)
+(?:what(?:'s|\s+is)|how(?:'s|\s+is)|show|give\s+me|tell\s+me).{0,60}(?:weather|forecast)
+(?:weather|forecast).{0,60}(?:today|tonight|tomorrow|this\s+week|right\s+now)
 (?:what\s+time\s+is\s+it|current\s+time|time\s+in\s+[a-z])
-(?:opening\s+hours|open\s+now|when\s+does\s+.+?\s+open)
-(?:live\s+score|score\s+right\s+now|current\s+score)
+(?:opening\s+hours|open\s+now|when\s+does\s+.+?\s+open|what\s+time\s+does\s+.+?\s+(?:open|close))
+(?:live\s+score|score\s+right\s+now|current\s+score|what(?:'s|\s+is)\s+the\s+score)
 (?:current\s+|latest\s+)?(?:stock|share|bitcoin|crypto|exchange)\s+(?:price|rate)
-(?:flight\s+status|train\s+status|traffic\s+right\s+now)
+(?:flight|train|bus|ferry)\s+(?:status|delay|delays|schedule)
+(?:traffic|road\s+conditions?|transit).{0,40}(?:right\s+now|today|status|delay|delays)
+(?:service|site|website|api).{0,40}(?:status|outage|down\s+right\s+now)
+(?:is|are).{0,80}(?:available\s+(?:now|today)|in\s+stock|sold\s+out|down\s+(?:right\s+now|today))
 
 [research]
 research
