@@ -8,13 +8,13 @@ from typing import Any
 
 from pgpt.config import CONFIG
 from pgpt.generation.ollama import ollama_url
-from pgpt.runtime.http import json_request
 from pgpt.routing.types import (
     Complexity,
     Freshness,
     Task,
     WebMode,
 )
+from pgpt.runtime.http import json_request
 
 
 @dataclass(frozen=True)
@@ -25,10 +25,10 @@ class ClassifierDecision:
     web_mode: WebMode | None = None
 
 
-_TASK_SCHEMA: dict[str, Any] = {
+_ROUTE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "value": {
+        "task": {
             "type": "string",
             "enum": [
                 "general",
@@ -38,48 +38,28 @@ _TASK_SCHEMA: dict[str, Any] = {
                 "architecture",
                 "research",
             ],
-        }
-    },
-    "required": [
-        "value",
-    ],
-    "additionalProperties": False,
-}
-
-
-_FRESHNESS_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "value": {
+        },
+        "freshness": {
             "type": "string",
             "enum": [
                 "stable",
                 "current",
                 "unknown",
             ],
-        }
-    },
-    "required": [
-        "value",
-    ],
-    "additionalProperties": False,
-}
-
-
-_COMPLEXITY_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "value": {
+        },
+        "complexity": {
             "type": "string",
             "enum": [
                 "simple",
                 "standard",
                 "complex",
             ],
-        }
+        },
     },
     "required": [
-        "value",
+        "task",
+        "freshness",
+        "complexity",
     ],
     "additionalProperties": False,
 }
@@ -148,13 +128,12 @@ def _classifier_request(
     )
 
 
-def _classify_one(
+def _chat_classifier(
     *,
     prompt: str,
     classifier_name: str,
     schema: dict[str, Any],
-    allowed: set[str],
-) -> str | None:
+) -> dict[str, Any] | None:
     payload = {
         "model": CONFIG[
             "models"
@@ -189,7 +168,7 @@ def _classify_one(
         "options": {
             "temperature": 0.0,
             "num_ctx": 1024,
-            "num_predict": 30,
+            "num_predict": 48,
         },
     }
 
@@ -248,104 +227,85 @@ def _classify_one(
     ):
         return None
 
-    value = data.get(
-        "value"
-    )
-
-    if value not in allowed:
-        return None
-
-    return str(
-        value
-    )
+    return data
 
 
 def classify_route_semantics(
     prompt: str,
 ) -> ClassifierDecision | None:
-    """
-    Classify semantic routing dimensions independently.
-
-    Source selection is intentionally NOT performed here.
-    The router derives source deterministically from explicit
-    capabilities, project evidence, and freshness.
-    """
-
     try:
-        task = _classify_one(
+        data = _chat_classifier(
             prompt=prompt,
-            classifier_name="task",
-            schema=_TASK_SCHEMA,
-            allowed={
-                "general",
-                "explain-code",
-                "debug",
-                "implement",
-                "architecture",
-                "research",
-            },
-        )
-
-        freshness = _classify_one(
-            prompt=prompt,
-            classifier_name="freshness",
-            schema=_FRESHNESS_SCHEMA,
-            allowed={
-                "stable",
-                "current",
-                "unknown",
-            },
-        )
-
-        complexity = _classify_one(
-            prompt=prompt,
-            classifier_name="complexity",
-            schema=_COMPLEXITY_SCHEMA,
-            allowed={
-                "simple",
-                "standard",
-                "complex",
-            },
-        )
-
-        if (
-            task is None
-            or freshness is None
-            or complexity is None
-        ):
-            return None
-
-        return ClassifierDecision(
-            task=task,  # type: ignore[arg-type]
-            freshness=freshness,  # type: ignore[arg-type]
-            complexity=complexity,  # type: ignore[arg-type]
+            classifier_name="route",
+            schema=_ROUTE_SCHEMA,
         )
 
     except Exception:
         return None
+
+    if data is None:
+        return None
+
+    task = data.get(
+        "task"
+    )
+    freshness = data.get(
+        "freshness"
+    )
+    complexity = data.get(
+        "complexity"
+    )
+
+    if task not in {
+        "general",
+        "explain-code",
+        "debug",
+        "implement",
+        "architecture",
+        "research",
+    }:
+        return None
+
+    if freshness not in {
+        "stable",
+        "current",
+        "unknown",
+    }:
+        return None
+
+    if complexity not in {
+        "simple",
+        "standard",
+        "complex",
+    }:
+        return None
+
+    return ClassifierDecision(
+        task=task,  # type: ignore[arg-type]
+        freshness=freshness,  # type: ignore[arg-type]
+        complexity=complexity,  # type: ignore[arg-type]
+    )
 
 
 def classify_web_mode(
     prompt: str,
 ) -> WebMode | None:
-    """
-    Classify lookup vs research only after the router has
-    already decided that web retrieval is required.
-    """
-
     try:
-        value = _classify_one(
+        data = _chat_classifier(
             prompt=prompt,
             classifier_name="web-mode",
             schema=_WEB_MODE_SCHEMA,
-            allowed={
-                "lookup",
-                "research",
-            },
         )
 
     except Exception:
         return None
+
+    if data is None:
+        return None
+
+    value = data.get(
+        "value"
+    )
 
     if value in {
         "lookup",
@@ -356,7 +316,6 @@ def classify_web_mode(
     return None
 
 
-# Temporary compatibility alias while other code migrates.
 def classify_ambiguous_route(
     prompt: str,
 ) -> ClassifierDecision | None:
