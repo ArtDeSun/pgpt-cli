@@ -23,7 +23,11 @@ class TestServerHelpers(unittest.TestCase):
         )
         self.assertEqual(prompt, "second")
         self.assertEqual(len(history), 3)
-        self.assertEqual(history[-1]["role"], "assistant")
+        self.assertEqual(history[-1]["role"], "system")
+        self.assertEqual(
+            [item["role"] for item in history],
+            ["user", "assistant", "system"],
+        )
 
     def test_extract_messages_accepts_text_parts(self) -> None:
         prompt, _ = server._extract_messages(
