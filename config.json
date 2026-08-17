@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "endpoints": {
     "private_gpt": "http://127.0.0.1:8080",
     "ollama": "http://127.0.0.1:11434",
@@ -21,7 +21,8 @@
       "model",
       "web"
     ],
-    "max_request_bytes": 2000000
+    "max_request_bytes": 2000000,
+    "response_list_limit": 100
   },
   "defaults": {
     "project": "pgpt-cli",
@@ -93,13 +94,19 @@
     "connectivity_port": 443,
     "connectivity_timeout_seconds": 0.7,
     "search_timeout_seconds": 6,
-    "fetch_timeout_seconds": 5,
+    "fetch_timeout_seconds": 4,
     "lookup_results": 3,
     "research_results": 6,
-    "lookup_fetch_pages": 2,
+    "lookup_fetch_pages": 0,
     "research_fetch_pages": 3,
-    "lookup_page_chars": 3500,
+    "lookup_page_chars": 2500,
     "research_page_chars": 2500,
+    "lookup_context_chars": 4500,
+    "research_context_chars": 9000,
+    "lookup_context_page_chars": 0,
+    "research_context_page_chars": 900,
+    "monthly_request_budget": 500,
+    "budget_warning_ratio": 0.8,
     "country": "CA",
     "search_lang": "en"
   },
@@ -118,7 +125,7 @@
     },
     "max_tokens_by_template": {
       "general": 700,
-      "web-lookup": 700,
+      "web-lookup": 500,
       "research-web": 1400,
       "explain-code": 900,
       "debug": 900,
@@ -130,7 +137,8 @@
   "quality": {
     "judge_timeout_seconds": 360,
     "judge_num_ctx": 6144,
-    "judge_max_tokens": 1000
+    "judge_max_tokens": 1000,
+    "criterion_max_tokens": 32
   },
   "projects": {
     "pgpt-cli": {
