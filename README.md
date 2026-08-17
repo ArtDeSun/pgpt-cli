@@ -30,6 +30,69 @@ VS Code / browser / terminal
             answer
 ```
 
+## Quick mental model
+
+If you remember only a few things, remember these:
+
+```text
+~/ai/pgpt-cli/
+    = the pgpt-cli application checkout
+    = source code, built-in prompts, built-in skills, tests, docs
+    = managed with Git
+
+~/.config/pgpt/skills/
+    = your personal skill library
+    = created and edited by you
+    = outside the repository
+
+pgpt server
+    = pgpt browser UI + OpenAI-compatible API
+    = the command used for the VS Code / Continue workflow
+
+pgpt serve
+    = legacy PrivateGPT server command
+    = only needed for the older PrivateGPT-compatible workflow
+```
+
+For normal day-to-day skill management, use **`~/.config/pgpt/skills/`**. Treat `~/ai/pgpt-cli/skills/` as application source unless you intentionally want to change a built-in skill and commit that change to Git.
+
+## Quick start
+
+From WSL:
+
+```bash
+cd ~/ai/pgpt-cli
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+
+ollama list
+pgpt status
+pgpt models
+pgpt ask "What is dependency injection?"
+```
+
+For the local browser/VS Code interface:
+
+```bash
+pgpt server
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765/
+```
+
+For a personal skill:
+
+```bash
+pgpt skill-new my-review
+nano ~/.config/pgpt/skills/my-review.md
+pgpt ask --skill my-review "Review this design."
+```
+
 ## Current state
 
 The repository now has a self-contained local assistant surface rather than being only an evaluation/CLI experiment:
@@ -166,9 +229,39 @@ Chat JSON and runtime state are local-only and ignored by Git.
 
 ## 4. Local skills
 
-Skills are Markdown system instructions. Built-in examples live under `skills/`; personal skills live outside the repository under `~/.config/pgpt/skills/`.
+Skills are Markdown system instructions. There are **two intentionally separate skill locations**:
 
-Create one:
+| Location | Purpose | Who should edit it? | Git-managed? |
+|---|---|---|---|
+| `~/ai/pgpt-cli/skills/` | Built-in skills shipped with `pgpt-cli` | Edit only when changing the application itself | Yes |
+| `~/.config/pgpt/skills/` | Your personal/local skills | Use this for normal skill creation and maintenance | No |
+
+The distinction is deliberate:
+
+```text
+~/ai/pgpt-cli/skills/
+        built-in defaults
+               |
+               v
+         available skills
+               ^
+               |
+~/.config/pgpt/skills/
+        personal overrides
+```
+
+If the same skill name exists in both locations, the **personal skill wins**. For example:
+
+```text
+~/ai/pgpt-cli/skills/code-review.md
+~/.config/pgpt/skills/code-review.md
+```
+
+`pgpt` will use the version under `~/.config/pgpt/skills/`.
+
+### Normal skill workflow
+
+Create and maintain personal skills here:
 
 ```bash
 pgpt skill-new my-review
@@ -176,7 +269,7 @@ nano ~/.config/pgpt/skills/my-review.md
 pgpt skills
 ```
 
-Use it for one request:
+Use one for a request:
 
 ```bash
 pgpt ask \
@@ -184,7 +277,24 @@ pgpt ask \
   "Review the project retrieval implementation."
 ```
 
-A personal skill with the same filename overrides the built-in version. This gives you a small, local skill-management layer without hard-coding natural-language behavior into Python.
+Use one during an interactive chat:
+
+```text
+/skill my-review
+/skill off
+```
+
+### When should you edit `~/ai/pgpt-cli/skills/`?
+
+Only when you intentionally want to change a **built-in skill that is part of pgpt-cli itself** and expect that change to be committed and distributed with the repository.
+
+For your own long-term skills, prefer:
+
+```text
+~/.config/pgpt/skills/
+```
+
+This keeps your personal instructions independent from `git pull`, repository refactors, and built-in defaults.
 
 ## 5. Browser GUI and local API
 
@@ -368,7 +478,7 @@ reliability evaluation
     +--> pass rates + latency statistics
 ```
 
-The semantic evaluator now judges **one rubric criterion per local-model call**:
+The semantic evaluator judges **one rubric criterion per local-model call**:
 
 ```text
 required #1  --> boolean + reason
@@ -404,9 +514,48 @@ pgpt ingest --project pgpt-cli
 pgpt serve
 ```
 
-`pgpt serve` remains the legacy PrivateGPT server command. `pgpt server` is the new pgpt browser/OpenAI-compatible interface.
+`pgpt serve` remains the legacy PrivateGPT server command. `pgpt server` is the pgpt browser/OpenAI-compatible interface.
 
 This separation lets you keep experimenting with PrivateGPT ingestion without making the everyday CLI/VS Code chat path depend on it.
+
+## Common points of confusion
+
+### `pgpt server` vs `pgpt serve`
+
+```text
+pgpt server
+    -> pgpt browser UI + OpenAI-compatible endpoint
+    -> use this for browser chat and VS Code / Continue
+
+pgpt serve
+    -> legacy PrivateGPT server
+    -> use only for the PrivateGPT compatibility workflow
+```
+
+### Built-in skills vs personal skills
+
+```text
+~/ai/pgpt-cli/skills/
+    -> built-in application skills
+    -> Git-managed
+
+~/.config/pgpt/skills/
+    -> your personal skill library
+    -> normal place to create/edit your skills
+```
+
+### Current project vs historical project
+
+```text
+--project pgpt-cli
+    -> current repository
+
+--project pgpt-cli-history
+    -> tracked historical fixture used for reproducible project retrieval/tests
+
+--project vibemaster
+    -> optional external local project profile; only works when that path exists
+```
 
 ## Repository map
 
@@ -426,7 +575,7 @@ pgpt-cli/
 │   ├── runtime/
 │   └── storage/
 ├── prompts/
-├── skills/
+├── skills/                    # built-in, Git-managed pgpt skills
 ├── web/
 ├── docs/
 ├── tests/
@@ -436,6 +585,12 @@ pgpt-cli/
 ├── .github/workflows/ci.yml
 ├── config.json
 └── pyproject.toml
+```
+
+Your personal skill directory is intentionally **not** inside this tree:
+
+```text
+~/.config/pgpt/skills/
 ```
 
 ## Local-only data
@@ -452,6 +607,8 @@ secrets.env
 private keys
 backups/
 ```
+
+Your personal skill library also lives outside the repository at `~/.config/pgpt/skills/`, so ordinary repository pulls and source refactors do not mix it with built-in skills.
 
 Before publishing changes, always review staged content for secrets.
 
