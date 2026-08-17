@@ -82,7 +82,17 @@ def _extract_messages(payload: dict[str, Any]) -> tuple[str, list[dict[str, str]
     last_user = user_indexes[-1]
     prompt = normalized[last_user]["content"]
     history = normalized[:last_user]
-    return prompt, history
+    conversation = [
+        message
+        for message in history
+        if message["role"] != "system"
+    ]
+    system_messages = [
+        message
+        for message in history
+        if message["role"] == "system"
+    ]
+    return prompt, [*conversation, *system_messages]
 
 
 def _optional_string(options: dict[str, Any], name: str) -> str | None:
