@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pgpt-cli"
+version = "1.0.0"
+description = "Local-first personal AI assistant with routing, project retrieval, web research, evaluation, and a VS Code-friendly OpenAI-compatible endpoint."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "ArtDeSun"}]
+dependencies = []
+
+[project.scripts]
+pgpt = "pgpt.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pgpt*"]
