@@ -13,7 +13,9 @@ It validates:
 - model selection with injected model availability;
 - mocked pipeline behavior;
 - routing decision vs runtime-route boundaries;
-- deterministic fast routes for weather/time/live lookup surfaces;
+- generic time-scope classifier schema/mapping;
+- deterministic fast routes only for explicit/high-confidence live surfaces;
+- router-policy regressions with semantic decisions injected explicitly;
 - path/config handling;
 - the repository-owned historical project fixture;
 - source retrieval snapshots;
@@ -28,23 +30,35 @@ It validates:
 
 Run the complete offline gate by copying the unittest module list from `.github/workflows/ci.yml`.
 
-## Routing datasets
+## Routing tests: policy vs language understanding
 
-There are deliberately different levels of trust.
+Routing has two different things to test, and they should not be confused.
 
-`routing_gold.json` and regression tests are curated expectations. Generated routing cases are broad exploratory diagnostics and can contain bad generated labels; disagreements should be inspected rather than blindly changing production routing to satisfy them.
+The **offline router-policy tests** inject a semantic decision such as `current` or `stable`, then verify that execution policy maps it correctly to web/local/project behavior. These tests are deterministic and run in CI. They do not pretend to prove that your local Ollama router understands every English paraphrase.
 
-The model-dependent dataset/report commands include:
+The **local-model acceptance tests** exercise the actual router model. `routing_gold.json` covers the broad routing surface. `routing_temporal_pairs.json` specifically uses minimal pairs across roles, releases, prices, policies, availability, relative dates, fixed historical dates, concepts and project snapshots. The temporal classifier uses one generic distinction internally:
+
+```text
+moving time scope
+    the answer can change solely because the present moment moved
+    -> freshness=current
+
+fixed time scope
+    the answer is anchored to a fixed fact/date/context/history
+    -> freshness=stable
+```
+
+Run the model-dependent suites in WSL:
 
 ```bash
 python3 -m unittest \
   tests.test_router_dataset \
   tests.test_router_generated \
-  tests.test_router_regressions \
+  tests.test_router_temporal_pairs \
   -v
 ```
 
-These may call your local router model and therefore are not part of GitHub-hosted CI.
+Generated routing cases are exploratory diagnostics and can contain bad generated labels; inspect disagreements rather than changing production routing blindly to satisfy generated data.
 
 ## Local WSL acceptance
 
@@ -75,6 +89,15 @@ time pgpt ask --web auto \
 ```
 
 The second request should route to focused web lookup without running the ambiguous semantic classifier and without fetching full result pages. Network speed, Ollama cold starts, and Brave latency will still affect wall-clock time.
+
+Then check implicit temporal meaning with a minimal pair:
+
+```bash
+pgpt validate "Who runs this organization?"
+pgpt validate "Who ran this organization in 2010?"
+```
+
+The first should be `current`/web lookup; the second should be `stable`/local. Neither behavior should depend on the organization name or a hard-coded job title.
 
 Check browser/API:
 
