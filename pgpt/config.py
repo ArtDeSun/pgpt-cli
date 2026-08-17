@@ -10,12 +10,15 @@ CONFIG_PATH = ROOT / "config.json"
 
 
 def expand(value: str) -> Path:
-    return Path(os.path.expanduser(value)).resolve()
+    path = Path(os.path.expanduser(value))
+    if not path.is_absolute():
+        path = ROOT / path
+    return path.resolve()
 
 
 def load_config() -> dict[str, Any]:
-    with CONFIG_PATH.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    with CONFIG_PATH.open("r", encoding="utf-8") as file:
+        return json.load(file)
 
 
 CONFIG = load_config()
