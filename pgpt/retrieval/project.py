@@ -9,6 +9,9 @@ from typing import Iterable
 from pgpt.config import CONFIG, expand, get_project
 
 from pgpt.retrieval.project_symbol_rules import (
+    lexical_max_terms,
+    lexical_minimum_term_length,
+    lexical_stop_words,
     looks_like_project_symbol,
     max_candidates,
     minimum_project_definition_score,
@@ -276,30 +279,26 @@ def _iter_files(
 def _query_terms(
     prompt: str,
 ) -> list[str]:
+    minimum_length = (
+        lexical_minimum_term_length()
+    )
+
+    stop = lexical_stop_words()
+
     terms = [
         value.casefold()
-        for value in _IDENTIFIER.findall(prompt)
-        if len(value) >= 4
+        for value in _IDENTIFIER.findall(
+            prompt
+        )
+        if (
+            len(value) >= minimum_length
+            and value.casefold() not in stop
+        )
     ]
 
-    stop = {
-        "this",
-        "that",
-        "with",
-        "from",
-        "into",
-        "while",
-        "project",
-        "application",
-        "explain",
-        "design",
-    }
-
-    return [
-        value
-        for value in terms
-        if value not in stop
-    ][:20]
+    return terms[
+        :lexical_max_terms()
+    ]
 
 
 def lexical_files(
@@ -418,10 +417,19 @@ def _exact_context(
 ) -> tuple[str, list[str]]:
     root = _source_root(project_name)
 
-    hits = _symbol_hits(
-        prompt,
-        project_name,
-    )
+    minimum_score = (
+    minimum_project_definition_score()
+)
+
+    hits = [
+        hit
+        for hit in _symbol_hits(
+            prompt,
+            project_name,
+        )
+        if hit.definition_score
+        >= minimum_score
+    ]
 
     if not hits:
         return "", []

@@ -115,6 +115,12 @@
     }
   },
 
+  "quality": {
+    "judge_timeout_seconds": 360,
+    "judge_num_ctx": 6144,
+    "judge_max_tokens": 1000
+  },
+
   "projects": {
     "vibemaster": {
       "source_dir": "~/dev/Professional-Viber-Web-App/my-app",

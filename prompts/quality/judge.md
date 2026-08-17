@@ -7,6 +7,7 @@ You will receive:
 
 - USER REQUEST
 - EVALUATION CONTEXT
+- EVALUATION EVIDENCE
 - REQUIRED POINTS
 - FORBIDDEN POINTS
 - ASSISTANT ANSWER
@@ -53,7 +54,40 @@ automatically appended material, or other evaluation conventions.
 
 Do not contradict that context.
 
+Evaluation evidence is the factual source of truth for checking whether
+claims in the assistant answer are supported.
+
+Do not use evaluation evidence to fill in a required point that the
+assistant answer itself omitted.
+
+For a REQUIRED POINT, first identify where the assistant answer actually
+states or clearly explains that point. If the answer does not contain it,
+mark the requirement false even when the evaluation evidence contains it.
+
+For a FORBIDDEN POINT, mark it violated only when the assistant answer
+itself states or clearly implies the forbidden claim. Do not construct a
+forbidden claim by combining separate words, fields, or structures from
+the evaluation evidence.
+
+Distinguish carefully between:
+
+- `return { data: serializeThing(value) }`
+- serializing something through a variable or property named `result.data`
+
+These are not equivalent unless the assistant answer actually makes that
+claim.
+
 ## Evidence discipline
+
+Keep each required reason and forbidden reason concise.
+Use one short sentence per reason whenever possible.
+Do not repeat the full criterion or quote long passages from the answer or evidence.
+
+When EVALUATION EVIDENCE is supplied, use it as the factual source of truth
+for source-grounded or project-grounded rubric criteria.
+
+Do not declare a project-specific claim invented merely because it is not
+present in the assistant answer; check the supplied evaluation evidence.
 
 Every boolean judgment must be supported by the actual assistant answer.
 

@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from pgpt.config import CONFIG
 from pgpt.generation.ollama import ollama_url
 from pgpt.runtime.http import json_request
 
@@ -543,11 +544,35 @@ def _judge_once(
             "keep_alive": "10m",
             "options": {
                 "temperature": 0.0,
-                "num_ctx": 4096,
-                "num_predict": 550,
+                "num_ctx": int(
+                    CONFIG.get(
+                        "quality",
+                        {},
+                    ).get(
+                        "judge_num_ctx",
+                        4096,
+                    )
+                ),
+                "num_predict": int(
+                    CONFIG.get(
+                        "quality",
+                        {},
+                    ).get(
+                        "judge_max_tokens",
+                        550,
+                    )
+                ),
             },
         },
-        timeout=120,
+        timeout=float(
+            CONFIG.get(
+                "quality",
+                {},
+            ).get(
+                "judge_timeout_seconds",
+                120,
+            )
+        ),
     )
 
     if not isinstance(
@@ -654,6 +679,7 @@ def _judge(
     prompt: str,
     answer: str,
     rubric: dict[str, Any],
+    evaluation_evidence: Any = None,
 ) -> dict[str, Any]:
     required_points = rubric.get(
         "required_points",
@@ -696,6 +722,9 @@ def _judge(
             forbidden_points
         ),
         "assistant_answer": answer,
+        "evaluation_evidence": (
+            evaluation_evidence
+        ),
     }
 
     attempts = 2
@@ -863,6 +892,11 @@ def main() -> None:
                 prompt=row["prompt"],
                 answer=row["answer"],
                 rubric=rubric,
+                evaluation_evidence=(
+                    row.get(
+                        "evaluation_evidence"
+                    )
+                ),
             )
 
             judgment = (

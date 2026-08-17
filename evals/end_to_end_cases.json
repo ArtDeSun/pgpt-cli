@@ -118,5 +118,31 @@
         "Directly instructs the user to conduct, search for, or complete the research themselves instead of answering the research request."
       ]
     }
+  },
+  {
+    "id": "project_symbol_explain_01",
+    "prompt": "Explain how setFeaturedLandscapeVideo works in my project.",
+    "expect": {
+      "execution": "project",
+      "template": "explain-code",
+      "model": "qwen2.5-coder:3b",
+      "project": "vibemaster"
+    },
+    "quality": {
+      "required_points": [
+        "Explains that getSession() is used to authenticate or identify the current user before database work.",
+        "Explains that mongoose.startSession() creates the MongoDB session used for the transaction.",
+        "Explains that the selected video is looked up by videoId and the current user's userId.",
+        "Explains that other featured videos on the same landscape video board are set to isFeatured false.",
+        "Explains that the selected video's isFeatured field is set to true and saved using the MongoDB session.",
+        "Explains that updateTag invalidates the landscape-video-board cache tag for the current user.",
+        "Explains that mongoSession.endSession() is called in the finally block."
+      ],
+      "forbidden_points": [
+        "Claims getSession() creates or manages the MongoDB transaction.",
+        "Claims the function serializes the response using result.data.",
+        "Invents database operations, fields, or framework behavior that are not present in the retrieved source."
+      ]
+    }
   }
 ]

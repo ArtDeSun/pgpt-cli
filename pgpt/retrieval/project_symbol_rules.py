@@ -127,3 +127,50 @@ def looks_like_project_symbol(
         return True
 
     return False
+
+
+def lexical_minimum_term_length() -> int:
+    return int(
+        project_symbol_rules()
+        .get(
+            "lexical",
+            {},
+        )
+        .get(
+            "minimum_term_length",
+            4,
+        )
+    )
+
+
+def lexical_max_terms() -> int:
+    return int(
+        project_symbol_rules()
+        .get(
+            "lexical",
+            {},
+        )
+        .get(
+            "max_terms",
+            20,
+        )
+    )
+
+
+def lexical_stop_words() -> set[str]:
+    values = (
+        project_symbol_rules()
+        .get(
+            "lexical",
+            {},
+        )
+        .get(
+            "stop_words",
+            [],
+        )
+    )
+
+    return {
+        str(value).casefold()
+        for value in values
+    }

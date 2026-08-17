@@ -40,6 +40,9 @@ def main() -> None:
             prompt=case["prompt"],
             answer=case["answer"],
             rubric=case["rubric"],
+            evaluation_evidence=case.get(
+                "evaluation_evidence"
+            ),
         )
 
         judgment = result["judgment"]
@@ -68,6 +71,32 @@ def main() -> None:
                 <= expected["max_score"]
             )
 
+        if (
+            correct
+            and "required_passed"
+            in expected
+        ):
+            correct = (
+                judgment["required_passed"]
+                == expected[
+                    "required_passed"
+                ]
+            )
+
+        if (
+            correct
+            and "forbidden_violated"
+            in expected
+        ):
+            correct = (
+                judgment[
+                    "forbidden_violated"
+                ]
+                == expected[
+                    "forbidden_violated"
+                ]
+            )
+
         if correct:
             passed_cases += 1
 
@@ -93,6 +122,34 @@ def main() -> None:
                 else "FAIL"
             ),
         )
+
+        if "required_passed" in expected:
+            print(
+                "expected required:",
+                expected[
+                    "required_passed"
+                ],
+            )
+            print(
+                "actual required:",
+                judgment[
+                    "required_passed"
+                ],
+            )
+
+        if "forbidden_violated" in expected:
+            print(
+                "expected forbidden:",
+                expected[
+                    "forbidden_violated"
+                ],
+            )
+            print(
+                "actual forbidden:",
+                judgment[
+                    "forbidden_violated"
+                ],
+            )
 
     total = len(cases)
 

@@ -8,6 +8,10 @@ from typing import Any
 
 from pgpt.runtime.pipeline import run
 
+from pgpt.retrieval.project import (
+    build_context as build_project_context,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -267,6 +271,32 @@ def main() -> None:
                 ),
             }
 
+        evaluation_evidence = None
+
+        expected_project = (
+            case.get(
+                "expect",
+                {},
+            )
+            .get(
+                "project"
+            )
+        )
+
+        if expected_project:
+            project_context, project_files = (
+                build_project_context(
+                    case["prompt"],
+                    expected_project,
+                )
+            )
+
+            evaluation_evidence = {
+                "project": expected_project,
+                "files": project_files,
+                "context": project_context,
+            }
+
         record = {
             "id": case_id,
             "prompt": case["prompt"],
@@ -288,6 +318,9 @@ def main() -> None:
             "elapsed_seconds": round(
                 elapsed,
                 3,
+            ),
+            "evaluation_evidence": (
+                evaluation_evidence
             ),
         }
 

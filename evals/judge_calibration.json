@@ -202,5 +202,176 @@
       "passed": true,
       "min_score": 4
     }
+  },
+  {
+    "id": "project_grounded_good_01",
+    "prompt": "Explain how setFeaturedItem works in my project.",
+    "evaluation_evidence": {
+      "project": "example",
+      "files": ["lib/actions/items.ts"],
+      "context": "export async function setFeaturedItem(itemId: string) {\n  const session = await getSession();\n  if (!session?.user) return { error: \"Unauthorized\" };\n\n  const mongoSession = await mongoose.startSession();\n\n  try {\n    await mongoSession.withTransaction(async () => {\n      const item = await Item.findOne({\n        _id: itemId,\n        userId: session.user.id,\n      }).session(mongoSession);\n\n      if (!item) throw new Error(\"ITEM_NOT_FOUND\");\n\n      await Item.updateMany(\n        {\n          boardId: item.boardId,\n          userId: session.user.id,\n          isFeatured: true,\n          _id: { $ne: item._id },\n        },\n        { $set: { isFeatured: false } },\n        { session: mongoSession },\n      );\n\n      item.isFeatured = true;\n      await item.save({ session: mongoSession });\n    });\n  } finally {\n    await mongoSession.endSession();\n  }\n}"
+    },
+    "rubric": {
+      "required_points": [
+        "Explains that getSession() identifies or authenticates the current user.",
+        "Explains that mongoose.startSession() creates the MongoDB session.",
+        "Explains that the item lookup uses itemId and the current user's userId.",
+        "Explains that other featured items on the same board are set to isFeatured false.",
+        "Explains that the selected item is set to isFeatured true and saved using the MongoDB session.",
+        "Explains that mongoSession.endSession() is called in the finally block."
+      ],
+      "forbidden_points": [
+        "Claims getSession() creates or manages the MongoDB transaction.",
+        "Invents database operations or fields absent from the supplied evidence."
+      ]
+    },
+    "answer": "The function first uses getSession() to identify the authenticated user. mongoose.startSession() then creates the MongoDB session used by withTransaction(). Inside the transaction, it finds the item using both itemId and the current user's userId. It sets any other featured items on the same board to isFeatured false, sets the selected item to isFeatured true, and saves it using the MongoDB session. Finally, mongoSession.endSession() is called in the finally block.",
+    "expect": {
+      "passed": true,
+      "min_score": 4,
+      "required_passed": [true, true, true, true, true, true],
+      "forbidden_violated": [false, false]
+    }
+  },
+  {
+    "id": "project_grounded_bad_session_01",
+    "prompt": "Explain how setFeaturedItem works in my project.",
+    "evaluation_evidence": {
+      "context": "const session = await getSession();\nconst mongoSession = await mongoose.startSession();\nawait mongoSession.withTransaction(async () => {\n  item.isFeatured = true;\n  await item.save({ session: mongoSession });\n});"
+    },
+    "rubric": {
+      "required_points": [
+        "Distinguishes the authentication session from the MongoDB transaction session."
+      ],
+      "forbidden_points": [
+        "Claims getSession() creates or manages the MongoDB transaction."
+      ]
+    },
+    "answer": "getSession() creates the database transaction session, which is then used to save the featured item.",
+    "expect": {
+      "passed": false,
+      "max_score": 3,
+      "required_passed": [false],
+      "forbidden_violated": [true]
+    }
+  },
+  {
+    "id": "project_grounded_bad_missing_cleanup_01",
+    "prompt": "Explain how setFeaturedItem works in my project.",
+    "evaluation_evidence": {
+      "context": "const mongoSession = await mongoose.startSession();\ntry {\n  await mongoSession.withTransaction(async () => {\n    item.isFeatured = true;\n    await item.save({ session: mongoSession });\n  });\n} finally {\n  await mongoSession.endSession();\n}"
+    },
+    "rubric": {
+      "required_points": [
+        "Explains that the item is saved using the MongoDB session.",
+        "Explains that mongoSession.endSession() is called in the finally block."
+      ],
+      "forbidden_points": []
+    },
+    "answer": "The item is marked as featured and saved using the MongoDB session.",
+    "expect": {
+      "passed": false,
+      "max_score": 3,
+      "required_passed": [true, false],
+      "forbidden_violated": []
+    }
+  },
+  {
+    "id": "project_grounded_bad_invention_01",
+    "prompt": "Explain how setFeaturedItem works in my project.",
+    "evaluation_evidence": {
+      "context": "const item = await Item.findOne({ _id: itemId });\nitem.isFeatured = true;\nawait item.save();"
+    },
+    "rubric": {
+      "required_points": [
+        "Explains that the item is retrieved, marked as featured, and saved."
+      ],
+      "forbidden_points": [
+        "Invents database operations, fields, caching behavior, or framework behavior absent from the supplied evidence."
+      ]
+    },
+    "answer": "The function retrieves the item, marks it as featured, and saves it. It then clears all other featured items with updateMany() and invalidates the Next.js cache using updateTag().",
+    "expect": {
+      "passed": false,
+      "max_score": 3,
+      "required_passed": [true],
+      "forbidden_violated": [true]
+    }
+  },
+  {
+    "id": "project_grounded_bad_subtle_cleanup_02",
+    "prompt": "Explain how setFeaturedItem works in my project.",
+    "evaluation_evidence": {
+      "context": "const session = await getSession();\nif (!session?.user) return { error: \"Unauthorized\" };\nconst mongoSession = await mongoose.startSession();\ntry {\n  await mongoSession.withTransaction(async () => {\n    const item = await Item.findOne({ _id: itemId, userId: session.user.id }).session(mongoSession);\n    await Item.updateMany({ boardId: item.boardId, isFeatured: true, _id: { $ne: item._id } }, { $set: { isFeatured: false } }, { session: mongoSession });\n    item.isFeatured = true;\n    await item.save({ session: mongoSession });\n  });\n} finally {\n  await mongoSession.endSession();\n}"
+    },
+    "rubric": {
+      "required_points": [
+        "Explains that getSession() authenticates or identifies the current user.",
+        "Explains that mongoose.startSession() creates the MongoDB session.",
+        "Explains that the item lookup uses itemId and the user's userId.",
+        "Explains that other featured items are cleared.",
+        "Explains that the selected item is marked featured and saved using the MongoDB session.",
+        "Explains that mongoSession.endSession() is called in finally."
+      ],
+      "forbidden_points": []
+    },
+    "answer": "The function authenticates the user with getSession(), starts a MongoDB session with mongoose.startSession(), and enters a transaction. It finds the item by itemId and the user's userId, clears the featured flag on other items, then marks the selected item featured and saves it using the MongoDB session.",
+    "expect": {
+      "passed": false,
+      "max_score": 3,
+      "required_passed": [true, true, true, true, true, false],
+      "forbidden_violated": []
+    }
+  },
+  {
+    "id": "project_grounded_good_serialization_02",
+    "prompt": "Explain the return value of updateItem in my project.",
+    "evaluation_evidence": {
+      "context": "return {\n  data: serializeItem(updatedItem),\n};"
+    },
+    "rubric": {
+      "required_points": [
+        "Explains that serializeItem(updatedItem) produces the value stored in the returned object's data field."
+      ],
+      "forbidden_points": [
+        "Claims serialization is performed using a variable or property named result.data."
+      ]
+    },
+    "answer": "The function serializes updatedItem with serializeItem(updatedItem) and returns that serialized value in the object's data field.",
+    "expect": {
+      "passed": true,
+      "min_score": 4,
+      "required_passed": [true],
+      "forbidden_violated": [false]
+    }
+  },
+  {
+    "id": "project_grounded_bad_mixed_accuracy_03",
+    "prompt": "Explain how setFeaturedItem works in my project.",
+    "evaluation_evidence": {
+      "context": "const session = await getSession();\nif (!session?.user) return { error: \"Unauthorized\" };\nconst mongoSession = await mongoose.startSession();\ntry {\n  await mongoSession.withTransaction(async () => {\n    const item = await Item.findOne({ _id: itemId, userId: session.user.id }).session(mongoSession);\n    await Item.updateMany({ boardId: item.boardId, isFeatured: true, _id: { $ne: item._id } }, { $set: { isFeatured: false } }, { session: mongoSession });\n    item.isFeatured = true;\n    await item.save({ session: mongoSession });\n  });\n  updateTag(`item-board-${session.user.id}`);\n} finally {\n  await mongoSession.endSession();\n}"
+    },
+    "rubric": {
+      "required_points": [
+        "Explains that getSession() authenticates or identifies the current user.",
+        "Explains that mongoose.startSession() creates the MongoDB transaction session.",
+        "Explains that the lookup uses itemId and the current user's userId.",
+        "Explains that other featured items are set to false.",
+        "Explains that the selected item is saved using the MongoDB session.",
+        "Explains that updateTag invalidates the cache tag for the current user.",
+        "Explains that mongoSession.endSession() is called in finally."
+      ],
+      "forbidden_points": [
+        "Claims getSession() creates or manages the MongoDB transaction.",
+        "Invents notification behavior absent from the supplied evidence."
+      ]
+    },
+    "answer": "The function calls getSession(), which ensures the database operations participate in a transaction. It authenticates the user, starts a MongoDB session with mongoose.startSession(), finds the item using its ID and the user's ID, clears other featured items, and marks the selected item featured before saving it. It then updates the tag, which likely updates a cache or triggers a notification.",
+    "expect": {
+      "passed": false,
+      "max_score": 3,
+      "required_passed": [true, true, true, true, false, false, false],
+      "forbidden_violated": [true, true]
+    }
   }
 ]
