@@ -48,11 +48,9 @@ secrets.env
 *.secrets.env
 backups/
 
-# Runtime-generated state
+# Runtime-generated state and chats
 state/
-
-# Local test chats
-chats/testing-v3/
+chats/
 
 # Generated evaluation outputs
 evals/end_to_end_results.json
