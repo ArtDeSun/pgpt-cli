@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import subprocess
-import sys
-import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -23,9 +20,18 @@ def _reachable(url: str, timeout: float = 1.0) -> bool:
 
 def status() -> None:
     ollama = CONFIG["endpoints"]["ollama"].rstrip("/") + "/api/tags"
-    pgpt = CONFIG["endpoints"]["private_gpt"].rstrip("/") + "/v1/models"
+    private_gpt = CONFIG["endpoints"]["private_gpt"].rstrip("/") + "/v1/models"
+    server = CONFIG.get("server", {})
+    host = str(server.get("host", "127.0.0.1"))
+    port = int(server.get("port", 8765))
+    local_api = f"http://{host}:{port}/health"
+
     print(f"Ollama:     {'reachable' if _reachable(ollama) else 'NOT reachable'}")
-    print(f"PrivateGPT: {'reachable' if _reachable(pgpt) else 'NOT reachable'}")
+    print(f"pgpt API:   {'reachable' if _reachable(local_api) else 'NOT reachable'}")
+    print(
+        f"PrivateGPT: "
+        f"{'reachable' if _reachable(private_gpt) else 'NOT reachable'}"
+    )
 
 
 def models() -> None:
@@ -51,7 +57,13 @@ def sync(project_name: str | None = None) -> None:
 
 
 def _zero_byte_names(root: Path) -> list[str]:
-    return sorted({p.name for p in root.rglob("*") if p.is_file() and p.stat().st_size == 0})
+    return sorted(
+        {
+            path.name
+            for path in root.rglob("*")
+            if path.is_file() and path.stat().st_size == 0
+        }
+    )
 
 
 def privategpt_env() -> dict[str, str]:
@@ -59,7 +71,9 @@ def privategpt_env() -> dict[str, str]:
     env = os.environ.copy()
     env["OPENAI_API_BASE"] = CONFIG["endpoints"]["openai_api_base"]
     env["PGPT_HOME"] = str(cfg_path("pgpt_home"))
-    env["PGPT_PROFILES"] = ",".join(CONFIG.get("server", {}).get("profiles", ["model"]))
+    env["PGPT_PROFILES"] = ",".join(
+        CONFIG.get("server", {}).get("profiles", ["model"])
+    )
     return env
 
 
@@ -72,30 +86,57 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
         for name in zero:
             print(f"  - {name}")
 
-    ignored = list(dict.fromkeys([*project.get("ingest_ignored", []), *zero]))
+    ignored = list(
+        dict.fromkeys(
+            [
+                *project.get("ingest_ignored", []),
+                *zero,
+            ]
+        )
+    )
     cmd = ["uv", "run", "python", "scripts/ingest_folder.py", str(root)]
     if ignored:
         cmd += ["--ignored", *ignored]
     if watch:
         cmd.append("--watch")
     print(f"[ingest] project={project_name}")
-    subprocess.run(cmd, cwd=cfg_path("private_gpt_dir"), env=privategpt_env(), check=False)
+    subprocess.run(
+        cmd,
+        cwd=cfg_path("private_gpt_dir"),
+        env=privategpt_env(),
+        check=False,
+    )
 
 
 def _redact(line: str) -> str:
     patterns = [
         (r"(PGPT_BRAVE_API_KEY\s*=\s*)\S+", r"\1***REDACTED***"),
         (r"(X-Subscription-Token['\":=\s]+)\S+", r"\1***REDACTED***"),
-        (r"(Authorization['\":=\s]+(?:Bearer\s+)?)\S+", r"\1***REDACTED***"),
-        (r"(api_key\s*=\s*['\"])[^'\"]*(['\"])", r"\1***REDACTED***\2"),
+        (
+            r"(Authorization['\":=\s]+(?:Bearer\s+)?)\S+",
+            r"\1***REDACTED***",
+        ),
+        (
+            r"(api_key\s*=\s*['\"])[^'\"]*(['\"])",
+            r"\1***REDACTED***\2",
+        ),
     ]
-    for pattern, repl in patterns:
-        line = re.sub(pattern, repl, line, flags=re.I)
+    for pattern, replacement in patterns:
+        line = re.sub(pattern, replacement, line, flags=re.I)
     return line
 
 
 def serve() -> None:
-    cmd = ["uv", "run", "python", "-m", "private_gpt", "serve", "--host", "127.0.0.1"]
+    cmd = [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "private_gpt",
+        "serve",
+        "--host",
+        "127.0.0.1",
+    ]
     proc = subprocess.Popen(
         cmd,
         cwd=cfg_path("private_gpt_dir"),
