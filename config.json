@@ -8,9 +8,9 @@
   "paths": {
     "private_gpt_dir": "~/ai/private-gpt",
     "pgpt_home": "~/ai/private-gpt-data",
-    "chats_dir": "~/ai/pgpt-cli/chats",
-    "responses_dir": "~/ai/pgpt-cli/responses",
-    "state_dir": "~/ai/pgpt-cli/state",
+    "chats_dir": "chats",
+    "responses_dir": "responses",
+    "state_dir": "state",
     "skills_dir": "~/.config/pgpt/skills",
     "secrets_file": "~/.config/pgpt/secrets.env"
   },
