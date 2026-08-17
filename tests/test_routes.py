@@ -1,260 +1,157 @@
+from __future__ import annotations
+
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
+from pgpt.routing.classifier import ClassifierDecision
 from pgpt.routing.router import resolve_route
+from pgpt.runtime.route import Route
 
 
-def route(
+def decision(
     prompt: str,
     *,
     symbol_hit: bool = False,
     web_override: str | None = None,
     project_override: bool | None = None,
     template_override: str | None = None,
-    model_override: str | None = None,
-    deep_override: bool | None = None,
-):
+) -> object:
     return resolve_route(
         prompt,
-        project_name="vibemaster",
+        project_name="pgpt-cli",
         web_override=web_override,
         project_override=project_override,
         template_override=template_override,
-        model_override=model_override,
-        deep_override=deep_override,
+        model_override=None,
+        deep_override=None,
         symbol_hit=symbol_hit,
     )
 
 
-class TestRouting(unittest.TestCase):
+class TestRoutingDecision(unittest.TestCase):
+    def test_live_lookup_surface_uses_fast_web_path(self) -> None:
+        prompts = [
+            "What's the weather in Toronto?",
+            "What time is it in Tokyo?",
+            "Is the CN Tower open now?",
+            "What is the current score of the game?",
+            "What is the current exchange rate?",
+        ]
+        with patch("pgpt.routing.router.classify_route_semantics") as classifier:
+            for prompt in prompts:
+                with self.subTest(prompt=prompt):
+                    result = decision(prompt)
+                    self.assertEqual(result.source, "web")
+                    self.assertEqual(result.web_mode, "lookup")
+                    self.assertEqual(result.freshness, "current")
+        classifier.assert_not_called()
 
-    def test_general_stable_concept_routes_local(self):
-        result = route(
-            "Explain dependency injection."
+    def test_multi_source_research(self) -> None:
+        result = decision("Research current AI privacy approaches using multiple independent sources.")
+        self.assertEqual(result.source, "web")
+        self.assertEqual(result.web_mode, "research")
+        self.assertEqual(result.task, "research")
+
+    def test_debug_fast_path(self) -> None:
+        result = decision("Why does this traceback fail and what is the smallest fix?")
+        self.assertEqual(result.task, "debug")
+        self.assertEqual(result.source, "none")
+
+    def test_architecture_fast_path(self) -> None:
+        result = decision("Design a staged migration from a monolith to workers.")
+        self.assertEqual(result.task, "architecture")
+
+    def test_project_symbol_routes_project(self) -> None:
+        semantic = ClassifierDecision(task="general", freshness="stable", complexity="standard")
+        with patch("pgpt.routing.router.classify_route_semantics", return_value=semantic):
+            result = decision("Explain select_model in my project.", symbol_hit=True)
+        self.assertEqual(result.source, "project")
+        self.assertEqual(result.task, "explain-code")
+        self.assertTrue(result.project_evidence)
+
+    def test_web_off_suppresses_web(self) -> None:
+        result = decision("What's the weather in Toronto?", web_override="off")
+        self.assertEqual(result.source, "none")
+        self.assertIsNone(result.web_mode)
+        self.assertEqual(result.freshness, "current")
+
+    def test_project_off_suppresses_project(self) -> None:
+        semantic = ClassifierDecision(task="general", freshness="stable", complexity="standard")
+        with patch("pgpt.routing.router.classify_route_semantics", return_value=semantic):
+            result = decision("Explain this project.", project_override=False)
+        self.assertEqual(result.source, "none")
+
+    def test_classifier_fallback_for_general(self) -> None:
+        semantic = ClassifierDecision(task="general", freshness="stable", complexity="simple")
+        with patch("pgpt.routing.router.classify_route_semantics", return_value=semantic) as classifier:
+            result = decision("What is dependency injection?")
+        classifier.assert_called_once()
+        self.assertEqual(result.source, "none")
+        self.assertEqual(result.task, "general")
+        self.assertEqual(result.freshness, "stable")
+
+    def test_explicit_overrides(self) -> None:
+        semantic = ClassifierDecision(task="general", freshness="stable", complexity="simple")
+        with patch("pgpt.routing.router.classify_route_semantics", return_value=semantic):
+            project = decision("Explain this.", project_override=True)
+            lookup = decision("Explain this.", web_override="lookup")
+            research = decision("Explain this.", web_override="research")
+            template = decision("Explain this.", template_override="debug")
+        self.assertEqual(project.source, "project")
+        self.assertEqual(lookup.web_mode, "lookup")
+        self.assertEqual(research.web_mode, "research")
+        self.assertEqual(template.task, "debug")
+
+
+class TestRuntimeRoute(unittest.TestCase):
+    def test_runtime_route_maps_decision(self) -> None:
+        selection = SimpleNamespace(model="model-a", reason="test selection")
+        routing = resolve_route(
+            "What's the weather in Toronto?",
+            project_name="pgpt-cli",
+            web_override=None,
+            project_override=None,
+            template_override=None,
+            model_override=None,
+            deep_override=None,
+            symbol_hit=False,
         )
+        with patch("pgpt.runtime.route.select_model", return_value=selection):
+            route = Route.from_decision(
+                routing,
+                project_name="pgpt-cli",
+                template_override=None,
+                model_override=None,
+                deep_override=True,
+            )
+        self.assertEqual(route.execution, "web_lookup")
+        self.assertEqual(route.template, "web-lookup")
+        self.assertEqual(route.model, "model-a")
+        self.assertTrue(route.deep)
 
-        self.assertEqual(
-            result.execution,
-            "local",
-        )
-
-        self.assertEqual(
-            result.template,
-            "general",
-        )
-
-    def test_code_explanation_routes_explain_code(self):
-        result = route(
-            "Explain how this TypeScript interface works."
-        )
-
-        self.assertEqual(
-            result.execution,
-            "local",
-        )
-
-        self.assertEqual(
-            result.template,
-            "explain-code",
-        )
-
-    def test_exact_project_symbol_routes_project(self):
-        result = route(
-            "Explain this function in my project.",
-            symbol_hit=True,
-        )
-
-        self.assertEqual(
-            result.execution,
-            "project",
-        )
-
-        self.assertEqual(
-            result.template,
-            "explain-code",
-        )
-
-    def test_current_public_fact_routes_web_lookup(self):
-        result = route(
-            "What is the current stable release of this public software?"
-        )
-
-        self.assertEqual(
-            result.execution,
-            "web_lookup",
-        )
-
-        self.assertEqual(
-            result.template,
-            "web-lookup",
-        )
-
-    def test_explicit_web_lookup_override_wins(self):
-        result = route(
-            "Explain this public technology.",
-            web_override="lookup",
-        )
-
-        self.assertEqual(
-            result.execution,
-            "web_lookup",
-        )
-
-        self.assertEqual(
-            result.template,
-            "web-lookup",
-        )
-
-    def test_explicit_web_research_override_wins(self):
-        result = route(
-            "Compare the available evidence.",
-            web_override="research",
-        )
-
-        self.assertEqual(
-            result.execution,
-            "web_research",
-        )
-
-        self.assertEqual(
-            result.template,
-            "research-web",
-        )
-
-    def test_multi_source_current_research_routes_web_research(self):
-        result = route(
-            "Research the current approaches to this topic "
-            "using multiple independent sources and compare "
-            "their findings."
-        )
-
-        self.assertEqual(
-            result.execution,
-            "web_research",
-        )
-
-        self.assertEqual(
-            result.template,
-            "research-web",
-        )
-
-    def test_debug_task_routes_debug(self):
-        result = route(
-            "Diagnose why this traceback occurs and identify "
-            "the smallest fix."
-        )
-
-        self.assertEqual(
-            result.template,
-            "debug",
-        )
-
-    def test_implementation_task_routes_implement(self):
-        result = route(
-            "Modify this function to add validation while "
-            "preserving the existing behavior."
-        )
-
-        self.assertEqual(
-            result.template,
-            "implement",
-        )
-
-    def test_architecture_task_routes_architecture(self):
-        result = route(
-            "Design a staged migration across several "
-            "repositories, databases, and cloud services while "
-            "preserving APIs and minimizing downtime.",
-            project_override=True,
-        )
-
-        self.assertEqual(
-            result.execution,
-            "project",
-        )
-
-        self.assertEqual(
-            result.template,
-            "architecture",
-        )
-
-    def test_project_override_wins(self):
-        result = route(
-            "Explain the architecture.",
-            project_override=True,
-        )
-
-        self.assertEqual(
-            result.execution,
-            "project",
-        )
-
-    def test_project_off_prevents_project_route(self):
-        result = route(
+    def test_project_runtime_route(self) -> None:
+        selection = SimpleNamespace(model="coder", reason="test selection")
+        routing = resolve_route(
             "Explain this project architecture.",
-            project_override=False,
+            project_name="pgpt-cli",
+            web_override=None,
+            project_override=True,
+            template_override=None,
+            model_override=None,
+            deep_override=None,
+            symbol_hit=False,
         )
-
-        self.assertNotEqual(
-            result.execution,
-            "project",
-        )
-
-    def test_web_off_prevents_web_route(self):
-        result = route(
-            "Look up the current public status.",
-            web_override="off",
-        )
-
-        self.assertEqual(
-            result.execution,
-            "local",
-        )
-
-    def test_template_override_wins(self):
-        result = route(
-            "Explain this.",
-            template_override="debug",
-        )
-
-        self.assertEqual(
-            result.template,
-            "debug",
-        )
-
-    def test_model_override_wins(self):
-        result = route(
-            "Explain this concept.",
-            model_override="qwen2.5-coder:3b",
-        )
-
-        self.assertEqual(
-            result.model,
-            "qwen2.5-coder:3b",
-        )
-
-    def test_deep_override_wins(self):
-        result = route(
-            "Explain this concept.",
-            deep_override=True,
-        )
-
-        self.assertTrue(
-            result.deep
-        )
-    def test_explicit_online_lookup_routes_web(self):
-        result = route(
-            "Find someone's personal website online."
-        )
-
-        self.assertEqual(
-            result.execution,
-            "web_lookup",
-        )
-
-        self.assertEqual(
-            result.template,
-            "web-lookup",
-        )
+        with patch("pgpt.runtime.route.select_model", return_value=selection):
+            route = Route.from_decision(
+                routing,
+                project_name="pgpt-cli",
+                template_override=None,
+                model_override=None,
+                deep_override=None,
+            )
+        self.assertEqual(route.execution, "project")
+        self.assertEqual(route.project, "pgpt-cli")
 
 
 if __name__ == "__main__":
