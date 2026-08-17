@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pgpt.routing.classifier import (
+    ClassifierDecision,
     classify_route_semantics,
     classify_web_mode,
 )
@@ -42,9 +43,15 @@ def _explicit_project(
 def _current_external_hint(
     prompt: str,
 ) -> bool:
-    return _matches(
-        "current-external",
-        prompt,
+    return (
+        _matches(
+            "current-external",
+            prompt,
+        )
+        or _matches(
+            "live-lookup",
+            prompt,
+        )
     )
 
 
@@ -55,6 +62,74 @@ def _research_hint(
         "research",
         prompt,
     )
+
+
+def _fast_semantics(
+    prompt: str,
+) -> ClassifierDecision | None:
+    current = _current_external_hint(
+        prompt
+    )
+
+    if _research_hint(
+        prompt
+    ):
+        return ClassifierDecision(
+            task="research",
+            freshness=(
+                "current"
+                if current
+                else "unknown"
+            ),
+            complexity="complex",
+        )
+
+    if _matches(
+        "debug",
+        prompt,
+    ):
+        return ClassifierDecision(
+            task="debug",
+            freshness=(
+                "current"
+                if current
+                else "stable"
+            ),
+            complexity="standard",
+        )
+
+    if _matches(
+        "architecture",
+        prompt,
+    ):
+        return ClassifierDecision(
+            task="architecture",
+            freshness=(
+                "current"
+                if current
+                else "stable"
+            ),
+            complexity="complex",
+        )
+
+    if _matches(
+        "writing",
+        prompt,
+    ):
+        return ClassifierDecision(
+            task="general",
+            freshness="stable",
+            complexity="simple",
+        )
+
+    if current:
+        return ClassifierDecision(
+            task="general",
+            freshness="current",
+            complexity="simple",
+        )
+
+    return None
 
 
 def _task_from_template(
@@ -167,14 +242,6 @@ def _normalize_freshness(
     explicit_web: bool,
     project_evidence: bool,
 ) -> str:
-    """
-    Normalize freshness using only high-confidence evidence.
-
-    Explicit current-information language has highest priority.
-    Web browsing alone does not imply current information.
-    """
-
-    # Strong temporal language wins over every later fallback.
     if _current_external_hint(
         prompt
     ):
@@ -198,7 +265,6 @@ def _normalize_freshness(
     ):
         return "stable"
 
-    # Explicit web use alone does not make information current.
     if explicit_web:
         if _matches(
             "focused-web-navigation",
@@ -245,59 +311,57 @@ def resolve_route(
     deep_override: bool | None,
     symbol_hit: bool,
 ) -> RoutingDecision:
-    """
-    Resolve routing in independent stages.
-
-    Source selection is based on explicit capabilities,
-    project evidence, strong current-information evidence,
-    or an explicit multi-source research requirement.
-
-    The probabilistic freshness result alone never activates
-    web retrieval.
-    """
-
-    # Temporary compatibility with callers that still pass
-    # legacy routing/model arguments.
     del project_name
     del model_override
     del deep_override
 
-    semantic = classify_route_semantics(
+    semantic = _fast_semantics(
         prompt
     )
+
+    if semantic is not None:
+        semantic_reason = (
+            "deterministic fast semantic path"
+        )
+    else:
+        semantic = (
+            classify_route_semantics(
+                prompt
+            )
+        )
+        semantic_reason = (
+            "semantic classifier"
+        )
 
     if semantic is None:
         task = "general"
         freshness = "unknown"
         complexity = "standard"
-
         semantic_reason = (
             "semantic classifier unavailable"
         )
-
     else:
         task = semantic.task
         freshness = semantic.freshness
         complexity = semantic.complexity
 
-        semantic_reason = (
-            "semantic classifiers"
-        )
-
     explicit_web = _explicit_web(
         prompt
     )
-
-    explicit_project = _explicit_project(
-        prompt
+    explicit_project = (
+        _explicit_project(
+            prompt
+        )
     )
-
-    strong_current = _current_external_hint(
-        prompt
+    strong_current = (
+        _current_external_hint(
+            prompt
+        )
     )
-
-    research_requested = _research_hint(
-        prompt
+    research_requested = (
+        _research_hint(
+            prompt
+        )
     )
 
     project_evidence = bool(
@@ -310,55 +374,37 @@ def resolve_route(
         semantic_reason,
     ]
 
-    # ========================================================
-    # SOURCE
-    # ========================================================
-
     source = "none"
 
-    if (
-        web_override
-        == "research"
-    ):
+    if web_override == "research":
         source = "web"
-
         reasons.append(
             "explicit web research override"
         )
 
-    elif (
-        web_override
-        in {
-            "on",
-            "lookup",
-        }
-    ):
+    elif web_override in {
+        "on",
+        "lookup",
+    }:
         source = "web"
-
         reasons.append(
             "explicit web lookup override"
         )
 
-    elif (
-        project_override
-        is True
-    ):
+    elif project_override is True:
         source = "project"
-
         reasons.append(
             "explicit project override"
         )
 
     elif explicit_web:
         source = "web"
-
         reasons.append(
             "explicit natural-language web request"
         )
 
     elif project_evidence:
         source = "project"
-
         reasons.append(
             "project evidence detected"
         )
@@ -368,7 +414,6 @@ def resolve_route(
         and web_override != "off"
     ):
         source = "web"
-
         reasons.append(
             "strong current external-information evidence"
         )
@@ -379,7 +424,6 @@ def resolve_route(
         and web_override != "off"
     ):
         source = "web"
-
         reasons.append(
             "multi-source research requires web retrieval"
         )
@@ -389,51 +433,45 @@ def resolve_route(
             "no retrieval requirement established"
         )
 
-    # ========================================================
-    # SUPPRESSION
-    # ========================================================
-
     if (
-        project_override
-        is False
+        project_override is False
         and source == "project"
     ):
         source = "none"
-
         reasons.append(
             "project retrieval disabled"
         )
 
     if (
-        web_override
-        == "off"
+        web_override == "off"
         and source == "web"
     ):
         source = "none"
-
         reasons.append(
             "web retrieval disabled"
         )
 
-    # ========================================================
-    # WEB MODE
-    # ========================================================
-
     web_mode = None
 
     if source == "web":
-        if (
-            web_override
-            == "research"
-        ):
+        if web_override == "research":
             web_mode = "research"
 
+        elif web_override in {
+            "on",
+            "lookup",
+        }:
+            web_mode = "lookup"
+
         elif (
-            web_override
-            in {
-                "on",
-                "lookup",
-            }
+            _matches(
+                "live-lookup",
+                prompt,
+            )
+            or (
+                strong_current
+                and not research_requested
+            )
         ):
             web_mode = "lookup"
 
@@ -444,26 +482,20 @@ def resolve_route(
             web_mode = "research"
 
         else:
-            web_mode = classify_web_mode(
-                prompt
+            web_mode = (
+                classify_web_mode(
+                    prompt
+                )
             )
 
             if web_mode is None:
                 web_mode = "lookup"
-
                 reasons.append(
                     "web-mode classifier unavailable; "
                     "defaulted to lookup"
                 )
 
-    # ========================================================
-    # TEMPLATE OVERRIDE
-    # ========================================================
-
-    if (
-        template_override
-        is not None
-    ):
+    if template_override is not None:
         override_task = (
             _task_from_template(
                 template_override
@@ -472,14 +504,9 @@ def resolve_route(
 
         if override_task is not None:
             task = override_task
-
             reasons.append(
                 "explicit template override"
             )
-
-    # ========================================================
-    # TASK NORMALIZATION
-    # ========================================================
 
     normalized_task = _normalize_task(
         prompt=prompt,
@@ -494,15 +521,10 @@ def resolve_route(
 
     if normalized_task != task:
         task = normalized_task
-
         reasons.append(
             "task normalized from "
             "strong request evidence"
         )
-
-    # ========================================================
-    # FRESHNESS NORMALIZATION
-    # ========================================================
 
     normalized_freshness = (
         _normalize_freshness(
@@ -510,31 +532,19 @@ def resolve_route(
             freshness=freshness,
             source=source,
             task=task,
-            explicit_web=(
-                explicit_web
-            ),
+            explicit_web=explicit_web,
             project_evidence=(
                 project_evidence
             ),
         )
     )
 
-    if (
-        normalized_freshness
-        != freshness
-    ):
-        freshness = (
-            normalized_freshness
-        )
-
+    if normalized_freshness != freshness:
+        freshness = normalized_freshness
         reasons.append(
             "freshness normalized from "
             "strong request evidence"
         )
-
-    # ========================================================
-    # WEB-MODE CONSISTENCY
-    # ========================================================
 
     if source == "web":
         if (
@@ -549,15 +559,10 @@ def resolve_route(
             and not research_requested
         ):
             web_mode = "lookup"
-
             reasons.append(
                 "web mode normalized "
                 "to focused lookup"
             )
-
-    # ========================================================
-    # PROJECT SYMBOL FALLBACK
-    # ========================================================
 
     if (
         symbol_hit
@@ -566,7 +571,6 @@ def resolve_route(
         and task == "general"
     ):
         task = "explain-code"
-
         reasons.append(
             "exact project symbol promoted "
             "general task to explain-code"
@@ -578,10 +582,6 @@ def resolve_route(
         task=task,
         freshness=freshness,
         complexity=complexity,
-        project_evidence=(
-            project_evidence
-        ),
-        reason="; ".join(
-            reasons
-        ),
+        project_evidence=project_evidence,
+        reason="; ".join(reasons),
     )
