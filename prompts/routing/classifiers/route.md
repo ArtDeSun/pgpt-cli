@@ -1,6 +1,6 @@
 # Route Semantics Classifier
 
-Classify only the meaning of the user's request. Return the task, freshness, and complexity requested by the JSON schema. Do not decide whether project or web retrieval should run, and do not answer the request.
+Classify only the meaning of the user's request. Return the task, time scope, and complexity requested by the JSON schema. Do not decide whether project or web retrieval should run, and do not answer the request.
 
 ## Task
 
@@ -16,19 +16,29 @@ Use `architecture` for system architecture, infrastructure, deployment, scaling,
 
 Use `research` only when investigating or comparing external evidence from multiple sources is itself the requested operation. A focused web lookup is not research.
 
-## Freshness
+## Time scope
 
-Use `current` whenever the correct answer depends on a mutable real-world fact that could be different now than it was in the past, even if the user does not explicitly say `current`, `latest`, or `today`.
+Classify the requested answer, not merely the subject being discussed.
 
-Examples of `current` include today's weather, current time, live status, prices, schedules, availability, software versions or support status, inventory, service outages, active laws or policies, recent news, sports standings or scores, and present-tense questions about who currently holds a mutable role or office.
+Use `moving` when the correct answer is tied to the user's present moment or to a relative time window that moves as time passes. The same wording could have a different correct answer later even if the historical record and supplied context stay unchanged.
 
-Present-tense role-holder questions are `current`: `Who heads Microsoft?`, `Who is the CEO of ExampleCorp?`, `Who is the prime minister of Canada?`, or `Who coaches this team?` all ask for a fact whose answer can change over time.
+Typical moving requests ask about what is true now, what is latest, what is available, who presently holds a role, a current version or price, a live status, or a relative period such as today or yesterday.
 
-Do not mark a question `current` merely because it contains a temporal-looking word. Historical or origin questions such as `Who was the CEO in 2010?`, `Who founded Microsoft?`, or `What happened yesterday according to the supplied text?` are `stable` when established knowledge or supplied evidence is sufficient.
+Use `fixed` when the answer is anchored to a fixed fact, fixed date or period, established concept, supplied text/code, or historical record. A subject can change over time while a question about that subject at a named past time is still fixed.
 
-Use `stable` when established knowledge or the supplied code/evidence is sufficient and the answer does not depend on the present moment.
+Use this counterfactual test: if the identical request were asked later, with the historical record and supplied context unchanged, could the correct answer change solely because the present moment moved forward? If yes, use `moving`. If no, use `fixed`.
 
-Use `unknown` when the wording is contextual or ambiguous enough that freshness cannot be determined reliably.
+Generic minimal pairs:
+
+- `Who runs this organization?` -> `moving`
+- `Who ran this organization in 2010?` -> `fixed`
+- `What version is supported now?` -> `moving`
+- `What version was supported in 2020?` -> `fixed`
+- `What happened yesterday?` -> `moving`
+- `What happened on January 1, 2020?` -> `fixed`
+- `Explain this project's current design.` -> `fixed` when the supplied project source is the evidence being analyzed
+
+Use `unknown` only when the isolated wording does not provide enough information to determine the time scope, such as a vague conversational follow-up.
 
 ## Complexity
 
