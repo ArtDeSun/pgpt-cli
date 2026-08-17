@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pgpt-cli
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Validate JSON and Python syntax
+        run: |
+          python -m json.tool config.json > /dev/null
+          python -m json.tool evals/end_to_end_cases.json > /dev/null
+          python -m json.tool evals/judge_calibration.json > /dev/null
+          python -m compileall -q pgpt tools tests
+
+      - name: Run offline unit and integration tests
+        run: |
+          python -m unittest -v \
+            tests.test_model_selector \
+            tests.test_pipeline_mock \
+            tests.test_config_paths \
+            tests.test_skills \
+            tests.test_server \
+            tests.test_server_http \
+            tests.test_cli_parser \
+            tests.test_maintenance \
+            tests.test_score_end_to_end_results \
+            tests.test_historical_project_fixture \
+            tests.test_project_retrieval_snapshot \
+            tests.test_eval_project_selection \
+            tests.test_eval_dataset_self_contained \
+            tests.test_web_ui \
+            tests.test_prompt_separation
