@@ -36,17 +36,20 @@ Routing has two different things to test, and they should not be confused.
 
 The **offline router-policy tests** inject a semantic decision such as `current` or `stable`, then verify that execution policy maps it correctly to web/local/project behavior. These tests are deterministic and run in CI. They do not pretend to prove that your local Ollama router understands every English paraphrase.
 
-The **local-model acceptance tests** exercise the actual router model. `routing_gold.json` covers the broad routing surface. `routing_temporal_pairs.json` specifically uses minimal pairs across roles, releases, prices, policies, availability, relative dates, fixed historical dates, concepts and project snapshots. The temporal classifier uses one generic distinction internally:
+The **local-model acceptance tests** exercise the actual router model. `routing_gold.json` covers the broad routing surface. `routing_temporal_pairs.json` covers moving vs fixed time scope across roles, releases, prices, policies, availability, relative dates, historical dates, concepts and supplied/project context.
+
+The semantic router deliberately has a small contract:
 
 ```text
-moving time scope
-    the answer can change solely because the present moment moved
-    -> freshness=current
+prompt
+  -> task
+  -> time_scope: moving | fixed | unknown
 
-fixed time scope
-    the answer is anchored to a fixed fact/date/context/history
-    -> freshness=stable
+moving -> freshness=current
+fixed  -> freshness=stable
 ```
+
+Complexity is not asked of the language model. It is derived from the task and remains telemetry only.
 
 Run the model-dependent suites in WSL:
 
@@ -59,6 +62,29 @@ python3 -m unittest \
 ```
 
 Generated routing cases are exploratory diagnostics and can contain bad generated labels; inspect disagreements rather than changing production routing blindly to satisfy generated data.
+
+### Compare router models before changing the default
+
+The configured router is `qwen3.5:4b`. A temporary model can be selected without editing the repository by setting `PGPT_ROUTER_MODEL`.
+
+To compare the configured router with the locally installed Gemma 4 E4B model on the same temporal acceptance set:
+
+```bash
+time python3 -m tools.benchmark_router_models \
+  --model qwen3.5:4b \
+  --model gemma4:e4b
+```
+
+The benchmark prints failures per model, total cases passed and elapsed time. It exits successfully only when at least one tested model passes the full temporal set.
+
+For a one-off validation with a specific router model:
+
+```bash
+PGPT_ROUTER_MODEL=gemma4:e4b \
+  pgpt validate "Who runs this organization?"
+```
+
+This makes router-model changes evidence-based instead of changing English rules to accommodate individual failed prompts.
 
 ## Local WSL acceptance
 
