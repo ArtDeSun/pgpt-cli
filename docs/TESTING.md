@@ -65,9 +65,9 @@ Generated routing cases are exploratory diagnostics and can contain bad generate
 
 ### Compare router models before changing the default
 
-The configured router is `qwen3.5:4b`. A temporary model can be selected without editing the repository by setting `PGPT_ROUTER_MODEL`.
+The configured candidate router is `qwen3.5:4b`. A temporary model can be selected without editing the repository by setting `PGPT_ROUTER_MODEL`.
 
-To compare the configured router with the locally installed Gemma 4 E4B model on the same temporal acceptance set:
+Compare the configured candidate with Gemma 4 E4B in one run:
 
 ```bash
 time python3 -m tools.benchmark_router_models \
@@ -75,7 +75,12 @@ time python3 -m tools.benchmark_router_models \
   --model gemma4:e4b
 ```
 
-The benchmark prints failures per model, total cases passed and elapsed time. It exits successfully only when at least one tested model passes the full temporal set.
+The benchmark is deliberately staged to avoid wasting GPU time:
+
+1. Every candidate first runs the small `routing_temporal_pairs.json` gate.
+2. Only candidates that pass every temporal case run the broader `routing_gold.json` gate.
+3. The broad gate checks `source`, `web_mode`, `task`, and `freshness`; complexity is excluded because it is derived telemetry.
+4. A candidate qualifies only by passing both gates completely. If several qualify, the fastest broad-suite run wins the tie.
 
 For a one-off validation with a specific router model:
 
