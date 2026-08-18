@@ -426,8 +426,9 @@ prompt
   +--> high-confidence deterministic fast path
   |       live lookups / research / debug / architecture / writing
   |
-  +--> one combined local semantic classifier when still ambiguous
-          task + freshness + complexity
+  +--> one local semantic classifier when still ambiguous
+          task + time_scope
+          moving | fixed | unknown
   |
   v
 policy + explicit overrides
@@ -438,7 +439,16 @@ policy + explicit overrides
   +--> web research
 ```
 
-Previously, ambiguous routing required separate model calls for task, freshness and complexity. The combined classifier reduces that to one call, while common live lookups skip the classifier entirely.
+The semantic model is deliberately not asked to score complexity. Complexity is derived from the classified task and is telemetry only. Common explicit live lookups still skip the classifier entirely.
+
+The router model can be temporarily overridden without changing `config.json`:
+
+```bash
+PGPT_ROUTER_MODEL=gemma4:e4b \
+  pgpt validate "your prompt"
+```
+
+Use `python3 -m tools.benchmark_router_models` to compare installed router models against the same temporal acceptance set before changing the configured default.
 
 ## 11. Project retrieval
 
