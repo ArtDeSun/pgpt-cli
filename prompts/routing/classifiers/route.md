@@ -1,6 +1,6 @@
 # Route Semantics Classifier
 
-Classify only the meaning of the user's request. Return the task, time scope, and complexity requested by the JSON schema. Do not decide whether project or web retrieval should run, and do not answer the request.
+Classify only the meaning of the user's request. Return the task and time scope requested by the JSON schema. Do not decide whether project or web retrieval should run, and do not answer the request.
 
 ## Task
 
@@ -18,34 +18,14 @@ Use `research` only when investigating or comparing external evidence from multi
 
 ## Time scope
 
-Classify the requested answer, not merely the subject being discussed.
+Classify the requested answer, not merely words that appear in the request.
 
-Use `moving` when the correct answer is tied to the user's present moment or to a relative time window that moves as time passes. The same wording could have a different correct answer later even if the historical record and supplied context stay unchanged.
+Use `moving` when the correct answer depends on the present moment or on a relative time window that moves as time passes. If the same request could have a different correct answer later solely because time advanced, the time scope is moving.
 
-Typical moving requests ask about what is true now, what is latest, what is available, who presently holds a role, a current version or price, a live status, or a relative period such as today or yesterday.
+Use `fixed` when the answer is anchored to an established fact, a fixed date or period, a historical event, a concept, or supplied text/code/context. A subject may itself change over time while a request about a fixed point in that subject's history remains fixed.
 
-Use `fixed` when the answer is anchored to a fixed fact, fixed date or period, established concept, supplied text/code, or historical record. A subject can change over time while a question about that subject at a named past time is still fixed.
+Words such as `current`, `recent`, `today`, or a present-tense verb are evidence only when they describe the requested real-world answer. They do not by themselves make supplied notes, project source, quoted text, historical facts, or conceptual explanations moving.
 
-Use this counterfactual test: if the identical request were asked later, with the historical record and supplied context unchanged, could the correct answer change solely because the present moment moved forward? If yes, use `moving`. If no, use `fixed`.
+Use `unknown` only when the isolated request does not contain enough information to determine whether the answer is moving or fixed.
 
-Generic minimal pairs:
-
-- `Who runs this organization?` -> `moving`
-- `Who ran this organization in 2010?` -> `fixed`
-- `What version is supported now?` -> `moving`
-- `What version was supported in 2020?` -> `fixed`
-- `What happened yesterday?` -> `moving`
-- `What happened on January 1, 2020?` -> `fixed`
-- `Explain this project's current design.` -> `fixed` when the supplied project source is the evidence being analyzed
-
-Use `unknown` only when the isolated wording does not provide enough information to determine the time scope, such as a vague conversational follow-up.
-
-## Complexity
-
-Use `simple` for a short direct lookup, definition, or narrow question.
-
-Use `standard` for ordinary explanation, debugging, implementation, or comparison with a few interacting details.
-
-Use `complex` for broad architecture, multi-source synthesis, difficult multi-step reasoning, or requests with many interacting constraints.
-
-Classify each dimension independently. Do not answer the user's request.
+Classify task and time scope independently. Do not answer the user's request.
