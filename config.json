@@ -139,50 +139,54 @@
     "judge_timeout_seconds": 360,
     "judge_num_ctx": 6144,
     "judge_max_tokens": 1000,
-    "judge_keep_alive": "10m",
-    "judge_temperature": 0.0,
-    "judge_retry_count": 1,
-    "repair_timeout_seconds": 360,
-    "repair_num_ctx": 6144,
-    "repair_max_tokens": 1600,
-    "repair_temperature": 0.0,
-    "repair_keep_alive": "10m"
+    "criterion_max_tokens": 32
   },
   "projects": {
     "pgpt-cli": {
       "source_dir": ".",
-      "knowledge_dir": "~/ai/private-gpt-data/knowledge/pgpt-cli",
+      "knowledge_dir": "~/ai/pgpt-cli-knowledge",
+      "collection": "pgpt-cli",
       "sync_excludes": [
         ".git/",
         ".venv/",
         "__pycache__/",
-        "*.pyc",
-        "chats/",
         "responses/",
+        "chats/",
         "state/",
-        "evals/model_benchmark_results.json",
-        "evals/end_to_end_results.json",
-        "evals/reliability_results.json"
+        ".env",
+        ".env.*",
+        "*.pem",
+        "*.key"
       ],
-      "ingest_ignored": []
+      "ingest_ignored": [
+        ".gitignore",
+        "secrets.env.example"
+      ]
     },
     "pgpt-cli-history": {
-      "source_dir": "tests/fixtures/historical_project",
-      "knowledge_dir": "~/ai/private-gpt-data/knowledge/pgpt-cli-history",
+      "source_dir": "tests/fixtures/historical_pgpt",
+      "knowledge_dir": "~/ai/pgpt-cli-history-knowledge",
+      "collection": "pgpt-cli-history",
       "sync_excludes": [],
       "ingest_ignored": []
     },
     "vibemaster": {
-      "source_dir": "~/dev/Professional-Viber-Web-App",
+      "source_dir": "~/dev/Professional-Viber-Web-App/my-app",
       "knowledge_dir": "~/ai/vibemaster-knowledge",
+      "collection": "collection",
       "sync_excludes": [
         ".git/",
-        ".next/",
         "node_modules/",
-        "coverage/",
-        "*.log"
+        ".next/",
+        ".env",
+        ".env.*",
+        "*.pem",
+        "*.key"
       ],
-      "ingest_ignored": []
+      "ingest_ignored": [
+        "package-lock.json",
+        ".gitignore"
+      ]
     }
   }
 }
