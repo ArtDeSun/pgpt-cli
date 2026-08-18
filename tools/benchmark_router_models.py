@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from pgpt.config import CONFIG
@@ -12,15 +13,34 @@ from pgpt.routing.router import resolve_route
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CASES_PATH = ROOT / "evals" / "routing_temporal_pairs.json"
 
 
-def _load_cases() -> list[dict]:
-    with CASES_PATH.open("r", encoding="utf-8") as file:
+@dataclass(frozen=True)
+class Suite:
+    name: str
+    path: Path
+    fields: tuple[str, ...]
+
+
+TEMPORAL = Suite(
+    name="temporal",
+    path=ROOT / "evals" / "routing_temporal_pairs.json",
+    fields=("source", "freshness"),
+)
+
+GOLD = Suite(
+    name="routing-gold",
+    path=ROOT / "evals" / "routing_gold.json",
+    fields=("source", "web_mode", "task", "freshness"),
+)
+
+
+def _load_cases(suite: Suite) -> list[dict]:
+    with suite.path.open("r", encoding="utf-8") as file:
         value = json.load(file)
 
     if not isinstance(value, list):
-        raise RuntimeError("routing_temporal_pairs.json must contain a list")
+        raise RuntimeError(f"{suite.path.name} must contain a list")
 
     return value
 
@@ -30,34 +50,52 @@ def _default_models() -> list[str]:
     return list(dict.fromkeys([configured, "gemma4:e4b"]))
 
 
-def _run_model(model: str, cases: list[dict]) -> tuple[int, list[str], float]:
+def _decision(case: dict) -> dict[str, object]:
+    decision = resolve_route(
+        case["prompt"],
+        project_name="pgpt-cli",
+        web_override=None,
+        project_override=None,
+        template_override=None,
+        model_override=None,
+        deep_override=None,
+        symbol_hit=bool(case.get("symbol_hit", False)),
+    )
+
+    return {
+        "source": decision.source,
+        "web_mode": decision.web_mode,
+        "task": decision.task,
+        "freshness": decision.freshness,
+    }
+
+
+def _run_suite(
+    *,
+    model: str,
+    suite: Suite,
+    cases: list[dict],
+) -> tuple[int, list[str], float]:
     previous = os.environ.get("PGPT_ROUTER_MODEL")
     os.environ["PGPT_ROUTER_MODEL"] = model
     started = time.monotonic()
+    failed_cases: set[str] = set()
     failures: list[str] = []
 
     try:
         for case in cases:
-            decision = resolve_route(
-                case["prompt"],
-                project_name="pgpt-cli",
-                web_override=None,
-                project_override=None,
-                template_override=None,
-                model_override=None,
-                deep_override=None,
-                symbol_hit=False,
-            )
+            actual = _decision(case)
+            expected = case["expect"]
 
-            actual = {
-                "source": decision.source,
-                "freshness": decision.freshness,
-            }
+            for field in suite.fields:
+                if field not in expected:
+                    continue
 
-            for field, expected in case["expect"].items():
-                if actual[field] != expected:
+                expected_value = expected[field]
+                if actual[field] != expected_value:
+                    failed_cases.add(case["id"])
                     failures.append(
-                        f"{case['id']}: {field} expected {expected!r}, "
+                        f"{case['id']}: {field} expected {expected_value!r}, "
                         f"got {actual[field]!r}"
                     )
     finally:
@@ -67,13 +105,32 @@ def _run_model(model: str, cases: list[dict]) -> tuple[int, list[str], float]:
             os.environ["PGPT_ROUTER_MODEL"] = previous
 
     elapsed = time.monotonic() - started
-    passed = len(cases) - len({item.split(":", 1)[0] for item in failures})
+    passed = len(cases) - len(failed_cases)
     return passed, failures, elapsed
+
+
+def _print_result(
+    *,
+    model: str,
+    suite: Suite,
+    passed: int,
+    total: int,
+    elapsed: float,
+    failures: list[str],
+) -> None:
+    print()
+    print(f"{model} [{suite.name}]: {passed}/{total} cases passed in {elapsed:.1f}s")
+
+    for failure in failures:
+        print(f"  - {failure}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Compare local Ollama router models on temporal routing acceptance cases."
+        description=(
+            "Compare local Ollama router models. Candidates must first pass the "
+            "small temporal gate; only passing candidates run the broader gold suite."
+        )
     )
     parser.add_argument(
         "--model",
@@ -94,27 +151,71 @@ def main() -> None:
     if not models:
         raise SystemExit("No requested router models are available in Ollama.")
 
-    cases = _load_cases()
-    best_passed = -1
-    best_model = ""
+    temporal_cases = _load_cases(TEMPORAL)
+    gold_cases = _load_cases(GOLD)
+    temporal_passers: list[str] = []
+
+    print("Temporal gate: every case must pass before the broad suite runs.")
 
     for model in models:
-        passed, failures, elapsed = _run_model(model, cases)
+        passed, failures, elapsed = _run_suite(
+            model=model,
+            suite=TEMPORAL,
+            cases=temporal_cases,
+        )
+        _print_result(
+            model=model,
+            suite=TEMPORAL,
+            passed=passed,
+            total=len(temporal_cases),
+            elapsed=elapsed,
+            failures=failures,
+        )
+
+        if passed == len(temporal_cases):
+            temporal_passers.append(model)
+
+    if not temporal_passers:
         print()
-        print(f"{model}: {passed}/{len(cases)} cases passed in {elapsed:.1f}s")
-
-        for failure in failures:
-            print(f"  - {failure}")
-
-        if passed > best_passed:
-            best_passed = passed
-            best_model = model
+        print("No router passed the temporal gate; no default should be changed yet.")
+        raise SystemExit(1)
 
     print()
-    print(f"Best router: {best_model} ({best_passed}/{len(cases)})")
+    print("Broad gate: source, web mode, task, and freshness must all match routing_gold.json.")
 
-    if best_passed != len(cases):
+    broad_passers: list[tuple[str, float]] = []
+
+    for model in temporal_passers:
+        passed, failures, elapsed = _run_suite(
+            model=model,
+            suite=GOLD,
+            cases=gold_cases,
+        )
+        _print_result(
+            model=model,
+            suite=GOLD,
+            passed=passed,
+            total=len(gold_cases),
+            elapsed=elapsed,
+            failures=failures,
+        )
+
+        if passed == len(gold_cases):
+            broad_passers.append((model, elapsed))
+
+    if not broad_passers:
+        print()
+        print("No router passed both gates; no default should be changed yet.")
         raise SystemExit(1)
+
+    broad_passers.sort(key=lambda item: item[1])
+    winner = broad_passers[0][0]
+
+    print()
+    print(f"Qualified router: {winner}")
+
+    if len(broad_passers) > 1:
+        print("Multiple routers passed both gates; the fastest broad-suite run won the tie.")
 
 
 if __name__ == "__main__":
