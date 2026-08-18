@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -47,19 +48,10 @@ _ROUTE_SCHEMA: dict[str, Any] = {
                 "unknown",
             ],
         },
-        "complexity": {
-            "type": "string",
-            "enum": [
-                "simple",
-                "standard",
-                "complex",
-            ],
-        },
     },
     "required": [
         "task",
         "time_scope",
-        "complexity",
     ],
     "additionalProperties": False,
 }
@@ -128,6 +120,62 @@ def _classifier_request(
     )
 
 
+def router_model() -> str:
+    override = os.environ.get(
+        "PGPT_ROUTER_MODEL",
+        "",
+    ).strip()
+
+    if override:
+        return override
+
+    return str(
+        CONFIG[
+            "models"
+        ][
+            "roles"
+        ][
+            "router"
+        ]
+    )
+
+
+def _router_num_ctx() -> int:
+    return int(
+        CONFIG.get(
+            "performance",
+            {},
+        )
+        .get(
+            "num_ctx_by_role",
+            {},
+        )
+        .get(
+            "router",
+            2048,
+        )
+    )
+
+
+def _complexity_for_task(
+    task: str,
+) -> Complexity:
+    if task in {
+        "architecture",
+        "research",
+    }:
+        return "complex"
+
+    if task in {
+        "explain-code",
+        "debug",
+        "implement",
+    }:
+        return "standard"
+
+    return "simple"
+
+
 def _chat_classifier(
     *,
     prompt: str,
@@ -135,13 +183,7 @@ def _chat_classifier(
     schema: dict[str, Any],
 ) -> dict[str, Any] | None:
     payload = {
-        "model": CONFIG[
-            "models"
-        ][
-            "roles"
-        ][
-            "router"
-        ],
+        "model": router_model(),
         "messages": [
             {
                 "role": "system",
@@ -162,13 +204,13 @@ def _chat_classifier(
         "keep_alive": CONFIG[
             "performance"
         ].get(
-            "final_keep_alive",
-            "10m",
+            "router_keep_alive",
+            "5m",
         ),
         "options": {
             "temperature": 0.0,
-            "num_ctx": 1024,
-            "num_predict": 48,
+            "num_ctx": _router_num_ctx(),
+            "num_predict": 32,
         },
     }
 
@@ -252,9 +294,6 @@ def classify_route_semantics(
     time_scope = data.get(
         "time_scope"
     )
-    complexity = data.get(
-        "complexity"
-    )
 
     if task not in {
         "general",
@@ -275,19 +314,14 @@ def classify_route_semantics(
     if time_scope not in freshness_by_scope:
         return None
 
-    if complexity not in {
-        "simple",
-        "standard",
-        "complex",
-    }:
-        return None
-
     return ClassifierDecision(
         task=task,  # type: ignore[arg-type]
         freshness=freshness_by_scope[
             str(time_scope)
         ],
-        complexity=complexity,  # type: ignore[arg-type]
+        complexity=_complexity_for_task(
+            str(task)
+        ),
     )
 
 
