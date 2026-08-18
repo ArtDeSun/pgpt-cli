@@ -118,7 +118,7 @@
     "final_keep_alive": "30m",
     "router_keep_alive": "5m",
     "num_ctx_by_role": {
-      "router": 2048,
+      "router": 4096,
       "general": 4096,
       "coder": 4096,
       "reasoning": 4096,
