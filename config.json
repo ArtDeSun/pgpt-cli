@@ -30,7 +30,7 @@
   },
   "models": {
     "roles": {
-      "router": "qwen3:1.7b",
+      "router": "qwen3.5:4b",
       "general": "llama3.2:3b",
       "coder": "qwen2.5-coder:3b",
       "reasoning": "phi4-mini",
@@ -116,8 +116,9 @@
   "performance": {
     "request_timeout_seconds": 180,
     "final_keep_alive": "30m",
+    "router_keep_alive": "5m",
     "num_ctx_by_role": {
-      "router": 1024,
+      "router": 2048,
       "general": 4096,
       "coder": 4096,
       "reasoning": 4096,
@@ -138,54 +139,50 @@
     "judge_timeout_seconds": 360,
     "judge_num_ctx": 6144,
     "judge_max_tokens": 1000,
-    "criterion_max_tokens": 32
+    "judge_keep_alive": "10m",
+    "judge_temperature": 0.0,
+    "judge_retry_count": 1,
+    "repair_timeout_seconds": 360,
+    "repair_num_ctx": 6144,
+    "repair_max_tokens": 1600,
+    "repair_temperature": 0.0,
+    "repair_keep_alive": "10m"
   },
   "projects": {
     "pgpt-cli": {
       "source_dir": ".",
-      "knowledge_dir": "~/ai/pgpt-cli-knowledge",
-      "collection": "pgpt-cli",
+      "knowledge_dir": "~/ai/private-gpt-data/knowledge/pgpt-cli",
       "sync_excludes": [
         ".git/",
         ".venv/",
         "__pycache__/",
-        "responses/",
+        "*.pyc",
         "chats/",
+        "responses/",
         "state/",
-        ".env",
-        ".env.*",
-        "*.pem",
-        "*.key"
+        "evals/model_benchmark_results.json",
+        "evals/end_to_end_results.json",
+        "evals/reliability_results.json"
       ],
-      "ingest_ignored": [
-        ".gitignore",
-        "secrets.env.example"
-      ]
+      "ingest_ignored": []
     },
     "pgpt-cli-history": {
-      "source_dir": "tests/fixtures/historical_pgpt",
-      "knowledge_dir": "~/ai/pgpt-cli-history-knowledge",
-      "collection": "pgpt-cli-history",
+      "source_dir": "tests/fixtures/historical_project",
+      "knowledge_dir": "~/ai/private-gpt-data/knowledge/pgpt-cli-history",
       "sync_excludes": [],
       "ingest_ignored": []
     },
     "vibemaster": {
-      "source_dir": "~/dev/Professional-Viber-Web-App/my-app",
+      "source_dir": "~/dev/Professional-Viber-Web-App",
       "knowledge_dir": "~/ai/vibemaster-knowledge",
-      "collection": "collection",
       "sync_excludes": [
         ".git/",
-        "node_modules/",
         ".next/",
-        ".env",
-        ".env.*",
-        "*.pem",
-        "*.key"
+        "node_modules/",
+        "coverage/",
+        "*.log"
       ],
-      "ingest_ignored": [
-        "package-lock.json",
-        ".gitignore"
-      ]
+      "ingest_ignored": []
     }
   }
 }
