@@ -33,6 +33,39 @@ class TestRoutingClassifier(unittest.TestCase):
                 "candidate-router",
             )
 
+    def test_chat_classifier_uses_router_runtime_settings(self) -> None:
+        with patch.object(
+            classifier,
+            "router_model",
+            return_value="router-test",
+        ), patch.object(
+            classifier,
+            "_router_num_ctx",
+            return_value=4096,
+        ), patch.object(
+            classifier,
+            "json_request",
+            return_value={
+                "message": {
+                    "content": '{"task":"general","time_scope":"fixed"}'
+                }
+            },
+        ) as request:
+            result = classifier._chat_classifier(
+                prompt="Question",
+                classifier_name="route",
+                schema=classifier._ROUTE_SCHEMA,
+            )
+
+        self.assertIsNotNone(result)
+        payload = request.call_args.kwargs["payload"]
+        self.assertEqual(payload["model"], "router-test")
+        self.assertEqual(payload["options"]["num_ctx"], 4096)
+        self.assertEqual(
+            payload["keep_alive"],
+            classifier.CONFIG["performance"]["router_keep_alive"],
+        )
+
     def test_moving_scope_maps_to_current(self) -> None:
         with patch.object(
             classifier,
