@@ -23,9 +23,9 @@ this\s+repo
 this\s+repository
 this\s+codebase
 
-# High-confidence freshness requests. These rules intentionally describe
-# request shape rather than trying to enumerate every possible live domain.
-# Ambiguous long-tail prompts fall back to the semantic freshness classifier.
+# High-confidence freshness requests. These rules intentionally require
+# explicit time-sensitive wording. Implicit temporal meaning belongs to the
+# semantic time-scope classifier rather than entity- or domain-specific rules.
 [current-external]
 (?:what|who|where|when|which)\b.{0,120}\b(?:currently|latest|newest|most\s+recent|right\s+now|today(?:'s)?|tonight(?:'s)?|as\s+of\s+(?:today|now))\b
 how(?:'s|\s+(?:is|are|has|have))\b.{0,120}\b(?:currently|latest|newest|most\s+recent|right\s+now|today|tonight|as\s+of\s+(?:today|now))\b
@@ -35,12 +35,10 @@ how\s+(?:much|many|long)\b.{0,120}\b(?:currently|right\s+now|today|tonight|as\s+
 \bstill\s+(?:available|open|closed|operating|supported|active|in\s+office|legal|valid|down|up|in\s+stock)\b
 \b(?:has|have)\b.{0,100}\b(?:been\s+released|launched|deprecated|discontinued|updated|changed)\b
 \b(?:what(?:'s|\s+is)\s+the\s+latest\s+on|latest\s+updates?\s+on|news\s+(?:on|about)|what(?:'s|\s+is)\s+happening\s+(?:with|in|to))\b
-^\s*who\s+(?:heads|runs|chairs|governs|coaches)\s+[^?]{2,100}\??\s*$
-^\s*who\s+is\s+(?:the\s+)?(?:ceo|cto|cfo|coo|president|chair|chairman|chairwoman|director|head|governor|mayor|prime\s+minister|premier|chancellor|coach|manager|commissioner|secretary)\s+(?:of|at|for)\s+[^?]{2,100}\??\s*$
 
-# Inherently live lookup forms that are common enough to bypass the semantic
-# classifier entirely. This is a latency optimization, not the correctness
-# boundary for freshness detection.
+# Inherently live utility forms that are common enough to bypass the semantic
+# classifier. This is only a latency optimization; it is not the correctness
+# boundary for deciding whether a request is time-sensitive.
 [live-lookup]
 (?:what(?:'s|\s+is)|how(?:'s|\s+is)|show|give\s+me|tell\s+me).{0,60}(?:weather|forecast)
 (?:weather|forecast).{0,60}(?:today|tonight|tomorrow|this\s+week|right\s+now)

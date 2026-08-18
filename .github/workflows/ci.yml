@@ -34,6 +34,7 @@ jobs:
           python -m json.tool evals/end_to_end_cases.json > /dev/null
           python -m json.tool evals/judge_calibration.json > /dev/null
           python -m json.tool evals/routing_regressions.json > /dev/null
+          python -m json.tool evals/routing_temporal_pairs.json > /dev/null
           python -m compileall -q pgpt tools tests
 
       - name: Validate browser JavaScript syntax
@@ -58,6 +59,7 @@ jobs:
             tests.test_pipeline_mock \
             tests.test_config_paths \
             tests.test_skills \
+            tests.test_routing_classifier \
             tests.test_routes \
             tests.test_router_regressions \
             tests.test_server \

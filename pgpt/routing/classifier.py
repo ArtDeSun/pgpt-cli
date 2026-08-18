@@ -39,11 +39,11 @@ _ROUTE_SCHEMA: dict[str, Any] = {
                 "research",
             ],
         },
-        "freshness": {
+        "time_scope": {
             "type": "string",
             "enum": [
-                "stable",
-                "current",
+                "moving",
+                "fixed",
                 "unknown",
             ],
         },
@@ -58,7 +58,7 @@ _ROUTE_SCHEMA: dict[str, Any] = {
     },
     "required": [
         "task",
-        "freshness",
+        "time_scope",
         "complexity",
     ],
     "additionalProperties": False,
@@ -249,8 +249,8 @@ def classify_route_semantics(
     task = data.get(
         "task"
     )
-    freshness = data.get(
-        "freshness"
+    time_scope = data.get(
+        "time_scope"
     )
     complexity = data.get(
         "complexity"
@@ -266,11 +266,13 @@ def classify_route_semantics(
     }:
         return None
 
-    if freshness not in {
-        "stable",
-        "current",
-        "unknown",
-    }:
+    freshness_by_scope: dict[str, Freshness] = {
+        "moving": "current",
+        "fixed": "stable",
+        "unknown": "unknown",
+    }
+
+    if time_scope not in freshness_by_scope:
         return None
 
     if complexity not in {
@@ -282,7 +284,9 @@ def classify_route_semantics(
 
     return ClassifierDecision(
         task=task,  # type: ignore[arg-type]
-        freshness=freshness,  # type: ignore[arg-type]
+        freshness=freshness_by_scope[
+            str(time_scope)
+        ],
         complexity=complexity,  # type: ignore[arg-type]
     )
 
