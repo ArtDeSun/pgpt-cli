@@ -4,17 +4,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 
-Source = Literal[
-    "none",
-    "project",
-    "web",
-]
-
-WebMode = Literal[
-    "lookup",
-    "research",
-]
-
+Source = Literal["none", "project", "web"]
+WebMode = Literal["lookup", "research"]
 Task = Literal[
     "general",
     "explain-code",
@@ -23,18 +14,7 @@ Task = Literal[
     "architecture",
     "research",
 ]
-
-Freshness = Literal[
-    "stable",
-    "current",
-    "unknown",
-]
-
-Complexity = Literal[
-    "simple",
-    "standard",
-    "complex",
-]
+Freshness = Literal["stable", "current", "unknown"]
 
 
 @dataclass(frozen=True)
@@ -43,6 +23,5 @@ class RoutingDecision:
     web_mode: WebMode | None
     task: Task
     freshness: Freshness
-    complexity: Complexity
     project_evidence: bool
     reason: str
