@@ -1,160 +1,96 @@
-# Testing pgpt-cli
+# Testing
 
-pgpt-cli has an offline production gate plus explicit local-model acceptance tests. The split is intentional: GitHub-hosted runners cannot reproduce your WSL GPU, Ollama model set, Brave subscription, or PrivateGPT installation.
+Use the smallest useful test first. Run expensive Ollama/judge suites only after the cheap tests pass.
 
-## Offline CI gate
+## 1. Offline checks
 
-`.github/workflows/ci.yml` runs on Python 3.11 and 3.13 without Ollama, Brave, PrivateGPT, or external project files.
-
-It validates:
-
-- Python/JSON/package syntax;
-- browser JavaScript syntax;
-- model selection with injected model availability;
-- mocked pipeline behavior;
-- routing decision vs runtime-route boundaries;
-- generic time-scope classifier schema/mapping;
-- deterministic fast routes only for explicit/high-confidence live surfaces;
-- router-policy regressions with semantic decisions injected explicitly;
-- path/config handling;
-- the repository-owned historical project fixture;
-- source retrieval snapshots;
-- built-in and personal skill behavior;
-- HTTP/CORS/chat-completion behavior;
-- saved response listing/read/download;
-- Brave safety-budget state, header parsing and HTTP hooks;
-- semantic judge required/forbidden polarity and malformed-JSON retry;
-- response Markdown metadata/rendered-view links;
-- browser UI contracts for multiple chats, files, Markdown rendering, timers and usage controls;
-- prompt ownership: natural-language judge/router instructions live in Markdown assets rather than Python.
-
-Run the complete offline gate by copying the unittest module list from `.github/workflows/ci.yml`.
-
-## Routing tests: policy vs language understanding
-
-Routing has two different things to test, and they should not be confused.
-
-The **offline router-policy tests** inject a semantic decision such as `current` or `stable`, then verify that execution policy maps it correctly to web/local/project behavior. These tests are deterministic and run in CI. They do not pretend to prove that your local Ollama router understands every English paraphrase.
-
-The **local-model acceptance tests** exercise the actual router model. `routing_gold.json` covers the broad routing surface. `routing_temporal_pairs.json` specifically uses minimal pairs across roles, releases, prices, policies, availability, relative dates, fixed historical dates, concepts and project snapshots. The temporal classifier uses one generic distinction internally:
-
-```text
-moving time scope
-    the answer can change solely because the present moment moved
-    -> freshness=current
-
-fixed time scope
-    the answer is anchored to a fixed fact/date/context/history
-    -> freshness=stable
-```
-
-Run the model-dependent suites in WSL:
+These need no Ollama, Brave, PrivateGPT, or external project files:
 
 ```bash
-python3 -m unittest \
+python -m json.tool config.json > /dev/null
+python -m compileall -q pgpt tools tests
+git diff --check
+```
+
+GitHub Actions runs the authoritative offline unittest list from `.github/workflows/ci.yml` on Python 3.11 and 3.13. Keep that workflow readable instead of duplicating the full list here.
+
+## 2. Routing tests
+
+Routing has two kinds of tests.
+
+**Policy tests** (`tests/test_routes.py`) mock the one semantic decision and verify deterministic routing behavior. These run in CI.
+
+**Local-model acceptance tests** use your actual Ollama router and run only in WSL:
+
+```bash
+python -m unittest \
   tests.test_router_dataset \
-  tests.test_router_generated \
   tests.test_router_temporal_pairs \
   -v
 ```
 
-Generated routing cases are exploratory diagnostics and can contain bad generated labels; inspect disagreements rather than changing production routing blindly to satisfy generated data.
+`routing_gold.json` is the broad, human-curated routing set. `routing_temporal_pairs.json` focuses on current/moving facts versus fixed history or supplied context.
 
-## Local WSL acceptance
+The router model only answers one question for ambiguous general prompts: does the answer require current public information?
 
-After pulling a release candidate:
+Test another installed model without editing the repo:
 
 ```bash
-cd ~/ai/pgpt-cli
-source .venv/bin/activate
-python -m pip install -e .
-
-pgpt status
-pgpt models
-pgpt web-usage
+PGPT_ROUTER_MODEL=gemma4:e4b \
+  python -m unittest tests.test_router_temporal_pairs -v
 ```
 
-Check a stable local prompt:
+Do not patch production regexes to satisfy one sentence. If a model repeatedly fails a class of cases, change the model or the general routing rule.
+
+## 3. End-to-end quality
+
+Run targeted cases first:
 
 ```bash
-time pgpt ask --web off \
-  "What is dependency injection?"
-```
-
-Check the fast live lookup surface:
-
-```bash
-time pgpt ask --web auto \
-  "What's the weather in Toronto today?"
-```
-
-The second request should route to focused web lookup without running the ambiguous semantic classifier and without fetching full result pages. Network speed, Ollama cold starts, and Brave latency will still affect wall-clock time.
-
-Then check implicit temporal meaning with a minimal pair:
-
-```bash
-pgpt validate "Who runs this organization?"
-pgpt validate "Who ran this organization in 2010?"
-```
-
-The first should be `current`/web lookup; the second should be `stable`/local. Neither behavior should depend on the organization name or a hard-coded job title.
-
-Check browser/API:
-
-```bash
-pgpt server
-```
-
-Then open `http://127.0.0.1:8765/` and verify chats, attachments, timer, rendered Markdown, response browsing, usage badge, and web-mode switching.
-
-## Judge calibration
-
-The semantic judge evaluates each required/forbidden criterion independently. Required judgments return `satisfied`; forbidden judgments return `violated`. This avoids the previous ambiguity of using a generic `passed` field for opposite meanings.
-
-Start with targeted cases while iterating:
-
-```bash
-python3 -m tools.calibrate_quality_judge \
+python -m tools.run_end_to_end_evals --case debug_local_01 --force
+python -m tools.score_end_to_end_results \
   --model qwen3.5:9b \
-  --case project_grounded_bad_subtle_cleanup_02 \
-  --case project_grounded_bad_mixed_accuracy_03
+  --case debug_local_01
 ```
 
-Then run the full suite:
+Then run the full suite when the targeted cases are stable:
 
 ```bash
-time python3 -m tools.calibrate_quality_judge \
-  --model qwen3.5:9b
+python -m tools.run_end_to_end_evals --fresh
+python -m tools.score_end_to_end_results --model qwen3.5:9b
 ```
 
-Criterion output is capped to a tiny structured boolean response, so the judge does not spend hundreds of tokens generating prose reasons or truncate a long JSON reason string.
-
-## End-to-end evaluation
+## 4. Judge calibration
 
 ```bash
-time python3 -m tools.run_end_to_end_evals --fresh
-
-time python3 -m tools.score_end_to_end_results \
-  --model qwen3.5:9b
+python -m tools.calibrate_quality_judge --model qwen3.5:9b
 ```
 
-The project-grounded case uses `pgpt-cli-history`, not the inaccessible external `vibemaster` directory.
+Calibration checks the judge itself. Do not trust end-to-end quality scores if judge calibration is failing.
 
-## Reliability
+## 5. Reliability
 
-Run repeated generation only after targeted correctness is stable:
+Repeated runs are expensive. Use them near the end of a change:
 
 ```bash
-time python3 -m tools.run_reliability_evals \
+python -m tools.run_reliability_evals \
   --runs 5 \
   --judge-model qwen3.5:9b \
   --fresh
 ```
 
-Reliability runs are intentionally expensive. Use targeted cases first rather than spending GPU time rerunning a large suite after every small change.
+## 6. Manual smoke test
 
-## Brave usage tests vs real account usage
+```bash
+pgpt status
+pgpt validate "What is dependency injection?"
+pgpt validate "What's the weather in Toronto?"
+pgpt ask --web off "What is dependency injection?"
+pgpt server
+```
 
-Offline tests simulate Brave headers and local state. They do not consume API requests. Real successful Brave calls update `state/brave_usage.json`, and `pgpt web-usage` reports the local/API-derived snapshot.
+Then open `http://127.0.0.1:8765/` and check chat history, attachments, Markdown rendering, timers, links, and web-mode controls.
 
-The configured `monthly_request_budget` is a local safety ceiling. It is independent from, and should be set at or below, whatever quota your actual Brave plan provides.
+## Maintenance principle
+
+Tests are documentation for the human maintainer. Prefer a small table of meaningful cases over large generated suites, and remove tests that duplicate another layer without adding confidence.
