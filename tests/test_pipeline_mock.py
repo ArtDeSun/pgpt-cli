@@ -32,7 +32,6 @@ class TestPipeline(unittest.TestCase):
             web_mode=None,
             task="general",
             freshness="stable",
-            complexity="simple",
             project_evidence=False,
             reason="test route",
         )
@@ -49,25 +48,17 @@ class TestPipeline(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "response.md"
             with patch.object(pipeline, "has_symbol_hit", return_value=False), patch.object(
-                pipeline,
-                "resolve_route",
-                return_value=decision,
+                pipeline, "resolve_route", return_value=decision
             ), patch.object(
-                pipeline.Route,
-                "from_decision",
-                return_value=route,
+                pipeline.Route, "from_decision", return_value=route
             ), patch.object(
-                pipeline,
-                "stream_chat",
-                side_effect=fake_stream_chat,
+                pipeline, "stream_chat", side_effect=fake_stream_chat
             ), patch.object(
                 pipeline,
                 "verify_answer",
                 return_value=SimpleNamespace(passed=True, issues=[]),
             ), patch.object(
-                pipeline,
-                "response_path",
-                return_value=output,
+                pipeline, "response_path", return_value=output
             ):
                 result = pipeline.run(
                     "What is dependency injection?",
