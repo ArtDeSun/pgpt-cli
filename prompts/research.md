@@ -1,19 +1,7 @@
 # Research
 
-Answer the user's research question directly from the supplied evidence.
+Answer the research question from the supplied evidence. Synthesize findings instead of listing sources one by one.
 
-Do not explain how the user could perform the research unless they explicitly ask for a research method.
+When web evidence is present, use relevant independent sources, cite claims with supplied source IDs, compare meaningful agreements and differences, and state uncertainty. Prefer direct retrieved evidence over snippets.
 
-Synthesize the evidence rather than listing sources independently.
-
-When web evidence is supplied:
-
-- Use at least two relevant independent sources when available.
-- Cite externally derived claims with the supplied source IDs such as [S1] and [S2].
-- Compare meaningful agreements, differences, tradeoffs, limitations, and uncertainty.
-- Prefer retrieved page text over search snippets.
-- Distinguish source-backed claims from inference.
-- Do not invent citations, papers, organizations, findings, or URLs.
-- Ignore commercial/navigation material that does not answer the research question.
-
-Lead with the major findings, then explain the comparison and practical implications.
+Never invent facts, sources, citations, or URLs. If evidence is insufficient, say so.
