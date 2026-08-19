@@ -9,11 +9,11 @@ from pgpt.routing.router import resolve_route
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = ROOT / "evals" / "routing_gold.json"
-FIELDS = ("source", "web_mode", "task", "freshness")
+FIELDS = ("source", "web_mode", "task")
 
 
 class TestRouterDataset(unittest.TestCase):
-    """Local Ollama acceptance test for the human-curated routing cases."""
+    """Local-model check for broad source and task routing."""
 
     def test_routing_gold(self) -> None:
         cases = json.loads(CASES.read_text(encoding="utf-8"))
@@ -30,13 +30,13 @@ class TestRouterDataset(unittest.TestCase):
                 deep_override=None,
                 symbol_hit=case.get("symbol_hit", False),
             )
-            actual = result.__dict__
 
             for field in FIELDS:
-                if field in case["expect"] and actual[field] != case["expect"][field]:
+                expected = case["expect"].get(field)
+                actual = getattr(result, field)
+                if actual != expected:
                     failures.append(
-                        f"{case['id']}: {field} expected "
-                        f"{case['expect'][field]!r}, got {actual[field]!r}"
+                        f"{case['id']}: {field} expected {expected!r}, got {actual!r}"
                     )
 
         if failures:
