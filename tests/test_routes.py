@@ -57,31 +57,38 @@ class TestRoutingPolicy(unittest.TestCase):
                 classifier.assert_called_once_with(prompt)
                 self.assertEqual((result.source, result.freshness), (source, freshness))
 
-    def test_words_do_not_define_intent_by_themselves(self) -> None:
+    def test_keywords_alone_do_not_define_task(self) -> None:
         cases = [
-            ("What does research mean?", "general"),
-            ("Explain how to add two numbers.", "general"),
+            "What does research mean?",
+            "Explain how to add two numbers.",
+            "What is a TypeError?",
+            "Explain error handling in Python.",
+            "What is software architecture?",
         ]
         with patch("pgpt.routing.router.classify_web_need", return_value="no"):
-            for prompt, task in cases:
+            for prompt in cases:
                 with self.subTest(prompt=prompt):
-                    self.assertEqual(route(prompt).task, task)
+                    self.assertEqual(route(prompt).task, "general")
 
     def test_project_context_wins_over_web_inference(self) -> None:
         with patch("pgpt.routing.router.classify_web_need") as classifier:
             result = route("Review the current caching strategy in my project.")
         classifier.assert_not_called()
-        self.assertEqual((result.source, result.task, result.freshness), (
-            "project",
-            "architecture",
-            "stable",
-        ))
+        self.assertEqual(
+            (result.source, result.task, result.freshness),
+            ("project", "architecture", "stable"),
+        )
 
-    def test_symbol_hit_uses_project_code(self) -> None:
+    def test_symbol_intent_distinguishes_read_from_change(self) -> None:
         with patch("pgpt.routing.router.classify_web_need") as classifier:
-            result = route("Explain select_model.", symbol_hit=True)
+            explain = route("Explain select_model.", symbol_hit=True)
+            change = route(
+                "Modify prepareLandscapeVideo so it rejects empty titles.",
+                symbol_hit=True,
+            )
         classifier.assert_not_called()
-        self.assertEqual((result.source, result.task), ("project", "explain-code"))
+        self.assertEqual((explain.source, explain.task), ("project", "explain-code"))
+        self.assertEqual((change.source, change.task), ("project", "implement"))
 
     def test_explicit_overrides_are_authoritative(self) -> None:
         self.assertEqual(route("Question", web_override="lookup").web_mode, "lookup")
@@ -104,11 +111,10 @@ class TestRuntimeRoute(unittest.TestCase):
                 deep_override=False,
             )
 
-        self.assertEqual((runtime.execution, runtime.template, runtime.model), (
-            "web_lookup",
-            "web-lookup",
-            "model-a",
-        ))
+        self.assertEqual(
+            (runtime.execution, runtime.template, runtime.model),
+            ("web_lookup", "web-lookup", "model-a"),
+        )
 
 
 if __name__ == "__main__":
