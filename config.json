@@ -26,14 +26,7 @@
     "temperature": 0.1
   },
   "models": {
-    "roles": {
-      "router": "qwen3.5:9b",
-      "general": "llama3.2:3b",
-      "coder": "qwen2.5-coder:3b",
-      "reasoning": "phi4-mini",
-      "deep": "phi4-mini",
-      "embedding": "qwen3-embedding:0.6b"
-    },
+    "router": "qwen3.5:9b",
     "coder_templates": ["debug", "implement", "explain-code"],
     "task_preferences": {
       "general": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
@@ -42,17 +35,6 @@
       "debug": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
       "implement": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
       "architecture": ["qwen2.5-coder:3b", "qwen3:1.7b", "llama3.2:3b"]
-    }
-  },
-  "routing": {
-    "embedding_model": "qwen3-embedding:0.6b",
-    "embedding_keep_alive": "30m",
-    "embedding_timeout_seconds": 20,
-    "thresholds": {
-      "deep_similarity_min": 0.58,
-      "deep_margin_min": 0.07,
-      "source_margin_min": 0.035,
-      "web_mode_margin_min": 0.03
     }
   },
   "retrieval": {
@@ -86,10 +68,8 @@
     "request_timeout_seconds": 180,
     "final_keep_alive": "30m",
     "num_ctx_by_role": {
-      "router": 1024,
       "general": 4096,
       "coder": 4096,
-      "reasoning": 4096,
       "deep": 4096
     },
     "max_tokens_by_template": {
