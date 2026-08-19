@@ -49,13 +49,17 @@ def stream_chat(
         if chunk.get("done"):
             final = chunk
 
-    keys = (
-        "done_reason",
-        "load_duration",
-        "prompt_eval_duration",
-        "prompt_eval_count",
-        "eval_duration",
-        "eval_count",
-        "total_duration",
-    )
-    return {key: final.get(key, 0) for key in keys}
+    return {
+        "done_reason": final.get("done_reason"),
+        **{
+            key: final.get(key, 0)
+            for key in (
+                "load_duration",
+                "prompt_eval_duration",
+                "prompt_eval_count",
+                "eval_duration",
+                "eval_count",
+                "total_duration",
+            )
+        },
+    }
