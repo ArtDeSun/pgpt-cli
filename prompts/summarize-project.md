@@ -1,7 +1,5 @@
-# Project Summary
+# Project summary
 
-Build a decision-useful summary from retrieved source.
+Summarize only retrieved project evidence. Focus on purpose, main workflows, architecture, data ownership, integrations, deployment, important risks, and the next few high-value decisions.
 
-Prioritize purpose, users/workflows, architecture, data ownership, integrations, runtime/deployment, current vs planned behavior, evidence-backed risks, and the next few high-leverage decisions.
-
-Prefer actively used code over stale prototypes when retrieval makes that distinction possible. End with a compact system flow when useful.
+Prefer active code over stale prototypes when the evidence supports that distinction.
