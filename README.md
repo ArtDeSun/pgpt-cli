@@ -90,9 +90,9 @@ pgpt ask --web auto "What's the weather in Toronto?"
 pgpt ask --web lookup "Has Python 3.14 been released?"
 ```
 
-In `auto` mode, obvious live requests such as weather, current time, prices, scores, or explicit `latest/current` wording skip the router model. Ambiguous ordinary questions use one small decision: **does an accurate answer require current public information?** There is no second web-mode classifier.
+In `auto` mode, obvious live requests such as weather, current time, prices, scores, or explicit `latest/current` wording skip the router model. Ambiguous general questions use one decision: **does an accurate answer require current public information?** There is no second semantic routing pass.
 
-The default router is `qwen3.5:9b`. To test another installed Ollama model without editing the repo:
+The default router is `qwen3:1.7b`, which is also the first general-answer model so Ollama can reuse the loaded model. Test another installed model without editing the repo:
 
 ```bash
 PGPT_ROUTER_MODEL=gemma4:e4b \
@@ -117,13 +117,13 @@ Then add:
 PGPT_BRAVE_API_KEY=your_key
 ```
 
-Check the local/API-derived usage state with:
+Check usage with:
 
 ```bash
 pgpt web-usage
 ```
 
-`config.json` currently caps pgpt at 500 Brave requests per month. This is a local safety limit, not a statement about your Brave subscription.
+`config.json` caps pgpt at 500 Brave requests per month. This is a local safety limit, not a statement about your Brave subscription.
 
 ## Skills
 
@@ -154,11 +154,9 @@ See `docs/VS_CODE.md` and `docs/continue-config.yaml`.
 
 Point the client at pgpt rather than Ollama directly when you want pgpt routing, project retrieval, Brave lookup, skills, and verification.
 
-## PrivateGPT: optional compatibility workflow
+## PrivateGPT is optional
 
-Normal pgpt use does **not** require PrivateGPT.
-
-These work without the PrivateGPT server:
+Normal pgpt use does **not** require PrivateGPT. These work without it:
 
 ```text
 pgpt ask
@@ -171,7 +169,7 @@ Brave lookup/research
 skills
 ```
 
-PrivateGPT is only used by the optional maintenance/compatibility commands:
+PrivateGPT is used only by the optional compatibility commands:
 
 ```bash
 pgpt sync --project pgpt-cli
@@ -188,17 +186,15 @@ pgpt serve    optional PrivateGPT server
 
 ## Routing design
 
-Routing has three simple layers:
-
 ```text
 1. explicit user overrides and obvious high-confidence rules
 2. project evidence, when present
 3. one web-need classifier for ambiguous general questions
 ```
 
-Task type is derived from clear request signals (`debug`, `implement`, `architecture`, `research`, code explanation). Web research is selected only for research tasks; other web requests use focused lookup.
+Task type comes from clear request signals such as debugging, implementation, architecture, research, or code explanation. Research uses multi-source web retrieval; other web requests use focused lookup.
 
-The goal is correctness with the fewest model calls, not perfect linguistic classification of every sentence.
+The goal is correctness with the fewest model calls, not a giant classifier for every English sentence.
 
 ## Testing
 
@@ -213,7 +209,7 @@ python -m unittest \
   -v
 ```
 
-For the rest of the test workflow, see `docs/TESTING.md`.
+See `docs/TESTING.md` for the remaining test workflow.
 
 ## Human maintenance rule
 
@@ -225,8 +221,6 @@ git status
 python -m compileall -q pgpt tools tests
 ```
 
-Then run the smallest relevant tests first, followed by the full offline suite before release.
-
-Keep runtime data, secrets, responses, chats, and local evaluation output out of Git. Prefer deleting obsolete code/tests over keeping parallel mechanisms “just in case.”
+Run the smallest relevant tests first, then the full offline suite before release. Keep runtime data, secrets, responses, chats, and local evaluation output out of Git. Prefer deleting obsolete mechanisms over keeping parallel versions “just in case.”
 
 Repository policy: `main` is the only intended long-lived branch.
