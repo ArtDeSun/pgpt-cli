@@ -26,7 +26,7 @@
     "temperature": 0.1
   },
   "models": {
-    "router": "qwen3.5:9b",
+    "router": "qwen3:1.7b",
     "coder_templates": ["debug", "implement", "explain-code"],
     "task_preferences": {
       "general": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
