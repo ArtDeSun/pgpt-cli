@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pgpt.routing.classifier import classify_web_need
 from pgpt.routing.rules import load_rule
-from pgpt.routing.types import Complexity, RoutingDecision, Task
+from pgpt.routing.types import RoutingDecision, Task
 
 
 _TEMPLATE_TASK: dict[str, Task] = {
@@ -14,15 +14,6 @@ _TEMPLATE_TASK: dict[str, Task] = {
     "debug": "debug",
     "implement": "implement",
     "architecture": "architecture",
-}
-
-_TASK_COMPLEXITY: dict[Task, Complexity] = {
-    "general": "simple",
-    "explain-code": "standard",
-    "debug": "standard",
-    "implement": "standard",
-    "architecture": "complex",
-    "research": "complex",
 }
 
 
@@ -49,9 +40,7 @@ def _task(
         return "implement"
     if symbol_hit or _matches("explain-code", prompt):
         return "explain-code"
-    if project_evidence:
-        return "explain-code"
-    return "general"
+    return "explain-code" if project_evidence else "general"
 
 
 def resolve_route(
@@ -71,10 +60,7 @@ def resolve_route(
     explicit_project = _matches("explicit-project", prompt)
     current = _matches("current", prompt)
     writing = _matches("writing", prompt)
-
-    project_evidence = bool(
-        symbol_hit or explicit_project or project_override is True
-    )
+    project_evidence = bool(symbol_hit or explicit_project or project_override is True)
     task = _task(
         prompt,
         symbol_hit=symbol_hit,
@@ -95,55 +81,39 @@ def resolve_route(
         web_need = classify_web_need(prompt)
 
     if web_override == "research":
-        source = "web"
-        reason = "explicit --web research"
+        source, reason = "web", "explicit --web research"
     elif web_override in {"on", "lookup"}:
-        source = "web"
-        reason = "explicit --web lookup"
+        source, reason = "web", "explicit --web lookup"
     elif project_override is True:
-        source = "project"
-        reason = "explicit project context"
+        source, reason = "project", "explicit project context"
     elif explicit_web:
-        source = "web"
-        reason = "explicit web request"
+        source, reason = "web", "explicit web request"
     elif project_evidence and project_override is not False:
-        source = "project"
-        reason = "project context"
+        source, reason = "project", "project context"
     elif task == "research" and web_override != "off":
-        source = "web"
-        reason = "research requires web"
+        source, reason = "web", "research requires web"
     elif current and web_override != "off":
-        source = "web"
-        reason = "current public information"
+        source, reason = "web", "current public information"
     elif web_need == "yes" and web_override != "off":
-        source = "web"
-        reason = "classifier: web needed"
+        source, reason = "web", "classifier: web needed"
     else:
-        source = "none"
-        reason = "local"
+        source, reason = "none", "local"
 
     if web_override == "off" and source == "web":
-        source = "none"
-        reason = "web disabled"
+        source, reason = "none", "web disabled"
 
     if source == "project" and task == "general":
         task = "explain-code"
 
     web_mode = None
     if source == "web":
-        web_mode = (
-            "research"
-            if web_override == "research" or task == "research"
-            else "lookup"
-        )
+        web_mode = "research" if web_override == "research" or task == "research" else "lookup"
 
     if source == "project":
         freshness = "stable"
     elif current or web_need == "yes":
         freshness = "current"
-    elif source == "web":
-        freshness = "unknown"
-    elif web_override == "off" and task == "general":
+    elif source == "web" or (web_override == "off" and task == "general"):
         freshness = "unknown"
     else:
         freshness = "stable"
@@ -153,7 +123,6 @@ def resolve_route(
         web_mode=web_mode,  # type: ignore[arg-type]
         task=task,
         freshness=freshness,  # type: ignore[arg-type]
-        complexity=_TASK_COMPLEXITY[task],
         project_evidence=project_evidence,
         reason=reason,
     )
