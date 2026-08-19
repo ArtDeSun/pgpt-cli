@@ -85,7 +85,7 @@ def resolve_route(
     web_need = "no"
     if (
         web_override is None
-        and project_override is None
+        and project_override is not True
         and not explicit_web
         and not project_evidence
         and not current
@@ -142,6 +142,8 @@ def resolve_route(
     elif current or web_need == "yes":
         freshness = "current"
     elif source == "web":
+        freshness = "unknown"
+    elif web_override == "off" and task == "general":
         freshness = "unknown"
     else:
         freshness = "stable"
