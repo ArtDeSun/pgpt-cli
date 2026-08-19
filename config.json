@@ -17,10 +17,7 @@
   "server": {
     "host": "127.0.0.1",
     "port": 8765,
-    "profiles": [
-      "model",
-      "web"
-    ],
+    "profiles": ["model", "web"],
     "max_request_bytes": 2000000,
     "response_list_limit": 100
   },
@@ -30,49 +27,21 @@
   },
   "models": {
     "roles": {
-      "router": "qwen3:1.7b",
+      "router": "qwen3.5:9b",
       "general": "llama3.2:3b",
       "coder": "qwen2.5-coder:3b",
       "reasoning": "phi4-mini",
       "deep": "phi4-mini",
       "embedding": "qwen3-embedding:0.6b"
     },
-    "coder_templates": [
-      "debug",
-      "implement",
-      "explain-code"
-    ],
+    "coder_templates": ["debug", "implement", "explain-code"],
     "task_preferences": {
-      "general": [
-        "qwen3:1.7b",
-        "qwen2.5-coder:3b",
-        "llama3.2:3b"
-      ],
-      "research": [
-        "qwen3:1.7b",
-        "qwen2.5-coder:3b",
-        "llama3.2:3b"
-      ],
-      "explain-code": [
-        "qwen2.5-coder:3b",
-        "llama3.2:3b",
-        "qwen3:1.7b"
-      ],
-      "debug": [
-        "qwen2.5-coder:3b",
-        "llama3.2:3b",
-        "qwen3:1.7b"
-      ],
-      "implement": [
-        "qwen2.5-coder:3b",
-        "llama3.2:3b",
-        "qwen3:1.7b"
-      ],
-      "architecture": [
-        "qwen2.5-coder:3b",
-        "qwen3:1.7b",
-        "llama3.2:3b"
-      ]
+      "general": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
+      "research": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
+      "explain-code": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
+      "debug": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
+      "implement": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
+      "architecture": ["qwen2.5-coder:3b", "qwen3:1.7b", "llama3.2:3b"]
     }
   },
   "routing": {
@@ -157,10 +126,7 @@
         "*.pem",
         "*.key"
       ],
-      "ingest_ignored": [
-        ".gitignore",
-        "secrets.env.example"
-      ]
+      "ingest_ignored": [".gitignore", "secrets.env.example"]
     },
     "pgpt-cli-history": {
       "source_dir": "tests/fixtures/historical_pgpt",
@@ -182,10 +148,7 @@
         "*.pem",
         "*.key"
       ],
-      "ingest_ignored": [
-        "package-lock.json",
-        ".gitignore"
-      ]
+      "ingest_ignored": ["package-lock.json", ".gitignore"]
     }
   }
 }
