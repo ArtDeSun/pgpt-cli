@@ -36,7 +36,7 @@ def _task(
         return "debug"
     if _matches("architecture", prompt):
         return "architecture"
-    if _matches("implement", prompt):
+    if _matches("implement", prompt) or (symbol_hit and _matches("change", prompt)):
         return "implement"
     if symbol_hit or _matches("explain-code", prompt):
         return "explain-code"
