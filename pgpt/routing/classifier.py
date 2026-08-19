@@ -28,20 +28,12 @@ _WEB_NEED_SCHEMA: dict[str, Any] = {
 
 @lru_cache(maxsize=1)
 def _system_prompt() -> str:
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "prompts"
-        / "routing"
-        / "web-need.md"
-    )
+    path = Path(__file__).resolve().parents[2] / "prompts" / "routing" / "web-need.md"
     return path.read_text(encoding="utf-8").strip()
 
 
 def _router_model() -> str:
-    return os.environ.get(
-        "PGPT_ROUTER_MODEL",
-        str(CONFIG["models"]["roles"]["router"]),
-    )
+    return os.environ.get("PGPT_ROUTER_MODEL", str(CONFIG["models"]["router"]))
 
 
 def classify_web_need(prompt: str) -> WebNeed:
@@ -68,16 +60,9 @@ def classify_web_need(prompt: str) -> WebNeed:
             "POST",
             ollama_url("/api/chat"),
             payload=payload,
-            timeout=float(
-                CONFIG["performance"].get(
-                    "request_timeout_seconds",
-                    180,
-                )
-            ),
+            timeout=float(CONFIG["performance"].get("request_timeout_seconds", 180)),
         )
-        content = str(
-            ((response or {}).get("message") or {}).get("content") or ""
-        ).strip()
+        content = str(((response or {}).get("message") or {}).get("content") or "").strip()
         value = json.loads(content).get("needs_web")
     except Exception:
         return "unknown"
