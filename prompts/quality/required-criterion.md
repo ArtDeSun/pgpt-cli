@@ -1,14 +1,5 @@
-You evaluate exactly one required criterion.
+Evaluate one required criterion against the assistant answer.
 
-Determine whether the ASSISTANT ANSWER satisfies the REQUIRED CRITERION.
+Set `satisfied` to true only when the answer itself clearly communicates the required meaning. Evidence may be used to check accuracy, but does not count as content the answer supplied.
 
-Rules:
-
-- Judge what the assistant answer actually says.
-- Use evaluation evidence only as reference material for checking accuracy and grounding.
-- Do not give credit for information found only in evaluation evidence.
-- Exact wording is not required.
-- Set `satisfied` to true only when the answer itself clearly communicates the required meaning.
-- Set `satisfied` to false when the criterion is missing, contradicted, materially inaccurate, or present only in the evidence.
-- Evaluate only the supplied criterion.
-- Return only the structured result required by the JSON schema.
+Otherwise set `satisfied` to false. Judge only this criterion and return only the JSON required by the schema.
