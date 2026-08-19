@@ -12,25 +12,7 @@ def ollama_url(path: str) -> str:
 
 def list_models() -> list[str]:
     data = json_request("GET", ollama_url("/api/tags"), timeout=3)
-    return [str(x.get("name")) for x in (data or {}).get("models", [])]
-
-
-def embed(inputs: str | list[str]) -> list[list[float]]:
-    routing = CONFIG["routing"]
-    result = json_request(
-        "POST",
-        ollama_url("/api/embed"),
-        payload={
-            "model": routing["embedding_model"],
-            "input": inputs,
-            "keep_alive": routing.get("embedding_keep_alive", "30m"),
-        },
-        timeout=float(routing.get("embedding_timeout_seconds", 20)),
-    )
-    vectors = result.get("embeddings") if isinstance(result, dict) else None
-    if not vectors:
-        raise RuntimeError("Ollama embedding endpoint returned no vectors")
-    return vectors
+    return [str(row.get("name")) for row in (data or {}).get("models", [])]
 
 
 def stream_chat(
@@ -54,6 +36,7 @@ def stream_chat(
             "num_predict": max_tokens,
         },
     }
+
     final: dict[str, Any] = {}
     for chunk in ndjson_request(
         ollama_url("/api/chat"),
@@ -65,12 +48,14 @@ def stream_chat(
             on_text(content)
         if chunk.get("done"):
             final = chunk
-    return {
-        "done_reason": final.get("done_reason"),
-        "load_duration": final.get("load_duration", 0),
-        "prompt_eval_duration": final.get("prompt_eval_duration", 0),
-        "prompt_eval_count": final.get("prompt_eval_count", 0),
-        "eval_duration": final.get("eval_duration", 0),
-        "eval_count": final.get("eval_count", 0),
-        "total_duration": final.get("total_duration", 0),
-    }
+
+    keys = (
+        "done_reason",
+        "load_duration",
+        "prompt_eval_duration",
+        "prompt_eval_count",
+        "eval_duration",
+        "eval_count",
+        "total_duration",
+    )
+    return {key: final.get(key, 0) for key in keys}
