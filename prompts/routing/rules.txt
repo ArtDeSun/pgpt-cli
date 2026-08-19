@@ -30,23 +30,29 @@ find\s+.+?\s+online
 \bsynthesize\s+(?:the\s+)?evidence\b
 
 [debug]
-\b(?:[a-z]*error|exception|traceback|bug|failed|failing|failure|unexpected|incorrect|troubleshoot)\b
+^\s*(?:please\s+)?(?:debug|diagnose|troubleshoot|fix)\b
+\b(?:fails?|failed|failing|crashes?|crashed|broken)\b
 \bsmallest\s+fix\b
 \b(?:doesn't|does\s+not|won't|will\s+not|isn't|is\s+not)\s+(?:work|working|run|compile|start|load)\b
+\b(?:raises?|throws?|threw|got|getting)\b.{0,50}\b(?:[a-z]*error|exception)\b
+\btraceback\s*\(
 \b(?:returns?|outputs?|produces?)\b.{0,40}\b(?:undefined|null|wrong|incorrect|unexpected)\b
 \bexpect(?:ed)?\b.{0,40}\b(?:but|instead)\b
 
 [architecture]
-\b(?:architecture|architectural|system\s+design|infrastructure\s+design)\b
+^\s*(?:please\s+)?(?:design|review|compare|analyze|plan)\b.{0,120}\b(?:architecture|system|infrastructure|deployment|migration|scaling|services|database)\b
 \b(?:migration|deployment|caching)\s+strategy\b
 \b(?:design|plan)\b.{0,80}\bmigration\b
 \b(?:service\s+boundaries|message\s+queue)\b
 
-[implement]
+[change]
 ^\s*(?:please\s+)?(?:add|modify|refactor|patch|remove|implement)\b
 \b(?:can|could|would)\s+you\s+(?:add|modify|refactor|patch|remove|implement)\b
 \bi\s+want\s+you\s+to\s+(?:add|modify|refactor|patch|remove|implement)\b
-\b(?:write|create)\b.{0,80}\b(?:function|class|component|script|code|endpoint|test)\b
+
+[implement]
+^\s*(?:please\s+)?(?:add|modify|refactor|patch|remove|implement)\b.{0,120}\b(?:code|function|class|component|method|file|test|endpoint|validation|logic|implementation|handler|action|feature)\b
+\b(?:write|create)\b.{0,100}\b(?:function|class|component|script|code|endpoint|test)\b
 
 [writing]
 \b(?:rewrite|rephrase|proofread|summarize|translate)\b
