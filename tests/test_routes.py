@@ -4,321 +4,112 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from pgpt.routing.classifier import ClassifierDecision
 from pgpt.routing.router import resolve_route
 from pgpt.runtime.route import Route
 
 
-def decision(
-    prompt: str,
-    *,
-    symbol_hit: bool = False,
-    web_override: str | None = None,
-    project_override: bool | None = None,
-    template_override: str | None = None,
-) -> object:
+def route(prompt: str, **overrides):
     return resolve_route(
         prompt,
         project_name="pgpt-cli",
-        web_override=web_override,
-        project_override=project_override,
-        template_override=template_override,
+        web_override=overrides.get("web_override"),
+        project_override=overrides.get("project_override"),
+        template_override=overrides.get("template_override"),
         model_override=None,
         deep_override=None,
-        symbol_hit=symbol_hit,
+        symbol_hit=overrides.get("symbol_hit", False),
     )
 
 
-class TestRoutingDecision(unittest.TestCase):
-    def test_explicit_current_surface_uses_fast_web_path(self) -> None:
-        prompts = [
-            "What's the weather in Toronto?",
-            "What time is it in Tokyo?",
-            "Is the CN Tower open now?",
-            "What is the current score of the game?",
-            "What is the current exchange rate?",
-            "What is the latest stable version of Node.js?",
-            "Who is currently the CEO of Microsoft?",
-            "Who won the most recent NBA championship?",
-            "What is the current price of Bitcoin?",
-            "What happened in the markets today?",
-            "Is this service still operating?",
-            "Has Python 3.14 been released?",
-            "What's the latest on the EU AI regulation?",
-            "What is the flight status of AC123?",
-            "Is example.com down right now?",
+class TestRoutingPolicy(unittest.TestCase):
+    def test_high_confidence_routes_skip_classifier(self) -> None:
+        cases = [
+            ("What's the weather in Toronto?", "web", "general"),
+            ("What is the latest Node.js version?", "web", "general"),
+            ("Diagnose this traceback.", "none", "debug"),
+            ("Design a migration strategy.", "none", "architecture"),
+            ("Write a Python function for this.", "none", "implement"),
+            ("Summarize these recent notes.", "none", "general"),
         ]
-        with patch("pgpt.routing.router.classify_route_semantics") as classifier:
-            for prompt in prompts:
+
+        with patch("pgpt.routing.router.classify_web_need") as classifier:
+            for prompt, source, task in cases:
                 with self.subTest(prompt=prompt):
-                    result = decision(prompt)
-                    self.assertEqual(result.source, "web")
-                    self.assertEqual(result.web_mode, "lookup")
-                    self.assertEqual(result.freshness, "current")
+                    result = route(prompt)
+                    self.assertEqual(result.source, source)
+                    self.assertEqual(result.task, task)
+            classifier.assert_not_called()
+
+    def test_ambiguous_general_question_uses_one_web_decision(self) -> None:
+        cases = [
+            ("Who runs this organization?", "yes", "web", "current"),
+            ("Who founded this organization?", "no", "none", "stable"),
+        ]
+
+        for prompt, web_need, source, freshness in cases:
+            with self.subTest(prompt=prompt):
+                with patch(
+                    "pgpt.routing.router.classify_web_need",
+                    return_value=web_need,
+                ) as classifier:
+                    result = route(prompt)
+                classifier.assert_called_once_with(prompt)
+                self.assertEqual(result.source, source)
+                self.assertEqual(result.freshness, freshness)
+
+    def test_project_context_wins_over_web_inference(self) -> None:
+        with patch("pgpt.routing.router.classify_web_need") as classifier:
+            result = route(
+                "Review the current caching strategy in my project."
+            )
         classifier.assert_not_called()
-
-    def test_semantic_moving_time_scope_routes_web(self) -> None:
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="current",
-            complexity="simple",
-        )
-        prompts = [
-            "Who runs this organization?",
-            "Which release does this service support?",
-            "What policy applies to this product?",
-        ]
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ) as classifier:
-            for prompt in prompts:
-                with self.subTest(prompt=prompt):
-                    result = decision(prompt)
-                    self.assertEqual(result.source, "web")
-                    self.assertEqual(result.web_mode, "lookup")
-                    self.assertEqual(result.freshness, "current")
-        self.assertEqual(classifier.call_count, len(prompts))
-
-    def test_semantic_fixed_time_scope_stays_local(self) -> None:
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="stable",
-            complexity="simple",
-        )
-        prompts = [
-            "Who ran this organization in 2010?",
-            "Which release did this service support in 2020?",
-            "What policy applied to this product on January 1, 2020?",
-            "Who founded this organization?",
-        ]
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ) as classifier:
-            for prompt in prompts:
-                with self.subTest(prompt=prompt):
-                    result = decision(prompt)
-                    self.assertEqual(result.source, "none")
-                    self.assertIsNone(result.web_mode)
-                    self.assertEqual(result.freshness, "stable")
-        self.assertEqual(classifier.call_count, len(prompts))
-
-    def test_temporal_looking_words_do_not_automatically_force_web(self) -> None:
-        prompts = [
-            "Explain electrical current in a wire.",
-            "Rewrite this paragraph to sound more current.",
-            "Write a poem about tonight.",
-            "I exercised yesterday; explain delayed-onset muscle soreness.",
-            "Summarize these recent notes.",
-            "Explain the current design pattern.",
-        ]
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="stable",
-            complexity="simple",
-        )
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ):
-            for prompt in prompts:
-                with self.subTest(prompt=prompt):
-                    result = decision(prompt)
-                    self.assertEqual(result.source, "none")
-                    self.assertIsNone(result.web_mode)
-                    self.assertEqual(result.freshness, "stable")
-
-    def test_multi_source_research(self) -> None:
-        result = decision(
-            "Research current AI privacy approaches using multiple independent sources."
-        )
-        self.assertEqual(result.source, "web")
-        self.assertEqual(result.web_mode, "research")
-        self.assertEqual(result.task, "research")
-
-    def test_debug_fast_path(self) -> None:
-        result = decision(
-            "Why does this traceback fail and what is the smallest fix?"
-        )
-        self.assertEqual(result.task, "debug")
-        self.assertEqual(result.source, "none")
-
-    def test_architecture_fast_path(self) -> None:
-        result = decision(
-            "Design a staged migration from a monolith to workers."
-        )
-        self.assertEqual(result.task, "architecture")
-
-    def test_project_symbol_routes_project(self) -> None:
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="stable",
-            complexity="standard",
-        )
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ):
-            result = decision(
-                "Explain select_model in my project.",
-                symbol_hit=True,
-            )
         self.assertEqual(result.source, "project")
-        self.assertEqual(result.task, "explain-code")
-        self.assertTrue(result.project_evidence)
-
-    def test_web_off_suppresses_fast_current_web(self) -> None:
-        result = decision(
-            "What's the weather in Toronto?",
-            web_override="off",
-        )
-        self.assertEqual(result.source, "none")
-        self.assertIsNone(result.web_mode)
-        self.assertEqual(result.freshness, "current")
-
-    def test_web_off_suppresses_semantic_current_web(self) -> None:
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="current",
-            complexity="simple",
-        )
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ):
-            result = decision(
-                "Who runs this organization?",
-                web_override="off",
-            )
-        self.assertEqual(result.source, "none")
-        self.assertIsNone(result.web_mode)
-        self.assertEqual(result.freshness, "current")
-
-    def test_project_off_suppresses_project(self) -> None:
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="stable",
-            complexity="standard",
-        )
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ):
-            result = decision(
-                "Explain this project.",
-                project_override=False,
-            )
-        self.assertEqual(result.source, "none")
-
-    def test_classifier_fallback_for_general(self) -> None:
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="stable",
-            complexity="simple",
-        )
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ) as classifier:
-            result = decision("What is dependency injection?")
-        classifier.assert_called_once()
-        self.assertEqual(result.source, "none")
-        self.assertEqual(result.task, "general")
+        self.assertEqual(result.task, "architecture")
         self.assertEqual(result.freshness, "stable")
 
-    def test_explicit_overrides(self) -> None:
-        semantic = ClassifierDecision(
-            task="general",
-            freshness="stable",
-            complexity="simple",
+    def test_symbol_hit_uses_project_code(self) -> None:
+        with patch("pgpt.routing.router.classify_web_need") as classifier:
+            result = route("Explain select_model.", symbol_hit=True)
+        classifier.assert_not_called()
+        self.assertEqual(result.source, "project")
+        self.assertEqual(result.task, "explain-code")
+
+    def test_explicit_overrides_are_authoritative(self) -> None:
+        self.assertEqual(
+            route("Question", web_override="lookup").web_mode,
+            "lookup",
         )
-        with patch(
-            "pgpt.routing.router.classify_route_semantics",
-            return_value=semantic,
-        ):
-            project = decision(
-                "Explain this.",
-                project_override=True,
-            )
-            lookup = decision(
-                "Explain this.",
-                web_override="lookup",
-            )
-            research = decision(
-                "Explain this.",
-                web_override="research",
-            )
-            template = decision(
-                "Explain this.",
-                template_override="debug",
-            )
-        self.assertEqual(project.source, "project")
-        self.assertEqual(lookup.web_mode, "lookup")
-        self.assertEqual(research.web_mode, "research")
-        self.assertEqual(template.task, "debug")
+        self.assertEqual(
+            route("Question", web_override="research").web_mode,
+            "research",
+        )
+        self.assertEqual(
+            route("Question", project_override=True).source,
+            "project",
+        )
+        self.assertEqual(
+            route("What's the weather?", web_override="off").source,
+            "none",
+        )
 
 
 class TestRuntimeRoute(unittest.TestCase):
-    def test_runtime_route_maps_decision(self) -> None:
-        selection = SimpleNamespace(
-            model="model-a",
-            reason="test selection",
-        )
-        routing = resolve_route(
-            "What's the weather in Toronto?",
-            project_name="pgpt-cli",
-            web_override=None,
-            project_override=None,
-            template_override=None,
-            model_override=None,
-            deep_override=None,
-            symbol_hit=False,
-        )
-        with patch(
-            "pgpt.runtime.route.select_model",
-            return_value=selection,
-        ):
-            route = Route.from_decision(
-                routing,
-                project_name="pgpt-cli",
-                template_override=None,
-                model_override=None,
-                deep_override=True,
-            )
-        self.assertEqual(route.execution, "web_lookup")
-        self.assertEqual(route.template, "web-lookup")
-        self.assertEqual(route.model, "model-a")
-        self.assertTrue(route.deep)
+    def test_decision_maps_to_runtime(self) -> None:
+        decision = route("What's the weather in Toronto?")
+        selection = SimpleNamespace(model="model-a", reason="test")
 
-    def test_project_runtime_route(self) -> None:
-        selection = SimpleNamespace(
-            model="coder",
-            reason="test selection",
-        )
-        routing = resolve_route(
-            "Explain this project architecture.",
-            project_name="pgpt-cli",
-            web_override=None,
-            project_override=True,
-            template_override=None,
-            model_override=None,
-            deep_override=None,
-            symbol_hit=False,
-        )
-        with patch(
-            "pgpt.runtime.route.select_model",
-            return_value=selection,
-        ):
-            route = Route.from_decision(
-                routing,
+        with patch("pgpt.runtime.route.select_model", return_value=selection):
+            runtime = Route.from_decision(
+                decision,
                 project_name="pgpt-cli",
                 template_override=None,
                 model_override=None,
-                deep_override=None,
+                deep_override=False,
             )
-        self.assertEqual(route.execution, "project")
-        self.assertEqual(route.project, "pgpt-cli")
+
+        self.assertEqual(runtime.execution, "web_lookup")
+        self.assertEqual(runtime.template, "web-lookup")
+        self.assertEqual(runtime.model, "model-a")
 
 
 if __name__ == "__main__":
