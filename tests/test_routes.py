@@ -27,7 +27,7 @@ class TestRoutingPolicy(unittest.TestCase):
             ("What's the weather in Toronto?", "web", "general"),
             ("What is the latest Node.js version?", "web", "general"),
             ("Has Python 3.14 been released?", "web", "general"),
-            ("Compare the current AWS services for containers.", "web", "general"),
+            ("Compare the current AWS services for containers.", "web", "architecture"),
             ("Diagnose this traceback.", "none", "debug"),
             ("Design a staged migration to worker services.", "none", "architecture"),
             ("Write a Python function for this.", "none", "implement"),
