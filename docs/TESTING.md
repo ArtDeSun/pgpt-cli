@@ -31,9 +31,9 @@ python -m unittest \
 
 `routing_gold.json` is the broad, human-curated routing set. `routing_temporal_pairs.json` focuses on current/moving facts versus fixed history or supplied context.
 
-The router model only answers one question for ambiguous general prompts: does the answer require current public information?
+The default router is `qwen3:1.7b`. It answers only one question for ambiguous general prompts: does the answer require current public information? Using the same model for routing and ordinary general answers reduces model switching.
 
-Test another installed model without editing the repo:
+Only if the default router fails the temporal suite, try another installed model without editing the repo:
 
 ```bash
 PGPT_ROUTER_MODEL=gemma4:e4b \
