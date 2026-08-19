@@ -1,9 +1,9 @@
-# These rules handle only high-confidence intent. Ambiguous web need is
-# decided by the single classifier in prompts/routing/web-need.md.
+# High-confidence intent only. Ambiguous web need uses web-need.md.
 
 [explicit-web]
 browse\s+(?:the\s+)?web
 search\s+(?:the\s+)?(?:web|internet|online)
+look\s+up\b
 look\s+.+?\s+up
 use\s+the\s+(?:web|internet)
 find\s+.+?\s+online
@@ -13,18 +13,20 @@ find\s+.+?\s+online
 
 [current]
 \b(?:currently|latest|newest|most\s+recent|right\s+now|live)\b
-\bcurrent\s+(?:version|price|status|score|weather|forecast|schedule|availability|rate)\b
+\bcurrent\s+(?:version|price|pricing|status|score|weather|forecast|schedule|availability|rate|information)\b
+\bcurrent\s+(?-i:[A-Z])[A-Za-z0-9.+-]*\b
 (?:what(?:'s|\s+is)|how(?:'s|\s+is)).{0,50}\b(?:weather|forecast)\b
 \b(?:what\s+time\s+is\s+it|current\s+time|time\s+in\s+[a-z])
 \b(?:open\s+now|opening\s+hours)\b
 \b(?:current\s+score|live\s+score|what(?:'s|\s+is)\s+the\s+score)\b
 \b(?:stock|share|bitcoin|crypto|exchange)\b.{0,30}\b(?:price|rate)\b
 \b(?:flight|train|bus|ferry)\b.{0,30}\b(?:status|delay|schedule)\b
+\b(?:has|have)\b.{0,60}\b(?:been\s+)?released\b
 \bstill\b.{0,50}\b(?:available|open|operating|supported|active|legal|valid|down|up|in\s+stock)\b
 
 [research]
-\bresearch\b
-\b(?:multiple|several|independent)\s+sources\b
+^\s*(?:please\s+)?(?:research|investigate)\b
+\b(?:multiple|several|independent)\b.{0,30}\b(?:sources|studies|reports)\b
 \bsynthesize\s+(?:the\s+)?evidence\b
 
 [debug]
@@ -37,10 +39,13 @@ find\s+.+?\s+online
 [architecture]
 \b(?:architecture|architectural|system\s+design|infrastructure\s+design)\b
 \b(?:migration|deployment|caching)\s+strategy\b
+\b(?:design|plan)\b.{0,80}\bmigration\b
 \b(?:service\s+boundaries|message\s+queue)\b
 
 [implement]
-\b(?:add|modify|refactor|patch|remove|implement)\b
+^\s*(?:please\s+)?(?:add|modify|refactor|patch|remove|implement)\b
+\b(?:can|could|would)\s+you\s+(?:add|modify|refactor|patch|remove|implement)\b
+\bi\s+want\s+you\s+to\s+(?:add|modify|refactor|patch|remove|implement)\b
 \b(?:write|create)\b.{0,80}\b(?:function|class|component|script|code|endpoint|test)\b
 
 [writing]
