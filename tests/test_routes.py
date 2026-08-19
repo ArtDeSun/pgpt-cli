@@ -26,8 +26,10 @@ class TestRoutingPolicy(unittest.TestCase):
         cases = [
             ("What's the weather in Toronto?", "web", "general"),
             ("What is the latest Node.js version?", "web", "general"),
+            ("Has Python 3.14 been released?", "web", "general"),
+            ("Compare the current AWS services for containers.", "web", "general"),
             ("Diagnose this traceback.", "none", "debug"),
-            ("Design a migration strategy.", "none", "architecture"),
+            ("Design a staged migration to worker services.", "none", "architecture"),
             ("Write a Python function for this.", "none", "implement"),
             ("Summarize these recent notes.", "none", "general"),
         ]
@@ -36,11 +38,10 @@ class TestRoutingPolicy(unittest.TestCase):
             for prompt, source, task in cases:
                 with self.subTest(prompt=prompt):
                     result = route(prompt)
-                    self.assertEqual(result.source, source)
-                    self.assertEqual(result.task, task)
+                    self.assertEqual((result.source, result.task), (source, task))
             classifier.assert_not_called()
 
-    def test_ambiguous_general_question_uses_one_web_decision(self) -> None:
+    def test_ambiguous_general_questions_use_one_web_decision(self) -> None:
         cases = [
             ("Who runs this organization?", "yes", "web", "current"),
             ("Who founded this organization?", "no", "none", "stable"),
@@ -54,43 +55,39 @@ class TestRoutingPolicy(unittest.TestCase):
                 ) as classifier:
                     result = route(prompt)
                 classifier.assert_called_once_with(prompt)
-                self.assertEqual(result.source, source)
-                self.assertEqual(result.freshness, freshness)
+                self.assertEqual((result.source, result.freshness), (source, freshness))
+
+    def test_words_do_not_define_intent_by_themselves(self) -> None:
+        cases = [
+            ("What does research mean?", "general"),
+            ("Explain how to add two numbers.", "general"),
+        ]
+        with patch("pgpt.routing.router.classify_web_need", return_value="no"):
+            for prompt, task in cases:
+                with self.subTest(prompt=prompt):
+                    self.assertEqual(route(prompt).task, task)
 
     def test_project_context_wins_over_web_inference(self) -> None:
         with patch("pgpt.routing.router.classify_web_need") as classifier:
-            result = route(
-                "Review the current caching strategy in my project."
-            )
+            result = route("Review the current caching strategy in my project.")
         classifier.assert_not_called()
-        self.assertEqual(result.source, "project")
-        self.assertEqual(result.task, "architecture")
-        self.assertEqual(result.freshness, "stable")
+        self.assertEqual((result.source, result.task, result.freshness), (
+            "project",
+            "architecture",
+            "stable",
+        ))
 
     def test_symbol_hit_uses_project_code(self) -> None:
         with patch("pgpt.routing.router.classify_web_need") as classifier:
             result = route("Explain select_model.", symbol_hit=True)
         classifier.assert_not_called()
-        self.assertEqual(result.source, "project")
-        self.assertEqual(result.task, "explain-code")
+        self.assertEqual((result.source, result.task), ("project", "explain-code"))
 
     def test_explicit_overrides_are_authoritative(self) -> None:
-        self.assertEqual(
-            route("Question", web_override="lookup").web_mode,
-            "lookup",
-        )
-        self.assertEqual(
-            route("Question", web_override="research").web_mode,
-            "research",
-        )
-        self.assertEqual(
-            route("Question", project_override=True).source,
-            "project",
-        )
-        self.assertEqual(
-            route("What's the weather?", web_override="off").source,
-            "none",
-        )
+        self.assertEqual(route("Question", web_override="lookup").web_mode, "lookup")
+        self.assertEqual(route("Question", web_override="research").web_mode, "research")
+        self.assertEqual(route("Question", project_override=True).source, "project")
+        self.assertEqual(route("What's the weather?", web_override="off").source, "none")
 
 
 class TestRuntimeRoute(unittest.TestCase):
@@ -107,9 +104,11 @@ class TestRuntimeRoute(unittest.TestCase):
                 deep_override=False,
             )
 
-        self.assertEqual(runtime.execution, "web_lookup")
-        self.assertEqual(runtime.template, "web-lookup")
-        self.assertEqual(runtime.model, "model-a")
+        self.assertEqual((runtime.execution, runtime.template, runtime.model), (
+            "web_lookup",
+            "web-lookup",
+            "model-a",
+        ))
 
 
 if __name__ == "__main__":
