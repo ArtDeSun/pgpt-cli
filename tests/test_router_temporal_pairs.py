@@ -1,25 +1,25 @@
 from __future__ import annotations
 
 import json
+import unittest
 from pathlib import Path
-from unittest import TestCase
 
 from pgpt.routing.router import resolve_route
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASET_PATH = ROOT / "evals" / "routing_temporal_pairs.json"
+CASES = ROOT / "evals" / "routing_temporal_pairs.json"
 
 
-class TestRouterTemporalPairs(TestCase):
-    def test_temporal_minimal_pairs(self) -> None:
-        with DATASET_PATH.open("r", encoding="utf-8") as file:
-            cases = json.load(file)
+class TestRouterTemporalPairs(unittest.TestCase):
+    """Local-model check for moving facts versus fixed facts/context."""
 
+    def test_temporal_pairs(self) -> None:
+        cases = json.loads(CASES.read_text(encoding="utf-8"))
         failures: list[str] = []
 
         for case in cases:
-            decision = resolve_route(
+            result = resolve_route(
                 case["prompt"],
                 project_name="pgpt-cli",
                 web_override=None,
@@ -29,18 +29,12 @@ class TestRouterTemporalPairs(TestCase):
                 deep_override=None,
                 symbol_hit=False,
             )
-            expected = case["expect"]
-            actual = {
-                "source": decision.source,
-                "freshness": decision.freshness,
-            }
 
-            for field, expected_value in expected.items():
-                if actual[field] != expected_value:
+            for field, expected in case["expect"].items():
+                actual = getattr(result, field)
+                if actual != expected:
                     failures.append(
-                        f"{case['id']}: {field} expected "
-                        f"{expected_value!r}, got {actual[field]!r} "
-                        f"| prompt={case['prompt']!r}"
+                        f"{case['id']}: {field} expected {expected!r}, got {actual!r}"
                     )
 
         if failures:
@@ -48,6 +42,4 @@ class TestRouterTemporalPairs(TestCase):
 
 
 if __name__ == "__main__":
-    import unittest
-
     unittest.main()
