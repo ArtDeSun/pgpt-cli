@@ -109,7 +109,7 @@
   {
     "id": "architecture_current",
     "prompt": "Compare the current AWS services for running containerized web applications.",
-    "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
+    "expect": {"source": "web", "web_mode": "lookup", "task": "architecture"}
   },
   {
     "id": "writing_recent_text",
