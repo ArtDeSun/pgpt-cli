@@ -6,7 +6,7 @@ from pgpt.models.selector import select_model
 from pgpt.routing.types import RoutingDecision
 
 
-_TASK_TEMPLATE = {
+TASK_TEMPLATE = {
     "general": "general",
     "research": "research",
     "explain-code": "explain-code",
@@ -15,8 +15,7 @@ _TASK_TEMPLATE = {
     "architecture": "architecture",
 }
 
-
-_TEMPLATE_TASK = {
+TEMPLATE_TASK = {
     "general": "general",
     "web-lookup": "general",
     "research": "research",
@@ -30,14 +29,7 @@ _TEMPLATE_TASK = {
 
 @dataclass
 class Route:
-    """
-    Runtime execution plan.
-
-    RoutingDecision describes what the request means.
-
-    Route describes how the runtime will execute that
-    already-classified request.
-    """
+    """Concrete runtime plan built from a routing decision."""
 
     decision: RoutingDecision
     execution: str
@@ -57,112 +49,44 @@ class Route:
         model_override: str | None,
         deep_override: bool | None,
     ) -> "Route":
-        execution = _execution_from_decision(
-            decision
-        )
-
-        template = _template_from_decision(
-            decision
-        )
-
-        if template_override is not None:
-            template = template_override
-
-        selection_task = _TEMPLATE_TASK.get(
-            template,
-            decision.task,
-        )
-
+        execution = _execution(decision)
+        template = template_override or _template(decision)
         selection = select_model(
-            selection_task,
+            TEMPLATE_TASK.get(template, decision.task),
             model_override=model_override,
         )
-
-        # Complexity is currently telemetry only.
-        # Automatic deep escalation remains disabled until
-        # we have evidence that it improves end-to-end quality.
-        deep = (
-            bool(deep_override)
-            if deep_override is not None
-            else False
-        )
-
-        project = (
-            project_name
-            if decision.source == "project"
-            else None
-        )
-
-        reason_parts = [
-            decision.reason,
-            (
-                f"execution={execution}"
-            ),
-            (
-                f"template={template}"
-            ),
-            selection.reason,
-        ]
-
-        if (
-            decision.complexity
-            == "complex"
-            and deep_override is None
-        ):
-            reason_parts.append(
-                "complexity=complex is telemetry only"
-            )
 
         return cls(
             decision=decision,
             execution=execution,
             template=template,
             model=selection.model,
-            deep=deep,
-            project=project,
+            deep=bool(deep_override),
+            project=project_name if decision.source == "project" else None,
             reason="; ".join(
-                part
-                for part in reason_parts
-                if part
+                [
+                    decision.reason,
+                    f"execution={execution}",
+                    f"template={template}",
+                    selection.reason,
+                ]
             ),
         )
 
 
-def _execution_from_decision(
-    decision: RoutingDecision,
-) -> str:
+def _execution(decision: RoutingDecision) -> str:
     if decision.source == "project":
         return "project"
-
     if decision.source == "web":
-        if decision.web_mode == "research":
-            return "web_research"
-
-        return "web_lookup"
-
+        return "web_research" if decision.web_mode == "research" else "web_lookup"
     return "local"
 
 
-def _template_from_decision(
-    decision: RoutingDecision,
-) -> str:
-    if decision.source == "web":
-        if decision.web_mode == "research":
-            return "research-web"
-
-        # Preserve task-specific behavior for web debugging,
-        # architecture, and code explanation.
-        if decision.task in {
-            "debug",
-            "architecture",
-            "explain-code",
-            "implement",
-        }:
-            return decision.task
-
-        return "web-lookup"
-
-    return _TASK_TEMPLATE.get(
-        decision.task,
-        "general",
-    )
+def _template(decision: RoutingDecision) -> str:
+    if decision.source != "web":
+        return TASK_TEMPLATE.get(decision.task, "general")
+    if decision.web_mode == "research":
+        return "research-web"
+    if decision.task in {"debug", "architecture", "explain-code", "implement"}:
+        return decision.task
+    return "web-lookup"
