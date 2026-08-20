@@ -21,13 +21,16 @@ find\s+.+?\s+online
 \b(?:current\s+score|live\s+score|what(?:'s|\s+is)\s+the\s+score)\b
 \b(?:stock|share|bitcoin|crypto|exchange)\b.{0,30}\b(?:price|rate)\b
 \b(?:flight|train|bus|ferry)\b.{0,30}\b(?:status|delay|schedule)\b
+\b(?:status|delay|schedule)\b.{0,30}\b(?:flight|train|bus|ferry)\b
 \b(?:has|have)\b.{0,60}\b(?:been\s+)?released\b
+\bcurrent\b.{0,40}\b(?:options|services|offerings|plans|prices|pricing|versions|releases|policies|rules|availability)\b
 \bstill\b.{0,50}\b(?:available|open|operating|supported|active|legal|valid|down|up|in\s+stock)\b
 
 [research]
 ^\s*(?:please\s+)?(?:research|investigate)\b
 \b(?:multiple|several|independent)\b.{0,30}\b(?:sources|studies|reports)\b
 \bsynthesize\s+(?:the\s+)?evidence\b
+\bdeep\s+dive\b.{0,40}\b(?:sources|evidence|research)\b
 
 [debug]
 ^\s*(?:please\s+)?(?:debug|diagnose|troubleshoot|fix)\b
@@ -35,29 +38,30 @@ find\s+.+?\s+online
 \bsmallest\s+fix\b
 \b(?:doesn't|does\s+not|won't|will\s+not|isn't|is\s+not)\s+(?:work|working|run|compile|start|load)\b
 \b(?:raises?|throws?|threw|got|getting)\b.{0,50}\b(?:[a-z]*error|exception)\b
-\b(?:this|my)\b.{0,30}\b(?:[a-z]*error|exception)\b
+\b(?:this|my)\b.{0,30}\b(?:[a-z]*error|exception|traceback)\b
 \btraceback\s*\(
 \b(?:returns?|outputs?|produces?)\b.{0,40}\b(?:undefined|null|wrong|incorrect|unexpected)\b
 \bexpect(?:ed)?\b.{0,40}\b(?:but|instead)\b
 
 [architecture]
-^\s*(?:please\s+)?(?:design|review|compare|analyze|plan)\b.{0,120}\b(?:architecture|system|infrastructure|deployment|migration|scaling|services|database)\b
-\b(?:migration|deployment|caching)\s+strategy\b
+^\s*(?:please\s+)?(?:design|review|compare|analyze|plan)\b.{0,120}\b(?:architecture|design|system|infrastructure|deployment|migration|scaling|services|database|api|schema)\b
+\b(?:migration|deployment|caching|database|hosting)\s+strategy\b
 \b(?:design|plan)\b.{0,80}\bmigration\b
 \b(?:service\s+boundaries|message\s+queue)\b
 
 [change]
-^\s*(?:please\s+)?(?:add|modify|refactor|patch|remove|implement)\b
-\b(?:can|could|would)\s+you\s+(?:add|modify|refactor|patch|remove|implement)\b
-\bi\s+want\s+you\s+to\s+(?:add|modify|refactor|patch|remove|implement)\b
+^\s*(?:please\s+)?(?:add|modify|update|change|edit|refactor|patch|remove|implement)\b
+\b(?:can|could|would)\s+you\s+(?:add|modify|update|change|edit|refactor|patch|remove|implement)\b
+\bi\s+want\s+you\s+to\s+(?:add|modify|update|change|edit|refactor|patch|remove|implement)\b
 
 [implement]
-^\s*(?:please\s+)?(?:add|modify|refactor|patch|remove|implement)\b.{0,120}\b(?:code|function|class|component|method|file|test|endpoint|validation|logic|implementation|handler|action|feature)\b
-\b(?:write|create)\b.{0,100}\b(?:function|class|component|script|code|endpoint|test)\b
+^\s*(?:please\s+)?(?:implement|refactor|patch)\b
+^\s*(?:please\s+)?(?:add|modify|update|change|edit|remove)\b.{0,120}\b(?:code|function|class|component|method|file|test|endpoint|api|validation|logic|implementation|handler|action|feature|support|behavior|integration|configuration|ui)\b
+\b(?:write|create)\b.{0,100}\b(?:function|class|component|script|code|endpoint|api|test)\b
 
 [writing]
 \b(?:rewrite|rephrase|proofread|summarize|translate)\b
 \bwrite\s+(?:a|an|the)?\s*(?:email|message|paragraph|poem|post|letter)\b
 
 [explain-code]
-\b(?:explain|walk\s+through|how\s+does|how\s+do)\b.{0,80}\b(?:function|class|interface|component|method|callback|code|implementation|source\s+file)\b
+\b(?:explain|walk\s+through|how\s+does|how\s+do|why\s+does|review|analyze)\b.{0,80}\b(?:function|class|interface|component|method|callback|code|implementation|source\s+file|handler|endpoint)\b

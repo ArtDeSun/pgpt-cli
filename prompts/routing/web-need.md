@@ -1,7 +1,9 @@
+# Web need
+
 Decide whether an accurate answer needs current public information.
 
-`yes`: it depends on what is true now or on a relative time such as today or yesterday.
-`no`: timeless knowledge, fixed history, supplied text/code, writing, or project context.
-`unknown`: there is not enough context.
+Use `yes` when the answer depends on the present moment: a current holder, price, policy, availability, supported release, schedule, status, or relative time such as today/yesterday. A useful test is: could the correct answer change tomorrow solely because time moved forward?
 
-Return only schema JSON. Do not answer the request.
+Use `no` for timeless knowledge, fixed historical questions, supplied text/code, writing, summarization, and project content. Use `unknown` only when context is insufficient.
+
+Return only schema-valid JSON.

@@ -6,23 +6,36 @@ import json
 import threading
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import unquote, urlsplit
 
 from pgpt.config import CONFIG, cfg_path
 from pgpt.retrieval.web import connectivity_ok
 from pgpt.retrieval.web_usage import usage_snapshot
-from pgpt.runtime.pipeline import run
+from pgpt.runtime.pipeline import PipelineResult, run
 from pgpt.skills import list_skills, skill_history
 
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_INDEX_PATH = ROOT / "web" / "index.html"
 _PIPELINE_LOCK = threading.Lock()
+
+
+@dataclass(frozen=True)
+class PreparedRequest:
+    prompt: str
+    history: list[dict[str, str]]
+    project: str | None
+    web: str | None
+    context: bool | None
+    template: str | None
+    model: str | None
+    deep: bool | None
 
 
 def _web_override(value: Any) -> str | None:
@@ -39,10 +52,13 @@ def _text_content(value: Any) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, list):
-        parts: list[str] = []
-        for item in value:
-            if isinstance(item, dict) and item.get("type") == "text" and isinstance(item.get("text"), str):
-                parts.append(item["text"])
+        parts = [
+            item["text"]
+            for item in value
+            if isinstance(item, dict)
+            and item.get("type") == "text"
+            and isinstance(item.get("text"), str)
+        ]
         if parts:
             return "\n".join(parts)
     raise ValueError("Only text chat messages are supported")
@@ -52,17 +68,19 @@ def _extract_messages(payload: dict[str, Any]) -> tuple[str, list[dict[str, str]
     messages = payload.get("messages")
     if not isinstance(messages, list) or not messages:
         raise ValueError("messages must be a non-empty list")
+
     normalized: list[dict[str, str]] = []
     for message in messages:
         if not isinstance(message, dict):
             raise ValueError("Each message must be an object")
         role = message.get("role")
-        if role not in {"system", "user", "assistant"}:
-            continue
-        normalized.append({"role": str(role), "content": _text_content(message.get("content"))})
-    user_indexes = [index for index, message in enumerate(normalized) if message["role"] == "user"]
+        if role in {"system", "user", "assistant"}:
+            normalized.append({"role": str(role), "content": _text_content(message.get("content"))})
+
+    user_indexes = [i for i, message in enumerate(normalized) if message["role"] == "user"]
     if not user_indexes:
         raise ValueError("At least one user message is required")
+
     last_user = user_indexes[-1]
     prompt = normalized[last_user]["content"]
     history = normalized[:last_user]
@@ -89,6 +107,53 @@ def _optional_bool(options: dict[str, Any], name: str) -> bool | None:
     return value
 
 
+def _prepare_request(payload: dict[str, Any]) -> PreparedRequest:
+    prompt, history = _extract_messages(payload)
+    options = payload.get("pgpt", {})
+    if options is None:
+        options = {}
+    if not isinstance(options, dict):
+        raise ValueError("pgpt options must be an object")
+
+    skill = _optional_string(options, "skill")
+    return PreparedRequest(
+        prompt=prompt,
+        history=skill_history(history, skill),
+        project=_optional_string(options, "project"),
+        web=_web_override(options.get("web")),
+        context=_optional_bool(options, "context"),
+        template=_optional_string(options, "template"),
+        model=_optional_string(options, "model"),
+        deep=_optional_bool(options, "deep"),
+    )
+
+
+def _run_request(
+    request: PreparedRequest,
+    *,
+    on_chunk: Callable[[str], None] | None = None,
+    on_replace: Callable[[str], None] | None = None,
+    on_status: Callable[[str, str, float, bool], None] | None = None,
+) -> PipelineResult:
+    with _PIPELINE_LOCK:
+        sink = io.StringIO()
+        with contextlib.redirect_stdout(sink):
+            return run(
+                request.prompt,
+                project_name=request.project,
+                web_override=request.web,
+                project_override=request.context,
+                template_override=request.template,
+                model_override=request.model,
+                deep_override=request.deep,
+                history=request.history,
+                echo_route=False,
+                on_chunk=on_chunk,
+                on_replace=on_replace,
+                on_status=on_status,
+            )
+
+
 def _route_payload(route: Any) -> dict[str, Any]:
     value = {
         "execution": getattr(route, "execution", None),
@@ -105,7 +170,6 @@ def _route_payload(route: Any) -> dict[str, Any]:
             "web_mode": getattr(decision, "web_mode", None),
             "task": getattr(decision, "task", None),
             "freshness": getattr(decision, "freshness", None),
-            "complexity": getattr(decision, "complexity", None),
             "project_evidence": getattr(decision, "project_evidence", None),
             "reason": getattr(decision, "reason", None),
         }
@@ -122,34 +186,16 @@ def _timing_payload(timing: Any) -> dict[str, Any]:
     }
 
 
+def _result_metadata(result: PipelineResult) -> dict[str, Any]:
+    return {
+        "route": _route_payload(result.route),
+        "timing": _timing_payload(result.timing),
+        "response_path": str(result.response_path),
+    }
+
+
 def _completion(payload: dict[str, Any]) -> dict[str, Any]:
-    prompt, history = _extract_messages(payload)
-    options = payload.get("pgpt", {})
-    if options is None:
-        options = {}
-    if not isinstance(options, dict):
-        raise ValueError("pgpt options must be an object")
-    skill = _optional_string(options, "skill")
-    project = _optional_string(options, "project")
-    template = _optional_string(options, "template")
-    model = _optional_string(options, "model")
-    context_enabled = _optional_bool(options, "context")
-    deep_enabled = _optional_bool(options, "deep")
-    history = skill_history(history, skill)
-    with _PIPELINE_LOCK:
-        sink = io.StringIO()
-        with contextlib.redirect_stdout(sink):
-            result = run(
-                prompt,
-                project_name=project,
-                web_override=_web_override(options.get("web")),
-                project_override=context_enabled,
-                template_override=template,
-                model_override=model,
-                deep_override=deep_enabled,
-                history=history,
-                echo_route=False,
-            )
+    result = _run_request(_prepare_request(payload))
     return {
         "id": f"chatcmpl-{uuid.uuid4().hex}",
         "object": "chat.completion",
@@ -161,39 +207,37 @@ def _completion(payload: dict[str, Any]) -> dict[str, Any]:
             "finish_reason": "stop",
         }],
         "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        "pgpt": {
-            "route": _route_payload(result.route),
-            "timing": _timing_payload(result.timing),
-            "response_path": str(result.response_path),
-        },
+        "pgpt": _result_metadata(result),
     }
 
 
-def _stream_body(completion: dict[str, Any]) -> bytes:
-    choice = completion["choices"][0]
-    chunk = {
-        "id": completion["id"],
+def _stream_chunk(
+    completion_id: str,
+    created: int,
+    *,
+    content: str | None = None,
+    finish_reason: str | None = None,
+    pgpt: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    chunk: dict[str, Any] = {
+        "id": completion_id,
         "object": "chat.completion.chunk",
-        "created": completion["created"],
-        "model": completion["model"],
+        "created": created,
+        "model": "pgpt-cli",
         "choices": [{
             "index": 0,
-            "delta": {"role": "assistant", "content": choice["message"]["content"]},
-            "finish_reason": None,
+            "delta": {"content": content} if content is not None else {},
+            "finish_reason": finish_reason,
         }],
     }
-    finish = {
-        "id": completion["id"],
-        "object": "chat.completion.chunk",
-        "created": completion["created"],
-        "model": completion["model"],
-        "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
-    }
-    return (
-        "data: " + json.dumps(chunk, ensure_ascii=False) + "\n\n" +
-        "data: " + json.dumps(finish, ensure_ascii=False) + "\n\n" +
-        "data: [DONE]\n\n"
-    ).encode("utf-8")
+    if pgpt is not None:
+        chunk["pgpt"] = pgpt
+    return chunk
+
+
+def _sse(value: Any) -> bytes:
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+    return f"data: {text}\n\n".encode("utf-8")
 
 
 def _response_root() -> Path:
@@ -264,6 +308,7 @@ def _loopback_origin(value: str | None) -> str | None:
 
 class PgptHandler(BaseHTTPRequestHandler):
     server_version = "pgpt-cli"
+    protocol_version = "HTTP/1.1"
 
     def _cors(self) -> None:
         origin = _loopback_origin(self.headers.get("Origin"))
@@ -300,9 +345,8 @@ class PgptHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _payload(self) -> dict[str, Any]:
-        raw_length = self.headers.get("Content-Length", "0")
         try:
-            length = int(raw_length)
+            length = int(self.headers.get("Content-Length", "0"))
         except ValueError as exc:
             raise ValueError("Invalid Content-Length") from exc
         if length <= 0:
@@ -315,6 +359,82 @@ class PgptHandler(BaseHTTPRequestHandler):
             raise ValueError("Request body must be a JSON object")
         return value
 
+    def _write_sse(self, value: Any) -> bool:
+        try:
+            self.wfile.write(_sse(value))
+            self.wfile.flush()
+            return True
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            return False
+
+    def _stream(self, payload: dict[str, Any]) -> None:
+        request = _prepare_request(payload)
+        completion_id = f"chatcmpl-{uuid.uuid4().hex}"
+        created = int(time.time())
+        connected = True
+
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "close")
+        self._cors()
+        self.end_headers()
+        self.close_connection = True
+
+        def send(value: Any) -> None:
+            nonlocal connected
+            if connected:
+                connected = self._write_sse(value)
+
+        send(_stream_chunk(completion_id, created, pgpt={"event": "start"}))
+
+        def on_chunk(text: str) -> None:
+            send(_stream_chunk(completion_id, created, content=text))
+
+        def on_replace(answer: str) -> None:
+            send(_stream_chunk(
+                completion_id,
+                created,
+                pgpt={"event": "replace", "content": answer},
+            ))
+
+        def on_status(_frame: str, label: str, elapsed: float, completed: bool) -> None:
+            send(_stream_chunk(
+                completion_id,
+                created,
+                pgpt={
+                    "event": "status",
+                    "label": label,
+                    "elapsed": round(elapsed, 3),
+                    "completed": completed,
+                },
+            ))
+
+        try:
+            result = _run_request(
+                request,
+                on_chunk=on_chunk,
+                on_replace=on_replace,
+                on_status=on_status,
+            )
+            send(_stream_chunk(
+                completion_id,
+                created,
+                finish_reason="stop",
+                pgpt={"event": "done", **_result_metadata(result)},
+            ))
+        except Exception as exc:
+            send(_stream_chunk(
+                completion_id,
+                created,
+                finish_reason="stop",
+                pgpt={
+                    "event": "error",
+                    "error": {"message": str(exc), "type": type(exc).__name__},
+                },
+            ))
+        send("[DONE]")
+
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(HTTPStatus.NO_CONTENT)
         self._cors()
@@ -324,72 +444,73 @@ class PgptHandler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path in {"/health", "/api/health"}:
             self._json(HTTPStatus.OK, {"status": "ok", **_meta()})
-            return
-        if path == "/api/meta":
+        elif path == "/api/meta":
             self._json(HTTPStatus.OK, _meta())
-            return
-        if path == "/api/web-usage":
+        elif path == "/api/web-usage":
             self._json(HTTPStatus.OK, _web_usage_payload())
-            return
-        if path == "/api/responses":
+        elif path == "/api/responses":
             self._json(HTTPStatus.OK, {"responses": _list_responses()})
-            return
-        if path.startswith("/api/responses/"):
-            suffix = path[len("/api/responses/"):]
-            download = suffix.endswith("/download")
-            if download:
-                suffix = suffix[:-len("/download")]
-            try:
-                response_path = _safe_response_path(suffix)
-            except ValueError as exc:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
-                return
-            except FileNotFoundError:
-                self._json(HTTPStatus.NOT_FOUND, {"error": "Response not found"})
-                return
-            if download:
-                self._bytes(
-                    HTTPStatus.OK,
-                    response_path.read_bytes(),
-                    "text/markdown; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="{response_path.name}"'},
-                )
-                return
-            self._json(
-                HTTPStatus.OK,
-                {**_response_metadata(response_path), "content": response_path.read_text(encoding="utf-8")},
-            )
-            return
-        if path == "/v1/models":
+        elif path.startswith("/api/responses/"):
+            self._get_response(path)
+        elif path == "/v1/models":
             self._json(HTTPStatus.OK, {
                 "object": "list",
                 "data": [{"id": "pgpt-cli", "object": "model", "created": 0, "owned_by": "local"}],
             })
-            return
-        if path == "/":
-            if not WEB_INDEX_PATH.exists():
+        elif path == "/":
+            if WEB_INDEX_PATH.exists():
+                self._bytes(HTTPStatus.OK, WEB_INDEX_PATH.read_bytes(), "text/html; charset=utf-8")
+            else:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "Web UI is not installed"})
-                return
-            self._bytes(HTTPStatus.OK, WEB_INDEX_PATH.read_bytes(), "text/html; charset=utf-8")
+        else:
+            self._json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+
+    def _get_response(self, path: str) -> None:
+        suffix = path[len("/api/responses/"):]
+        download = suffix.endswith("/download")
+        if download:
+            suffix = suffix[:-len("/download")]
+        try:
+            response_path = _safe_response_path(suffix)
+        except ValueError as exc:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
             return
-        self._json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+        except FileNotFoundError:
+            self._json(HTTPStatus.NOT_FOUND, {"error": "Response not found"})
+            return
+        if download:
+            self._bytes(
+                HTTPStatus.OK,
+                response_path.read_bytes(),
+                "text/markdown; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="{response_path.name}"'},
+            )
+            return
+        self._json(
+            HTTPStatus.OK,
+            {**_response_metadata(response_path), "content": response_path.read_text(encoding="utf-8")},
+        )
 
     def do_POST(self) -> None:  # noqa: N802
-        path = urlsplit(self.path).path
-        if path != "/v1/chat/completions":
+        if urlsplit(self.path).path != "/v1/chat/completions":
             self._json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
         try:
             payload = self._payload()
-            completion = _completion(payload)
             if payload.get("stream") is True:
-                self._bytes(HTTPStatus.OK, _stream_body(completion), "text/event-stream; charset=utf-8")
+                self._stream(payload)
             else:
-                self._json(HTTPStatus.OK, completion)
+                self._json(HTTPStatus.OK, _completion(payload))
         except (ValueError, json.JSONDecodeError) as exc:
-            self._json(HTTPStatus.BAD_REQUEST, {"error": {"message": str(exc), "type": "invalid_request_error"}})
+            self._json(
+                HTTPStatus.BAD_REQUEST,
+                {"error": {"message": str(exc), "type": "invalid_request_error"}},
+            )
         except Exception as exc:
-            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": {"message": str(exc), "type": type(exc).__name__}})
+            self._json(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                {"error": {"message": str(exc), "type": type(exc).__name__}},
+            )
 
     def log_message(self, format: str, *args: Any) -> None:
         return

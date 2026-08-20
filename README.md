@@ -1,6 +1,6 @@
 # pgpt-cli
 
-`pgpt-cli` is a local-first AI assistant for WSL. Ollama generates answers; pgpt can also read configured project source, use Brave for live public information, and expose a browser/OpenAI-compatible API for VS Code.
+`pgpt-cli` is a local-first ChatGPT-style assistant for WSL. Ollama generates answers; pgpt automatically chooses between local knowledge, configured project source, focused Brave lookup, and multi-source web research. It also provides persistent terminal chats, a browser UI, and an OpenAI-compatible endpoint for VS Code clients.
 
 ```text
 terminal / browser / VS Code
@@ -11,80 +11,100 @@ terminal / browser / VS Code
      Ollama  project  Brave
 ```
 
-The codebase is intentionally small enough for one human to understand and maintain end to end.
+The design goal is simple: ordinary questions stay fast and local, project questions use real source code, changing public facts use the web, and genuine research uses multiple sources. PrivateGPT remains optional compatibility/RAG tooling; normal chat does not depend on it.
 
-## Setup
+## First pull / setup
 
-Your current layout is correct. No directory changes are required.
-
-```text
-~/ai/
-├── pgpt-cli/
-├── private-gpt/       # optional
-├── private-gpt-data/  # optional
-└── vibemaster-knowledge/
-```
-
-Install or update:
+The Python package itself has no third-party runtime dependencies. Prompt generation requires an Ollama server and at least one configured answer model.
 
 ```bash
 cd ~/ai/pgpt-cli
-git pull
+git switch main
+git pull --ff-only origin main
+
+python3 -m venv .venv        # first setup only
 source .venv/bin/activate
 python -m pip install -e .
+
 pgpt status
+pgpt models
 ```
 
-Create `.venv` first with `python3 -m venv .venv` if needed.
+Default model preferences are in `config.json`. A practical baseline is:
+
+```bash
+ollama pull qwen3:1.7b
+ollama pull qwen2.5-coder:3b
+ollama pull llama3.2:3b
+```
+
+`pgpt status` is safe to run when services are stopped: it reports what is reachable instead of crashing. Keep Ollama, pgpt, and optional PrivateGPT bound to localhost unless you intentionally choose otherwise.
 
 ## Everyday use
 
 ```bash
-pgpt validate "What is dependency injection?"
 pgpt ask "What is dependency injection?"
 pgpt chat
 pgpt server
 ```
 
-Project-grounded request:
+Open the browser at `http://127.0.0.1:8765/`. The browser provides multiple chats, recents/pinning/search, Markdown and code rendering, copy controls, timestamps, attachments, saved-response browsing, follow-up suggestions, live execution status, and streamed answer text.
+
+Project-aware examples:
 
 ```bash
 pgpt ask --project pgpt-cli --context \
   "Explain how select_model works."
+
+pgpt ask --project vibemaster --context \
+  "Review the caching strategy in my application."
 ```
 
-`pgpt server` serves the browser UI at `http://127.0.0.1:8765/` and the OpenAI-compatible API at `/v1`.
+Normally you should not need to choose a route manually.
 
-## Online and offline
+## Automatic routing
 
-`--web` controls Brave retrieval:
+The default `--web auto` policy is:
 
 ```text
-auto      use the web only when needed
-off       never use the web
-lookup    force one focused lookup
-research  force multi-source research
+stable/general question     -> local Ollama
+project evidence/request    -> direct project-source retrieval
+current public fact         -> focused Brave lookup
+explicit web request        -> focused Brave lookup
+multi-source research       -> Brave research
+```
+
+High-confidence cases are deterministic. Only ambiguous general questions use one small Ollama decision: **does an accurate answer need current public information?** Explicit CLI overrides always win.
+
+Manual controls remain available for debugging or deliberate overrides:
+
+```text
+--web auto       automatic
+--web off        local-only
+--web lookup     force focused lookup
+--web research   force multi-source research
+--context        force project source
+--no-context     disable project source
 ```
 
 Examples:
 
 ```bash
-pgpt ask --web off "Explain dependency injection."
-pgpt ask --web auto "What's the weather in Toronto?"
-pgpt ask --web lookup "Has Python 3.14 been released?"
+pgpt validate "What is dependency injection?"
+pgpt validate "Who runs this organization?"
+pgpt validate "Who ran this organization in 2010?"
+pgpt validate "Look up this npm error on the web and explain the likely cause."
 ```
 
-In `auto`, obvious live requests use deterministic rules. Ambiguous general questions use one small decision: **does an accurate answer need current public information?** There is no multi-stage semantic router.
-
-To try another installed router model without editing the repo:
+To try another installed router model without editing the repository:
 
 ```bash
 PGPT_ROUTER_MODEL=gemma4:e4b pgpt validate "Who runs this organization?"
 ```
 
-If Wi-Fi is unavailable, use `--web off`. Failed online retrieval falls back to local generation and is reported as unavailable.
+## Brave web access
 
-### Brave key and budget
+Create the local secrets file outside Git:
 
 ```bash
 mkdir -p ~/.config/pgpt
@@ -92,24 +112,20 @@ cp secrets.env.example ~/.config/pgpt/secrets.env
 chmod 600 ~/.config/pgpt/secrets.env
 ```
 
-Add `PGPT_BRAVE_API_KEY=...` to that file. Check usage with:
+Add `PGPT_BRAVE_API_KEY=...`, then check usage with:
 
 ```bash
 pgpt web-usage
 ```
 
-`config.json` sets a 500-request monthly safety cap for pgpt. It does not define your Brave subscription limit.
+If the network or Brave retrieval is unavailable, an automatic web route falls back to local generation and is marked as offline rather than pretending current information was retrieved.
 
 ## Skills
 
-Keep the two skill locations distinct:
-
 ```text
 ~/ai/pgpt-cli/skills/   built-in, Git-managed skills
-~/.config/pgpt/skills/  your personal skills
+~/.config/pgpt/skills/  personal skills
 ```
-
-Normal skill work belongs in `~/.config/pgpt/skills/`:
 
 ```bash
 pgpt skill-new my-review
@@ -120,21 +136,23 @@ pgpt ask --skill my-review "Review this design."
 
 A personal skill overrides a built-in skill with the same name.
 
-## VS Code
+## VS Code / local API
 
-Start `pgpt server`, then point a compatible client such as Continue at:
+Start:
 
-```text
-http://127.0.0.1:8765/v1
+```bash
+pgpt server
 ```
 
-See `docs/VS_CODE.md` and `docs/continue-config.yaml`.
+The browser is at `http://127.0.0.1:8765/`; the OpenAI-compatible API is under `/v1`. See `docs/VS_CODE.md` and `docs/continue-config.yaml`.
+
+`stream: true` chat completions emit answer chunks as they are generated. pgpt-specific SSE metadata also reports execution status and any verified answer replacement used by the browser.
 
 ## PrivateGPT is optional
 
-Normal pgpt use does **not** require PrivateGPT. `ask`, `validate`, `chat`, `server`, browser/VS Code chat, direct project-source retrieval, Brave, and skills work without it.
+Normal `ask`, `validate`, `chat`, `server`, browser/VS Code chat, direct project-source retrieval, Brave, and skills do **not** require PrivateGPT.
 
-PrivateGPT is only used by the optional compatibility/RAG maintenance path:
+The optional compatibility/RAG maintenance commands are:
 
 ```bash
 pgpt sync --project pgpt-cli
@@ -149,23 +167,42 @@ pgpt server   pgpt browser/API
 pgpt serve    optional PrivateGPT server
 ```
 
-## Testing and ownership
+## Test gates
 
-Cheap offline tests run in GitHub Actions. Run them locally with:
+Run the release-safe offline checks before pulling a change into your working setup:
 
 ```bash
 python -m compileall -q pgpt tools tests
 python -m unittest discover -s tests -p 'test_*.py' -v
 git diff --check
+pgpt --help > /dev/null
+pgpt validate --web off "What is dependency injection?"
 ```
 
-The real Ollama routing check is opt-in:
+CI runs the offline suite on Python 3.11 and 3.13. It also checks the browser JavaScript, JSON datasets, CLI smoke commands, and the repository's single-branch policy.
+
+Routing has two layers of coverage:
+
+- `evals/routing_policy_cases.json`: 100+ deterministic policy cases run in normal CI.
+- `evals/routing_gold.json`: human-curated real-Ollama acceptance cases, including moving-vs-fixed minimal pairs.
+
+Run the real router locally:
 
 ```bash
 PGPT_RUN_LOCAL_MODEL_TESTS=1 \
   python -m unittest tests.test_router_dataset -v
 ```
 
-See `docs/TESTING.md` for end-to-end and judge tests.
+Response quality has separate end-to-end and judge suites because they intentionally exercise local models and, for web cases, live retrieval:
 
-**Human ownership rule:** one human is responsible for this repository end to end. Keep changes small, review diffs, run the relevant tests, and delete obsolete mechanisms instead of keeping parallel versions. `main` is the only intended branch.
+```bash
+python -m tools.run_end_to_end_evals --fresh
+python -m tools.score_end_to_end_results --model qwen3.5:9b
+python -m tools.calibrate_quality_judge --model qwen3.5:9b
+```
+
+See `docs/TESTING.md` for the full workflow.
+
+## Repository rule
+
+`main` is the only intended branch. Do not create long-lived feature, repair, or experiment branches. Keep changes small, delete obsolete mechanisms instead of retaining parallel implementations, and keep secrets/runtime data out of Git.

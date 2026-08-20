@@ -26,7 +26,7 @@ def fake_stream_chat(*, on_text, **kwargs):
 
 
 class TestPipeline(unittest.TestCase):
-    def test_streamed_markdown_and_timing_without_live_models(self) -> None:
+    def test_streamed_markdown_timing_and_callbacks_without_live_models(self) -> None:
         decision = RoutingDecision(
             source="none",
             web_mode=None,
@@ -44,6 +44,8 @@ class TestPipeline(unittest.TestCase):
             project=None,
             reason="test route",
         )
+        chunks: list[str] = []
+        statuses: list[str] = []
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "response.md"
@@ -64,10 +66,15 @@ class TestPipeline(unittest.TestCase):
                     "What is dependency injection?",
                     project_name="pgpt-cli",
                     echo_route=False,
+                    on_chunk=chunks.append,
+                    on_status=lambda _frame, label, _elapsed, _completed: statuses.append(label),
                 )
 
             text = result.response_path.read_text(encoding="utf-8")
             self.assertEqual(result.answer, "Hello world")
+            self.assertEqual(chunks, ["Hello", " world"])
+            self.assertIn("Routing request", statuses)
+            self.assertIn("Waiting for first token", statuses)
             self.assertIn("Hello world", text)
             self.assertIn("## Timing", text)
             self.assertIn("✓ Routing", text)

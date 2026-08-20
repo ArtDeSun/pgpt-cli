@@ -92,7 +92,7 @@ def resolve_route(
         source, reason = "project", "project context"
     elif task == "research" and web_override != "off":
         source, reason = "web", "research requires web"
-    elif current and web_override != "off":
+    elif current and not writing and web_override != "off":
         source, reason = "web", "current public information"
     elif web_need == "yes" and web_override != "off":
         source, reason = "web", "classifier: web needed"
@@ -109,7 +109,7 @@ def resolve_route(
     if source == "web":
         web_mode = "research" if web_override == "research" or task == "research" else "lookup"
 
-    if source == "project":
+    if source == "project" or writing:
         freshness = "stable"
     elif current or web_need == "yes":
         freshness = "current"
