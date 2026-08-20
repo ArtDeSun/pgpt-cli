@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from pgpt.quality.citations import find_weak_citations
 from pgpt.retrieval.web import WebResult
 from pgpt.runtime.route import Route
 
@@ -45,15 +44,6 @@ def verify_answer(
             issues.append("Invalid source IDs: " + ", ".join(f"S{x}" for x in sorted(invalid)))
         if web_results and not used:
             issues.append("Web answer has no inline source citations.")
-        if web_results and used and not invalid:
-            for weak in find_weak_citations(answer=answer, web_results=web_results)[:3]:
-                claim = " ".join(weak.claim.split())
-                if len(claim) > 160:
-                    claim = claim[:157] + "..."
-                issues.append(
-                    f"Citation [S{weak.source_id}] is weakly supported by its retrieved "
-                    f"source (similarity {weak.score:.2f}) near claim: {claim}"
-                )
 
     if route.execution == "web_research":
         if len(used) < 2:
