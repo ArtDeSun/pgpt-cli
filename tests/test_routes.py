@@ -28,6 +28,7 @@ class TestRoutingPolicy(unittest.TestCase):
             ("What is the latest Node.js version?", "web", "general"),
             ("Has Python 3.14 been released?", "web", "general"),
             ("Compare the current AWS services for containers.", "web", "architecture"),
+            ("Look up this npm error on the web and explain the likely cause.", "web", "debug"),
             ("Diagnose this traceback.", "none", "debug"),
             ("Design a staged migration to worker services.", "none", "architecture"),
             ("Write a Python function for this.", "none", "implement"),
