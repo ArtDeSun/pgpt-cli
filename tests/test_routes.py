@@ -11,7 +11,7 @@ from pgpt.runtime.route import Route
 def route(prompt: str, **overrides):
     return resolve_route(
         prompt,
-        project_name="pgpt-cli",
+        project_name=overrides.get("project_name", "pgpt-cli"),
         web_override=overrides.get("web_override"),
         project_override=overrides.get("project_override"),
         template_override=overrides.get("template_override"),
@@ -78,6 +78,23 @@ class TestRoutingPolicy(unittest.TestCase):
         self.assertEqual(
             (result.source, result.task, result.freshness),
             ("project", "architecture", "stable"),
+        )
+
+    def test_named_project_counts_as_project_evidence(self) -> None:
+        with patch("pgpt.routing.router.classify_web_need") as classifier:
+            explain = route("Explain routing in pgpt-cli.")
+            architecture = route("Review the pgpt-cli architecture.")
+        classifier.assert_not_called()
+        self.assertEqual((explain.source, explain.task), ("project", "explain-code"))
+        self.assertEqual((architecture.source, architecture.task), ("project", "architecture"))
+
+    def test_explicit_current_web_writing_keeps_current_freshness(self) -> None:
+        with patch("pgpt.routing.router.classify_web_need") as classifier:
+            result = route("Search the web for the latest release notes and summarize them.")
+        classifier.assert_not_called()
+        self.assertEqual(
+            (result.source, result.web_mode, result.task, result.freshness),
+            ("web", "lookup", "general", "current"),
         )
 
     def test_symbol_intent_distinguishes_read_from_change(self) -> None:

@@ -54,13 +54,14 @@ def resolve_route(
     deep_override: bool | None,
     symbol_hit: bool,
 ) -> RoutingDecision:
-    del project_name, model_override, deep_override
+    del model_override, deep_override
 
     explicit_web = _matches("explicit-web", prompt)
     explicit_project = _matches("explicit-project", prompt)
     current = _matches("current", prompt)
     writing = _matches("writing", prompt)
-    project_evidence = bool(symbol_hit or explicit_project or project_override is True)
+    named_project = bool(project_name and project_name.casefold() in prompt.casefold())
+    project_evidence = bool(symbol_hit or explicit_project or named_project or project_override is True)
     task = _task(
         prompt,
         symbol_hit=symbol_hit,
@@ -109,7 +110,7 @@ def resolve_route(
     if source == "web":
         web_mode = "research" if web_override == "research" or task == "research" else "lookup"
 
-    if source == "project" or writing:
+    if source == "project" or (writing and source == "none"):
         freshness = "stable"
     elif current or web_need == "yes":
         freshness = "current"
