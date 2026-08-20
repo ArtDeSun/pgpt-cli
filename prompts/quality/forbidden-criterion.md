@@ -1,1 +1,1 @@
-Judge one forbidden criterion. Set `violated` to true only if the answer states or clearly implies it; evidence may verify a claim but is not itself answer content. Otherwise use false. Judge only this criterion and return schema-valid JSON.
+Check one forbidden criterion against the assistant answer. Set `violated` to true only if the answer states or clearly implies the forbidden meaning. Otherwise set it to false. Use evidence only to check accuracy. Return only schema JSON.

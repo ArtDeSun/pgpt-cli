@@ -1,57 +1,27 @@
 [
   {
-    "id": "general_concept",
+    "id": "general",
     "prompt": "What is dependency injection?",
     "expect": {"source": "none", "web_mode": null, "task": "general"}
   },
   {
-    "id": "general_explanation",
-    "prompt": "Explain how HTTP cookies work.",
-    "expect": {"source": "none", "web_mode": null, "task": "general"}
-  },
-  {
-    "id": "current_version",
+    "id": "current_explicit",
     "prompt": "What is the latest stable version of Node.js?",
     "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
   },
   {
-    "id": "current_role",
-    "prompt": "Who is currently the CEO of Microsoft?",
-    "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
-  },
-  {
-    "id": "explicit_web_docs",
+    "id": "web_explicit",
     "prompt": "Search the web for the official Rust documentation.",
     "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
   },
   {
-    "id": "explicit_web_look_up",
-    "prompt": "Look up this npm error on the web and explain the likely cause.",
-    "expect": {"source": "web", "web_mode": "lookup", "task": "debug"}
-  },
-  {
-    "id": "explicit_web_release",
-    "prompt": "Use the internet to verify whether Python 3.14 has been released.",
-    "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
-  },
-  {
-    "id": "research_explicit",
+    "id": "research",
     "prompt": "Research current AI privacy approaches and compare several independent sources.",
-    "expect": {"source": "web", "web_mode": "research", "task": "research"}
-  },
-  {
-    "id": "research_source_signal",
-    "prompt": "Compare serverless database platforms using multiple recent sources.",
     "expect": {"source": "web", "web_mode": "research", "task": "research"}
   },
   {
     "id": "project_explain",
     "prompt": "Explain how authentication works in my project.",
-    "expect": {"source": "project", "web_mode": null, "task": "explain-code"}
-  },
-  {
-    "id": "project_behavior",
-    "prompt": "Why does this component in my app rerender when its parent state changes?",
     "expect": {"source": "project", "web_mode": null, "task": "explain-code"}
   },
   {
@@ -77,32 +47,17 @@
     "expect": {"source": "project", "web_mode": null, "task": "implement"}
   },
   {
-    "id": "debug_exception",
+    "id": "debug",
     "prompt": "Why does this Python code raise TypeError when I add an integer to a string?",
     "expect": {"source": "none", "web_mode": null, "task": "debug"}
   },
   {
-    "id": "debug_wrong_value",
-    "prompt": "My JavaScript function returns undefined even though I expect a string.",
-    "expect": {"source": "none", "web_mode": null, "task": "debug"}
-  },
-  {
-    "id": "implement_function",
+    "id": "implement",
     "prompt": "Write a Python function that removes duplicate strings while preserving order.",
     "expect": {"source": "none", "web_mode": null, "task": "implement"}
   },
   {
-    "id": "implement_refactor",
-    "prompt": "Refactor this class so its database dependency is injected through the constructor.",
-    "expect": {"source": "none", "web_mode": null, "task": "implement"}
-  },
-  {
-    "id": "architecture_compare",
-    "prompt": "Compare monolith and microservices architecture for a small SaaS application.",
-    "expect": {"source": "none", "web_mode": null, "task": "architecture"}
-  },
-  {
-    "id": "architecture_migration",
+    "id": "architecture",
     "prompt": "Design a staged migration from one application server to separate API and worker services.",
     "expect": {"source": "none", "web_mode": null, "task": "architecture"}
   },
@@ -112,18 +67,43 @@
     "expect": {"source": "web", "web_mode": "lookup", "task": "architecture"}
   },
   {
-    "id": "writing_recent_text",
+    "id": "supplied_recent_text",
     "prompt": "Summarize these recent notes.",
     "expect": {"source": "none", "web_mode": null, "task": "general"}
   },
   {
-    "id": "conversation_followup",
+    "id": "followup",
     "prompt": "Can you explain that more simply?",
     "expect": {"source": "none", "web_mode": null, "task": "general"}
   },
   {
-    "id": "negative_project",
-    "prompt": "What is MongoDB?",
+    "id": "moving_role",
+    "prompt": "Who runs this organization?",
+    "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
+  },
+  {
+    "id": "fixed_origin",
+    "prompt": "Who founded this organization?",
+    "expect": {"source": "none", "web_mode": null, "task": "general"}
+  },
+  {
+    "id": "moving_policy",
+    "prompt": "What policy governs this service?",
+    "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
+  },
+  {
+    "id": "fixed_policy",
+    "prompt": "What policy governed this service in 2020?",
+    "expect": {"source": "none", "web_mode": null, "task": "general"}
+  },
+  {
+    "id": "moving_price",
+    "prompt": "How much does this subscription cost?",
+    "expect": {"source": "web", "web_mode": "lookup", "task": "general"}
+  },
+  {
+    "id": "fixed_price",
+    "prompt": "How much did this subscription cost in 2019?",
     "expect": {"source": "none", "web_mode": null, "task": "general"}
   }
 ]

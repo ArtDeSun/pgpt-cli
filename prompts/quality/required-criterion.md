@@ -1,1 +1,1 @@
-Judge one required criterion. Set `satisfied` to true only if the answer clearly communicates it; evidence may verify accuracy but does not count as answer content. Otherwise use false. Judge only this criterion and return schema-valid JSON.
+Check one required criterion against the assistant answer. Set `satisfied` to true only if the answer itself clearly includes the required meaning and is consistent with supplied evidence. Otherwise set it to false. Return only schema JSON.

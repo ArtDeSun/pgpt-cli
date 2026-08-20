@@ -1,50 +1,41 @@
 # Testing
 
-Use the smallest useful test first. Run expensive Ollama/judge suites only after the cheap tests pass.
+Use the cheapest test that can catch the problem. Run expensive Ollama/judge tests only after offline tests pass.
 
-## 1. Offline checks
+## 1. Offline tests
 
-These need no Ollama, Brave, PrivateGPT, or external project files:
+No Ollama, Brave, PrivateGPT, or external project is required:
 
 ```bash
-python -m json.tool config.json > /dev/null
 python -m compileall -q pgpt tools tests
+python -m unittest discover -s tests -p 'test_*.py' -v
 git diff --check
 ```
 
-GitHub Actions runs the authoritative offline unittest list from `.github/workflows/ci.yml` on Python 3.11 and 3.13. Keep that workflow readable instead of duplicating the full list here.
+GitHub Actions runs the same unittest discovery on Python 3.11 and 3.13. The real-model routing test is skipped there.
 
-## 2. Routing tests
+## 2. Real Ollama routing
 
-Routing has two kinds of tests.
-
-**Policy tests** (`tests/test_routes.py`) mock the one semantic decision and verify deterministic routing behavior. These run in CI.
-
-**Local-model acceptance tests** use your actual Ollama router and run only in WSL:
+`tests/test_router_dataset.py` is the single human-curated routing acceptance suite. It covers local, project, web, research, debugging, implementation, architecture, and moving-vs-fixed public facts.
 
 ```bash
-python -m unittest \
-  tests.test_router_dataset \
-  tests.test_router_temporal_pairs \
-  -v
+PGPT_RUN_LOCAL_MODEL_TESTS=1 \
+  python -m unittest tests.test_router_dataset -v
 ```
 
-`routing_gold.json` is the broad, human-curated routing set. `routing_temporal_pairs.json` focuses on current/moving facts versus fixed history or supplied context.
-
-The default router is `qwen3:1.7b`. It answers only one question for ambiguous general prompts: does the answer require current public information? Using the same model for routing and ordinary general answers reduces model switching.
-
-Only if the default router fails the temporal suite, try another installed model without editing the repo:
+Try another installed router without changing code:
 
 ```bash
+PGPT_RUN_LOCAL_MODEL_TESTS=1 \
 PGPT_ROUTER_MODEL=gemma4:e4b \
-  python -m unittest tests.test_router_temporal_pairs -v
+  python -m unittest tests.test_router_dataset -v
 ```
 
-Do not patch production regexes to satisfy one sentence. If a model repeatedly fails a class of cases, change the model or the general routing rule.
+Do not add production regexes for one failing sentence. Fix a general rule or choose a better router model.
 
 ## 3. End-to-end quality
 
-Run targeted cases first:
+Start with one case:
 
 ```bash
 python -m tools.run_end_to_end_evals --case debug_local_01 --force
@@ -53,7 +44,7 @@ python -m tools.score_end_to_end_results \
   --case debug_local_01
 ```
 
-Then run the full suite when the targeted cases are stable:
+When targeted cases are stable:
 
 ```bash
 python -m tools.run_end_to_end_evals --fresh
@@ -66,20 +57,9 @@ python -m tools.score_end_to_end_results --model qwen3.5:9b
 python -m tools.calibrate_quality_judge --model qwen3.5:9b
 ```
 
-Calibration checks the judge itself. Do not trust end-to-end quality scores if judge calibration is failing.
+Do not trust semantic quality scores while judge calibration is failing.
 
-## 5. Reliability
-
-Repeated runs are expensive. Use them near the end of a change:
-
-```bash
-python -m tools.run_reliability_evals \
-  --runs 5 \
-  --judge-model qwen3.5:9b \
-  --fresh
-```
-
-## 6. Manual smoke test
+## 5. Smoke test
 
 ```bash
 pgpt status
@@ -89,8 +69,6 @@ pgpt ask --web off "What is dependency injection?"
 pgpt server
 ```
 
-Then open `http://127.0.0.1:8765/` and check chat history, attachments, Markdown rendering, timers, links, and web-mode controls.
+Then open `http://127.0.0.1:8765/` and check one chat, one attachment, links, Markdown rendering, and web-mode controls.
 
-## Maintenance principle
-
-Tests are documentation for the human maintainer. Prefer a small table of meaningful cases over large generated suites, and remove tests that duplicate another layer without adding confidence.
+Tests are documentation for the human maintainer. Prefer a small set of distinct failure modes over many near-duplicate cases.

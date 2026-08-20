@@ -1,6 +1,6 @@
 # pgpt-cli
 
-`pgpt-cli` is a local-first AI assistant for WSL. It uses Ollama for generation, can read configured project source, can use Brave for current public information, and exposes a browser UI plus an OpenAI-compatible endpoint for VS Code clients.
+`pgpt-cli` is a local-first AI assistant for WSL. Ollama generates answers; pgpt can also read configured project source, use Brave for live public information, and expose a browser/OpenAI-compatible API for VS Code.
 
 ```text
 terminal / browser / VS Code
@@ -8,48 +8,36 @@ terminal / browser / VS Code
              v
           pgpt-cli
         /     |     \
-     local  project  web
-     Ollama  source  Brave
+     Ollama  project  Brave
 ```
 
 The codebase is intentionally small enough for one human to understand and maintain end to end.
 
-## Directory layout
+## Setup
 
-Your current layout is correct; no restructuring is required.
+Your current layout is correct. No directory changes are required.
 
 ```text
 ~/ai/
-├── pgpt-cli/          # this repository
-├── private-gpt/       # optional PrivateGPT checkout
-├── private-gpt-data/  # optional PrivateGPT data
+├── pgpt-cli/
+├── private-gpt/       # optional
+├── private-gpt-data/  # optional
 └── vibemaster-knowledge/
 ```
 
-Skills have two separate locations:
-
-```text
-~/ai/pgpt-cli/skills/       built-in, Git-managed skills
-~/.config/pgpt/skills/      your personal skills
-```
-
-Use `~/.config/pgpt/skills/` for normal personal skill work.
-
-## Install or update
+Install or update:
 
 ```bash
 cd ~/ai/pgpt-cli
 git pull
 source .venv/bin/activate
 python -m pip install -e .
-
 pgpt status
-pgpt models
 ```
 
-Create `.venv` first with `python3 -m venv .venv` if it does not exist.
+Create `.venv` first with `python3 -m venv .venv` if needed.
 
-## Core commands
+## Everyday use
 
 ```bash
 pgpt validate "What is dependency injection?"
@@ -65,21 +53,17 @@ pgpt ask --project pgpt-cli --context \
   "Explain how select_model works."
 ```
 
-The browser UI is served at:
+`pgpt server` serves the browser UI at `http://127.0.0.1:8765/` and the OpenAI-compatible API at `/v1`.
+
+## Online and offline
+
+`--web` controls Brave retrieval:
 
 ```text
-http://127.0.0.1:8765/
-```
-
-## Online and offline use
-
-`--web` controls public web retrieval:
-
-```text
---web auto      decide automatically
---web off       never use Brave
---web lookup    force one focused lookup
---web research  force multi-source research
+auto      use the web only when needed
+off       never use the web
+lookup    force one focused lookup
+research  force multi-source research
 ```
 
 Examples:
@@ -90,20 +74,17 @@ pgpt ask --web auto "What's the weather in Toronto?"
 pgpt ask --web lookup "Has Python 3.14 been released?"
 ```
 
-In `auto` mode, obvious live requests such as weather, current time, prices, scores, or explicit `latest/current` wording skip the router model. Ambiguous general questions use one decision: **does an accurate answer require current public information?** There is no second semantic routing pass.
+In `auto`, obvious live requests use deterministic rules. Ambiguous general questions use one small decision: **does an accurate answer need current public information?** There is no multi-stage semantic router.
 
-The default router is `qwen3:1.7b`, which is also the first general-answer model so Ollama can reuse the loaded model. Test another installed model without editing the repo:
+To try another installed router model without editing the repo:
 
 ```bash
-PGPT_ROUTER_MODEL=gemma4:e4b \
-  pgpt validate "Who runs this organization?"
+PGPT_ROUTER_MODEL=gemma4:e4b pgpt validate "Who runs this organization?"
 ```
 
-If Wi-Fi is unavailable, use `--web off` for predictable local-only behavior. In `auto`, a failed web connection falls back to local generation and is reported as unavailable rather than pretending live data was retrieved.
+If Wi-Fi is unavailable, use `--web off`. Failed online retrieval falls back to local generation and is reported as unavailable.
 
-## Brave API and request budget
-
-Store the key outside Git:
+### Brave key and budget
 
 ```bash
 mkdir -p ~/.config/pgpt
@@ -111,21 +92,24 @@ cp secrets.env.example ~/.config/pgpt/secrets.env
 chmod 600 ~/.config/pgpt/secrets.env
 ```
 
-Then add:
-
-```text
-PGPT_BRAVE_API_KEY=your_key
-```
-
-Check usage with:
+Add `PGPT_BRAVE_API_KEY=...` to that file. Check usage with:
 
 ```bash
 pgpt web-usage
 ```
 
-`config.json` caps pgpt at 500 Brave requests per month. This is a local safety limit, not a statement about your Brave subscription.
+`config.json` sets a 500-request monthly safety cap for pgpt. It does not define your Brave subscription limit.
 
 ## Skills
+
+Keep the two skill locations distinct:
+
+```text
+~/ai/pgpt-cli/skills/   built-in, Git-managed skills
+~/.config/pgpt/skills/  your personal skills
+```
+
+Normal skill work belongs in `~/.config/pgpt/skills/`:
 
 ```bash
 pgpt skill-new my-review
@@ -134,17 +118,11 @@ pgpt skills
 pgpt ask --skill my-review "Review this design."
 ```
 
-Personal skills override built-in skills with the same name. Only edit `~/ai/pgpt-cli/skills/` when changing a built-in skill for the repository.
+A personal skill overrides a built-in skill with the same name.
 
 ## VS Code
 
-Start:
-
-```bash
-pgpt server
-```
-
-Then point a compatible VS Code client such as Continue at:
+Start `pgpt server`, then point a compatible client such as Continue at:
 
 ```text
 http://127.0.0.1:8765/v1
@@ -152,24 +130,11 @@ http://127.0.0.1:8765/v1
 
 See `docs/VS_CODE.md` and `docs/continue-config.yaml`.
 
-Point the client at pgpt rather than Ollama directly when you want pgpt routing, project retrieval, Brave lookup, skills, and verification.
-
 ## PrivateGPT is optional
 
-Normal pgpt use does **not** require PrivateGPT. These work without it:
+Normal pgpt use does **not** require PrivateGPT. `ask`, `validate`, `chat`, `server`, browser/VS Code chat, direct project-source retrieval, Brave, and skills work without it.
 
-```text
-pgpt ask
-pgpt validate
-pgpt chat
-pgpt server
-browser / VS Code API
-project source retrieval
-Brave lookup/research
-skills
-```
-
-PrivateGPT is used only by the optional compatibility commands:
+PrivateGPT is only used by the optional compatibility/RAG maintenance path:
 
 ```bash
 pgpt sync --project pgpt-cli
@@ -180,47 +145,27 @@ pgpt serve
 Remember:
 
 ```text
-pgpt server   pgpt browser + OpenAI-compatible API
+pgpt server   pgpt browser/API
 pgpt serve    optional PrivateGPT server
 ```
 
-## Routing design
+## Testing and ownership
 
-```text
-1. explicit user overrides and obvious high-confidence rules
-2. project evidence, when present
-3. one web-need classifier for ambiguous general questions
-```
-
-Task type comes from clear request signals such as debugging, implementation, architecture, research, or code explanation. Research uses multi-source web retrieval; other web requests use focused lookup.
-
-The goal is correctness with the fewest model calls, not a giant classifier for every English sentence.
-
-## Testing
-
-Offline CI covers deterministic code, routing policy, project retrieval, server behavior, Brave usage accounting, prompts, skills, and UI contracts.
-
-Run the human-curated local Ollama routing checks in WSL:
+Cheap offline tests run in GitHub Actions. Run them locally with:
 
 ```bash
-python -m unittest \
-  tests.test_router_dataset \
-  tests.test_router_temporal_pairs \
-  -v
-```
-
-See `docs/TESTING.md` for the remaining test workflow.
-
-## Human maintenance rule
-
-One human owns this repository end to end. Before keeping a change:
-
-```bash
-git diff --check
-git status
 python -m compileall -q pgpt tools tests
+python -m unittest discover -s tests -p 'test_*.py' -v
+git diff --check
 ```
 
-Run the smallest relevant tests first, then the full offline suite before release. Keep runtime data, secrets, responses, chats, and local evaluation output out of Git. Prefer deleting obsolete mechanisms over keeping parallel versions “just in case.”
+The real Ollama routing check is opt-in:
 
-Repository policy: `main` is the only intended long-lived branch.
+```bash
+PGPT_RUN_LOCAL_MODEL_TESTS=1 \
+  python -m unittest tests.test_router_dataset -v
+```
+
+See `docs/TESTING.md` for end-to-end and judge tests.
+
+**Human ownership rule:** one human is responsible for this repository end to end. Keep changes small, review diffs, run the relevant tests, and delete obsolete mechanisms instead of keeping parallel versions. `main` is the only intended branch.

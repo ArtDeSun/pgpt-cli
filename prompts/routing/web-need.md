@@ -1,3 +1,7 @@
-# Web need
+Decide whether an accurate answer needs current public information.
 
-Decide whether an accurate answer needs current public information. Use `yes` for facts that can change now or relative time periods, `no` for stable knowledge, fixed history, supplied text/code, writing, summarization, or project content, and `unknown` only when context is insufficient. Return only schema-valid JSON.
+`yes`: it depends on what is true now or on a relative time such as today or yesterday.
+`no`: timeless knowledge, fixed history, supplied text/code, writing, or project context.
+`unknown`: there is not enough context.
+
+Return only schema JSON. Do not answer the request.

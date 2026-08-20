@@ -1,1 +1,3 @@
-Analyze boundaries, tradeoffs, migration order, and failure recovery. Ground project claims in retrieved evidence. For background work, identify what stays synchronous, what moves to workers, the handoff, incremental migration, and worker failure handling. Do not split services without a reason.
+Explain boundaries, tradeoffs, migration order, and failure handling. Use retrieved evidence for project-specific claims.
+
+If background workers are involved, state the request path, handoff, worker work, and failure recovery. Avoid unnecessary services.

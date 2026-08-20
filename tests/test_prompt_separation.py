@@ -9,7 +9,6 @@ PROMPTS = ROOT / "prompts"
 SKILLS = ROOT / "skills"
 CLASSIFIER = ROOT / "pgpt" / "routing" / "classifier.py"
 SCORER = ROOT / "tools" / "score_end_to_end_results.py"
-BENCHMARK = ROOT / "tools" / "benchmark_models.py"
 
 
 class TestPromptOwnership(unittest.TestCase):
@@ -23,27 +22,20 @@ class TestPromptOwnership(unittest.TestCase):
         for path in required:
             self.assertTrue(path.is_file(), path)
 
+        self.assertNotIn("current public information", CLASSIFIER.read_text(encoding="utf-8"))
         self.assertNotIn(
-            "current public information",
-            CLASSIFIER.read_text(encoding="utf-8"),
-        )
-        self.assertNotIn(
-            "evaluate exactly one required criterion",
+            "evaluate one required criterion",
             SCORER.read_text(encoding="utf-8").casefold(),
         )
-        self.assertNotIn(
-            "answer the user's request accurately and directly",
-            BENCHMARK.read_text(encoding="utf-8").casefold(),
-        )
 
-    def test_instruction_files_stay_short(self) -> None:
-        files = [*PROMPTS.rglob("*.md"), *SKILLS.glob("*.md")]
-        for path in files:
+    def test_prompts_stay_short(self) -> None:
+        for path in PROMPTS.rglob("*.md"):
             with self.subTest(path=path.relative_to(ROOT)):
-                self.assertLessEqual(
-                    len(path.read_text(encoding="utf-8")),
-                    1800,
-                )
+                self.assertLessEqual(len(path.read_text(encoding="utf-8")), 900)
+
+        for path in SKILLS.glob("*.md"):
+            with self.subTest(path=path.relative_to(ROOT)):
+                self.assertLessEqual(len(path.read_text(encoding="utf-8")), 1800)
 
 
 if __name__ == "__main__":

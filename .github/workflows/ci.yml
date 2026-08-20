@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  offline-tests:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,7 +18,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -28,16 +27,15 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
 
-      - name: Validate files
+      - name: Validate
         run: |
           python -m json.tool config.json > /dev/null
           python -m json.tool evals/end_to_end_cases.json > /dev/null
           python -m json.tool evals/judge_calibration.json > /dev/null
           python -m json.tool evals/routing_gold.json > /dev/null
-          python -m json.tool evals/routing_temporal_pairs.json > /dev/null
           python -m compileall -q pgpt tools tests
 
-      - name: Validate browser JavaScript
+      - name: Browser JavaScript
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -50,28 +48,5 @@ jobs:
           PY
           node --check /tmp/pgpt-ui.js
 
-      - name: Run offline tests
-        run: |
-          python -m unittest -v \
-            tests.test_model_selector \
-            tests.test_pipeline_mock \
-            tests.test_config_paths \
-            tests.test_skills \
-            tests.test_routing_classifier \
-            tests.test_routes \
-            tests.test_router_dataset \
-            tests.test_router_temporal_pairs \
-            tests.test_server \
-            tests.test_server_http \
-            tests.test_cli_parser \
-            tests.test_maintenance \
-            tests.test_http_usage \
-            tests.test_web_usage \
-            tests.test_score_end_to_end_results \
-            tests.test_response_writer \
-            tests.test_historical_project_fixture \
-            tests.test_project_retrieval_snapshot \
-            tests.test_eval_project_selection \
-            tests.test_eval_dataset_self_contained \
-            tests.test_web_ui \
-            tests.test_prompt_separation
+      - name: Tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v

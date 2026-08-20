@@ -6,19 +6,15 @@ from pgpt.models.selector import select_model
 from pgpt.routing.types import RoutingDecision
 
 
-_TASK_TEMPLATES = {
-    "general",
-    "research",
-    "explain-code",
-    "debug",
-    "implement",
-    "architecture",
+MODEL_TASK = {
+    "web-lookup": "general",
+    "research-web": "research",
 }
 
 
 @dataclass
 class Route:
-    """Concrete runtime plan built from a routing decision."""
+    """Concrete runtime plan."""
 
     decision: RoutingDecision
     execution: str
@@ -40,8 +36,10 @@ class Route:
     ) -> "Route":
         execution = _execution(decision)
         template = template_override or _template(decision)
-        model_task = _model_task(template, decision.task)
-        selection = select_model(model_task, model_override=model_override)
+        selection = select_model(
+            MODEL_TASK.get(template, decision.task),
+            model_override=model_override,
+        )
 
         return cls(
             decision=decision,
@@ -50,23 +48,11 @@ class Route:
             model=selection.model,
             deep=bool(deep_override),
             project=project_name if decision.source == "project" else None,
-            reason="; ".join(
-                (
-                    decision.reason,
-                    f"execution={execution}",
-                    f"template={template}",
-                    selection.reason,
-                )
+            reason=(
+                f"{decision.reason}; execution={execution}; "
+                f"template={template}; {selection.reason}"
             ),
         )
-
-
-def _model_task(template: str, fallback: str) -> str:
-    if template == "web-lookup":
-        return "general"
-    if template == "research-web":
-        return "research"
-    return template if template in _TASK_TEMPLATES else fallback
 
 
 def _execution(decision: RoutingDecision) -> str:
@@ -82,6 +68,4 @@ def _template(decision: RoutingDecision) -> str:
         return decision.task
     if decision.web_mode == "research":
         return "research-web"
-    if decision.task in {"debug", "architecture", "explain-code", "implement"}:
-        return decision.task
-    return "web-lookup"
+    return "web-lookup" if decision.task == "general" else decision.task
