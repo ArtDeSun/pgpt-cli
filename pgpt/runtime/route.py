@@ -6,24 +6,13 @@ from pgpt.models.selector import select_model
 from pgpt.routing.types import RoutingDecision
 
 
-TASK_TEMPLATE = {
-    "general": "general",
-    "research": "research",
-    "explain-code": "explain-code",
-    "debug": "debug",
-    "implement": "implement",
-    "architecture": "architecture",
-}
-
-TEMPLATE_TASK = {
-    "general": "general",
-    "web-lookup": "general",
-    "research": "research",
-    "research-web": "research",
-    "explain-code": "explain-code",
-    "debug": "debug",
-    "implement": "implement",
-    "architecture": "architecture",
+_TASK_TEMPLATES = {
+    "general",
+    "research",
+    "explain-code",
+    "debug",
+    "implement",
+    "architecture",
 }
 
 
@@ -51,10 +40,8 @@ class Route:
     ) -> "Route":
         execution = _execution(decision)
         template = template_override or _template(decision)
-        selection = select_model(
-            TEMPLATE_TASK.get(template, decision.task),
-            model_override=model_override,
-        )
+        model_task = _model_task(template, decision.task)
+        selection = select_model(model_task, model_override=model_override)
 
         return cls(
             decision=decision,
@@ -64,14 +51,22 @@ class Route:
             deep=bool(deep_override),
             project=project_name if decision.source == "project" else None,
             reason="; ".join(
-                [
+                (
                     decision.reason,
                     f"execution={execution}",
                     f"template={template}",
                     selection.reason,
-                ]
+                )
             ),
         )
+
+
+def _model_task(template: str, fallback: str) -> str:
+    if template == "web-lookup":
+        return "general"
+    if template == "research-web":
+        return "research"
+    return template if template in _TASK_TEMPLATES else fallback
 
 
 def _execution(decision: RoutingDecision) -> str:
@@ -84,7 +79,7 @@ def _execution(decision: RoutingDecision) -> str:
 
 def _template(decision: RoutingDecision) -> str:
     if decision.source != "web":
-        return TASK_TEMPLATE.get(decision.task, "general")
+        return decision.task
     if decision.web_mode == "research":
         return "research-web"
     if decision.task in {"debug", "architecture", "explain-code", "implement"}:

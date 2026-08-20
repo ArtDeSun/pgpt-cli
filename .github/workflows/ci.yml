@@ -59,6 +59,8 @@ jobs:
             tests.test_skills \
             tests.test_routing_classifier \
             tests.test_routes \
+            tests.test_router_dataset \
+            tests.test_router_temporal_pairs \
             tests.test_server \
             tests.test_server_http \
             tests.test_cli_parser \

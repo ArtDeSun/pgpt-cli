@@ -35,6 +35,7 @@ find\s+.+?\s+online
 \bsmallest\s+fix\b
 \b(?:doesn't|does\s+not|won't|will\s+not|isn't|is\s+not)\s+(?:work|working|run|compile|start|load)\b
 \b(?:raises?|throws?|threw|got|getting)\b.{0,50}\b(?:[a-z]*error|exception)\b
+\b(?:this|my)\b.{0,30}\b(?:[a-z]*error|exception)\b
 \btraceback\s*\(
 \b(?:returns?|outputs?|produces?)\b.{0,40}\b(?:undefined|null|wrong|incorrect|unexpected)\b
 \bexpect(?:ed)?\b.{0,40}\b(?:but|instead)\b
