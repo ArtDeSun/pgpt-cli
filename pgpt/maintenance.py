@@ -5,9 +5,14 @@ import re
 import subprocess
 import urllib.request
 from pathlib import Path
+from typing import Callable
 
-from pgpt.config import CONFIG, cfg_path, expand, get_project, load_secrets
+from pgpt.config import CONFIG, cfg_path, expand, get_project, load_secrets, save_user_project
 from pgpt.generation.ollama import list_models
+
+
+_SENSITIVE_NAMES = {".ssh", ".gnupg", ".aws"}
+_SYSTEM_ROOTS = tuple(Path(value) for value in ("/etc", "/proc", "/sys", "/dev", "/boot"))
 
 
 def _reachable(url: str, timeout: float = 1.0) -> bool:
@@ -25,13 +30,9 @@ def status() -> None:
     host = str(server.get("host", "127.0.0.1"))
     port = int(server.get("port", 8765))
     local_api = f"http://{host}:{port}/health"
-
     print(f"Ollama:     {'reachable' if _reachable(ollama) else 'NOT reachable'}")
     print(f"pgpt API:   {'reachable' if _reachable(local_api) else 'NOT reachable'}")
-    print(
-        f"PrivateGPT: "
-        f"{'reachable' if _reachable(private_gpt) else 'NOT reachable'}"
-    )
+    print(f"PrivateGPT: {'reachable' if _reachable(private_gpt) else 'NOT reachable'}")
 
 
 def models() -> None:
@@ -46,8 +47,10 @@ def sync(project_name: str | None = None) -> None:
     project_name, project = get_project(project_name)
     source = expand(project["source_dir"])
     destination = expand(project["knowledge_dir"])
+    if source == destination or project.get("sync_required") is False:
+        print(f"[sync] {project_name}: source is already the knowledge directory; nothing to copy")
+        return
     destination.mkdir(parents=True, exist_ok=True)
-
     cmd = ["rsync", "-a", "--delete"]
     for pattern in project.get("sync_excludes", []):
         cmd.append(f"--exclude={pattern}")
@@ -57,13 +60,7 @@ def sync(project_name: str | None = None) -> None:
 
 
 def _zero_byte_names(root: Path) -> list[str]:
-    return sorted(
-        {
-            path.name
-            for path in root.rglob("*")
-            if path.is_file() and path.stat().st_size == 0
-        }
-    )
+    return sorted({path.name for path in root.rglob("*") if path.is_file() and path.stat().st_size == 0})
 
 
 def privategpt_env() -> dict[str, str]:
@@ -71,55 +68,93 @@ def privategpt_env() -> dict[str, str]:
     env = os.environ.copy()
     env["OPENAI_API_BASE"] = CONFIG["endpoints"]["openai_api_base"]
     env["PGPT_HOME"] = str(cfg_path("pgpt_home"))
-    env["PGPT_PROFILES"] = ",".join(
-        CONFIG.get("server", {}).get("profiles", ["model"])
-    )
+    env["PGPT_PROFILES"] = ",".join(CONFIG.get("server", {}).get("profiles", ["model"]))
     return env
 
 
-def ingest(project_name: str | None = None, watch: bool = False) -> None:
-    project_name, project = get_project(project_name)
-    root = expand(project["knowledge_dir"])
-    zero = _zero_byte_names(root)
-    if zero:
-        print(f"[ingest] skipping {len(zero)} zero-byte basename(s):")
-        for name in zero:
-            print(f"  - {name}")
-
-    ignored = list(
-        dict.fromkeys(
-            [
-                *project.get("ingest_ignored", []),
-                *zero,
-            ]
-        )
-    )
+def _ingest_command(root: Path, ignored: list[str], watch: bool) -> list[str]:
     cmd = ["uv", "run", "python", "scripts/ingest_folder.py", str(root)]
     if ignored:
         cmd += ["--ignored", *ignored]
     if watch:
         cmd.append("--watch")
-    print(f"[ingest] project={project_name}")
+    return cmd
+
+
+def ingest(project_name: str | None = None, watch: bool = False) -> None:
+    project_name, project = get_project(project_name)
+    root = expand(project["knowledge_dir"])
+    ignored = _ingest_ignored(root, list(project.get("ingest_ignored", [])))
+    print(f"[ingest] project={project_name} root={root}")
     subprocess.run(
-        cmd,
+        _ingest_command(root, ignored, watch),
         cwd=cfg_path("private_gpt_dir"),
         env=privategpt_env(),
         check=False,
     )
 
 
+def _ingest_ignored(root: Path, configured: list[str]) -> list[str]:
+    zero = _zero_byte_names(root)
+    return list(dict.fromkeys([*configured, *zero]))
+
+
+def resolve_knowledge_directory(value: str) -> Path:
+    if not value or not value.strip():
+        raise ValueError("A folder path is required")
+    root = expand(value.strip())
+    if not root.exists():
+        raise ValueError(f"Folder does not exist: {root}")
+    if not root.is_dir():
+        raise ValueError(f"Path is not a directory: {root}")
+    if root == Path(root.anchor):
+        raise ValueError("Refusing to ingest a filesystem root")
+    if any(root == base or base in root.parents for base in _SYSTEM_ROOTS):
+        raise ValueError("Refusing to ingest a system directory")
+    if any(part.casefold() in _SENSITIVE_NAMES for part in root.parts):
+        raise ValueError("Refusing to ingest a sensitive credentials directory")
+    if not os.access(root, os.R_OK | os.X_OK):
+        raise ValueError(f"Folder is not readable: {root}")
+    return root
+
+
+def ingest_directory(
+    path: str,
+    *,
+    project_name: str,
+    collection: str | None = None,
+    ignored: list[str] | None = None,
+    on_line: Callable[[str], None] | None = None,
+) -> int:
+    """Register and ingest a user-selected folder without changing PrivateGPT source."""
+    root = resolve_knowledge_directory(path)
+    ignore_names = _ingest_ignored(root, list(ignored or []))
+    proc = subprocess.Popen(
+        _ingest_command(root, ignore_names, False),
+        cwd=cfg_path("private_gpt_dir"),
+        env=privategpt_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    assert proc.stdout is not None
+    for raw in proc.stdout:
+        line = _redact(raw.rstrip("\n"))
+        if on_line is not None:
+            on_line(line)
+    code = proc.wait()
+    if code == 0:
+        save_user_project(project_name, str(root), collection=collection)
+    return code
+
+
 def _redact(line: str) -> str:
     patterns = [
         (r"(PGPT_BRAVE_API_KEY\s*=\s*)\S+", r"\1***REDACTED***"),
         (r"(X-Subscription-Token['\":=\s]+)\S+", r"\1***REDACTED***"),
-        (
-            r"(Authorization['\":=\s]+(?:Bearer\s+)?)\S+",
-            r"\1***REDACTED***",
-        ),
-        (
-            r"(api_key\s*=\s*['\"])[^'\"]*(['\"])",
-            r"\1***REDACTED***\2",
-        ),
+        (r"(Authorization['\":=\s]+(?:Bearer\s+)?)\S+", r"\1***REDACTED***"),
+        (r"(api_key\s*=\s*['\"])[^'\"]*(['\"])", r"\1***REDACTED***\2"),
     ]
     for pattern, replacement in patterns:
         line = re.sub(pattern, replacement, line, flags=re.I)
@@ -127,16 +162,7 @@ def _redact(line: str) -> str:
 
 
 def serve() -> None:
-    cmd = [
-        "uv",
-        "run",
-        "python",
-        "-m",
-        "private_gpt",
-        "serve",
-        "--host",
-        "127.0.0.1",
-    ]
+    cmd = ["uv", "run", "python", "-m", "private_gpt", "serve", "--host", "127.0.0.1"]
     proc = subprocess.Popen(
         cmd,
         cwd=cfg_path("private_gpt_dir"),

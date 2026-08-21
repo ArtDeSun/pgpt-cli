@@ -10,9 +10,10 @@ find\s+.+?\s+online
 
 [explicit-project]
 (?:my|this)\s+(?:project|repo|repository|codebase|application|app)
+(?:your|this)\s+(?:own\s+)?(?:source\s+code|codebase|implementation|program|router|routing|model\s+selection)
 
 [current]
-\b(?:currently|latest|newest|most\s+recent|right\s+now|live)\b
+\b(?:currently|latest|newest|most\s+recent|right\s+now|live|today|tonight|this\s+week|this\s+month|this\s+year)\b
 \bcurrent\s+(?:version|price|pricing|status|score|weather|forecast|schedule|availability|rate|information)\b
 \bcurrent\s+(?-i:[A-Z])[A-Za-z0-9.+-]*\b
 (?:what(?:'s|\s+is)|how(?:'s|\s+is)).{0,50}\b(?:weather|forecast)\b

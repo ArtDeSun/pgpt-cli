@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+from datetime import datetime
+
 from pgpt.routing.classifier import classify_web_need
 from pgpt.routing.rules import load_rule
 from pgpt.routing.types import RoutingDecision, Task
@@ -15,10 +18,16 @@ _TEMPLATE_TASK: dict[str, Task] = {
     "implement": "implement",
     "architecture": "architecture",
 }
+_SYMBOL_INTENT = re.compile(r"\b(?:explain|review|analyze|find|where|modify|change|update|fix|add|implement|refactor)\b", re.I)
+_CURRENT_QUESTION = re.compile(r"\b(?:who|what|when|where|which|winner|won|champion|result|released|version|price|status)\b", re.I)
 
 
 def _matches(name: str, prompt: str) -> bool:
     return bool(load_rule(name).search(prompt))
+
+
+def _current_year_question(prompt: str) -> bool:
+    return str(datetime.now().year) in prompt and bool(_CURRENT_QUESTION.search(prompt))
 
 
 def _task(
@@ -38,7 +47,7 @@ def _task(
         return "architecture"
     if _matches("implement", prompt) or (symbol_hit and _matches("change", prompt)):
         return "implement"
-    if symbol_hit or _matches("explain-code", prompt):
+    if (symbol_hit and bool(_SYMBOL_INTENT.search(prompt))) or _matches("explain-code", prompt):
         return "explain-code"
     return "explain-code" if project_evidence else "general"
 
@@ -58,10 +67,11 @@ def resolve_route(
 
     explicit_web = _matches("explicit-web", prompt)
     explicit_project = _matches("explicit-project", prompt)
-    current = _matches("current", prompt)
     writing = _matches("writing", prompt)
+    current = _matches("current", prompt) or (_current_year_question(prompt) and not writing)
     named_project = bool(project_name and project_name.casefold() in prompt.casefold())
-    project_evidence = bool(symbol_hit or explicit_project or named_project or project_override is True)
+    symbol_project = bool(symbol_hit and _SYMBOL_INTENT.search(prompt))
+    project_evidence = bool(explicit_project or named_project or symbol_project or project_override is True)
     task = _task(
         prompt,
         symbol_hit=symbol_hit,

@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 11,
   "endpoints": {
     "private_gpt": "http://127.0.0.1:8080",
     "ollama": "http://127.0.0.1:11434",
@@ -12,6 +12,7 @@
     "responses_dir": "responses",
     "state_dir": "state",
     "skills_dir": "~/.config/pgpt/skills",
+    "projects_file": "~/.config/pgpt/projects.json",
     "secrets_file": "~/.config/pgpt/secrets.env"
   },
   "server": {
@@ -29,12 +30,12 @@
     "router": "qwen3:1.7b",
     "coder_templates": ["debug", "implement", "explain-code"],
     "task_preferences": {
-      "general": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
-      "research": ["qwen3:1.7b", "qwen2.5-coder:3b", "llama3.2:3b"],
+      "general": ["llama3.2:3b", "qwen2.5-coder:3b", "qwen3:1.7b"],
+      "research": ["llama3.2:3b", "qwen2.5-coder:3b", "qwen3:1.7b"],
       "explain-code": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
       "debug": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
       "implement": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"],
-      "architecture": ["qwen2.5-coder:3b", "qwen3:1.7b", "llama3.2:3b"]
+      "architecture": ["qwen2.5-coder:3b", "llama3.2:3b", "qwen3:1.7b"]
     }
   },
   "retrieval": {
@@ -62,25 +63,32 @@
     "search_lang": "en"
   },
   "history": {
-    "messages": 8
+    "messages": 12,
+    "mode": "auto"
   },
   "performance": {
     "request_timeout_seconds": 180,
     "final_keep_alive": "30m",
+    "max_continuations": 2,
+    "answer_lengths": {
+      "short": 500,
+      "standard": 1100,
+      "long": 2000
+    },
     "num_ctx_by_role": {
       "general": 4096,
       "coder": 4096,
-      "deep": 4096
+      "deep": 6144
     },
     "max_tokens_by_template": {
-      "general": 700,
-      "web-lookup": 500,
-      "research-web": 1400,
-      "explain-code": 900,
-      "debug": 900,
-      "implement": 1200,
-      "architecture": 1400,
-      "research": 1400
+      "general": 1000,
+      "web-lookup": 700,
+      "research-web": 1600,
+      "explain-code": 1100,
+      "debug": 1100,
+      "implement": 1600,
+      "architecture": 1800,
+      "research": 1600
     }
   },
   "quality": {
@@ -92,42 +100,24 @@
   "projects": {
     "pgpt-cli": {
       "source_dir": ".",
-      "knowledge_dir": "~/ai/pgpt-cli-knowledge",
+      "knowledge_dir": "~/ai/knowledge/pgpt-cli",
       "collection": "pgpt-cli",
-      "sync_excludes": [
-        ".git/",
-        ".venv/",
-        "__pycache__/",
-        "responses/",
-        "chats/",
-        "state/",
-        ".env",
-        ".env.*",
-        "*.pem",
-        "*.key"
-      ],
+      "sync_excludes": [".git/", ".venv/", "__pycache__/", "responses/", "chats/", "state/", ".env", ".env.*", "*.pem", "*.key"],
       "ingest_ignored": [".gitignore", "secrets.env.example"]
     },
     "pgpt-cli-history": {
       "source_dir": "tests/fixtures/historical_pgpt",
-      "knowledge_dir": "~/ai/pgpt-cli-history-knowledge",
+      "knowledge_dir": "~/ai/knowledge/pgpt-cli-history",
       "collection": "pgpt-cli-history",
       "sync_excludes": [],
-      "ingest_ignored": []
+      "ingest_ignored": [],
+      "hidden": true
     },
     "vibemaster": {
       "source_dir": "~/dev/Professional-Viber-Web-App/my-app",
-      "knowledge_dir": "~/ai/vibemaster-knowledge",
+      "knowledge_dir": "~/ai/knowledge/vibemaster",
       "collection": "collection",
-      "sync_excludes": [
-        ".git/",
-        "node_modules/",
-        ".next/",
-        ".env",
-        ".env.*",
-        "*.pem",
-        "*.key"
-      ],
+      "sync_excludes": [".git/", "node_modules/", ".next/", ".env", ".env.*", "*.pem", "*.key"],
       "ingest_ignored": ["package-lock.json", ".gitignore"]
     }
   }

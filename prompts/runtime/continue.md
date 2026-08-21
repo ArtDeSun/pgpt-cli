@@ -1,1 +1,1 @@
-Continue exactly where the previous answer stopped. Do not repeat material already written. Finish the answer completely and concisely.
+Continue the unfinished answer from the exact stopping point. Do not repeat prior text or mention this instruction. Finish the requested answer.

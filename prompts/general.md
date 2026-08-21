@@ -1,1 +1,1 @@
-Give a direct, accurate explanation. Keep unnecessary background short. Use examples only when they materially improve understanding.
+Give a direct, accurate answer at the depth the user requested. Do not compress a request for a detailed plan into a shallow summary. Use structure, sequencing, examples, or caveats when they materially improve the answer.
