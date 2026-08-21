@@ -18,8 +18,14 @@ _TEMPLATE_TASK: dict[str, Task] = {
     "implement": "implement",
     "architecture": "architecture",
 }
-_SYMBOL_INTENT = re.compile(r"\b(?:explain|review|analyze|find|where|modify|change|update|fix|add|implement|refactor)\b", re.I)
-_CURRENT_QUESTION = re.compile(r"\b(?:who|what|when|where|which|winner|won|champion|result|released|version|price|status)\b", re.I)
+_SYMBOL_INTENT = re.compile(
+    r"\b(?:explain|why|debug|review|analyze|find|where|modify|change|update|fix|add|implement|refactor)\b",
+    re.I,
+)
+_CURRENT_QUESTION = re.compile(
+    r"\b(?:who|what|when|where|which|winner|won|champion|result|released|version|price|status)\b",
+    re.I,
+)
 
 
 def _matches(name: str, prompt: str) -> bool:
@@ -71,7 +77,9 @@ def resolve_route(
     current = _matches("current", prompt) or (_current_year_question(prompt) and not writing)
     named_project = bool(project_name and project_name.casefold() in prompt.casefold())
     symbol_project = bool(symbol_hit and _SYMBOL_INTENT.search(prompt))
-    project_evidence = bool(explicit_project or named_project or symbol_project or project_override is True)
+    project_evidence = bool(
+        explicit_project or named_project or symbol_project or project_override is True
+    )
     task = _task(
         prompt,
         symbol_hit=symbol_hit,

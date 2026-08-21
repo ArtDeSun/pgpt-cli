@@ -27,8 +27,7 @@ def _related(left: set[str], right: set[str]) -> bool:
 
 
 def _looks_like_followup(prompt: str) -> bool:
-    words = _WORD.findall(prompt)
-    return bool(_FOLLOWUP.search(prompt)) or len(words) <= 5
+    return bool(_FOLLOWUP.search(prompt))
 
 
 def _topic_tail(conversation: list[dict[str, str]], limit: int) -> list[dict[str, str]]:
