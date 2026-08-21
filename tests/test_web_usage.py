@@ -30,6 +30,29 @@ class TestWebUsage(unittest.TestCase):
         self.assertEqual(value["monthly_remaining"], 435)
         self.assertEqual(value["monthly_window_seconds"], 2592000)
 
+    def test_zero_monthly_limit_means_unlimited(self) -> None:
+        api = web_usage._api_quota({
+            "X-RateLimit-Limit": "1, 0",
+            "X-RateLimit-Remaining": "0, 0",
+            "X-RateLimit-Reset": "1, 1209600",
+            "X-RateLimit-Policy": "1;w=1, 0;w=2592000",
+        })
+        path = self.root / "brave_usage.json"
+        path.write_text(json.dumps({
+            "period": "2026-08",
+            "local_requests": 1,
+            "updated_at": None,
+            "api": api,
+        }), encoding="utf-8")
+        with patch.object(web_usage, "_state_path", return_value=path), patch.dict(
+            web_usage.CONFIG["web"], {"monthly_request_budget": 500}, clear=False
+        ):
+            snapshot = web_usage.usage_snapshot(self._now())
+            web_usage.ensure_search_budget()
+        self.assertTrue(snapshot["api_monthly_unlimited"])
+        self.assertIsNone(snapshot["api_monthly_used"])
+        self.assertEqual(snapshot["remaining"], 499)
+
     def test_usage_uses_api_count_when_higher(self) -> None:
         state = {
             "period": "2026-08",

@@ -130,11 +130,18 @@ def usage_snapshot(now: datetime | None = None) -> dict[str, Any]:
     api = state.get("api", {})
     if not isinstance(api, dict):
         api = {}
+
     api_limit = api.get("monthly_limit")
     api_remaining = api.get("monthly_remaining")
+    api_unlimited = isinstance(api_limit, int) and api_limit == 0
     api_used: int | None = None
-    if isinstance(api_limit, int) and isinstance(api_remaining, int):
+    if (
+        isinstance(api_limit, int)
+        and api_limit > 0
+        and isinstance(api_remaining, int)
+    ):
         api_used = max(0, api_limit - api_remaining)
+
     effective_requests = max(local_requests, api_used if api_used is not None else 0)
     remaining = max(0, budget - effective_requests) if budget > 0 else None
     warning_ratio = float(CONFIG.get("web", {}).get("budget_warning_ratio", 0.8))
@@ -144,11 +151,12 @@ def usage_snapshot(now: datetime | None = None) -> dict[str, Any]:
         "budget": budget,
         "local_requests": local_requests,
         "api_monthly_used": api_used,
+        "api_monthly_unlimited": api_unlimited,
         "effective_requests": effective_requests,
         "remaining": remaining,
         "warning": warning,
-        "api_monthly_limit": api.get("monthly_limit"),
-        "api_monthly_remaining": api.get("monthly_remaining"),
+        "api_monthly_limit": api_limit,
+        "api_monthly_remaining": api_remaining,
         "api_monthly_reset_seconds": api.get("monthly_reset_seconds"),
         "api_monthly_window_seconds": api.get("monthly_window_seconds"),
         "updated_at": state.get("updated_at"),
@@ -160,8 +168,15 @@ def ensure_search_budget() -> None:
     remaining = snapshot.get("remaining")
     if isinstance(remaining, int) and remaining <= 0:
         raise RuntimeError("Brave monthly request budget has been reached")
+
+    api_limit = snapshot.get("api_monthly_limit")
     api_remaining = snapshot.get("api_monthly_remaining")
-    if isinstance(api_remaining, int) and api_remaining <= 0:
+    if (
+        isinstance(api_limit, int)
+        and api_limit > 0
+        and isinstance(api_remaining, int)
+        and api_remaining <= 0
+    ):
         raise RuntimeError("Brave API reports no monthly requests remaining")
 
 

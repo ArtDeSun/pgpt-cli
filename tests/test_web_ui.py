@@ -29,8 +29,12 @@ class TestWebUI(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertIn(value, self.text)
 
-    def test_manual_controls(self) -> None:
+    def test_settings_and_manual_controls(self) -> None:
+        self.assertIn('id="controls" class="drawer"', self.text)
+        self.assertNotIn('id="controls" class="drawer open"', self.text)
         for value in (
+            "Routing & context",
+            "Capabilities",
             'id="projectMode"',
             "Force project",
             "Force lookup",
@@ -46,15 +50,17 @@ class TestWebUI(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertIn(value, self.text)
 
-    def test_rendering_streaming_and_feedback(self) -> None:
+    def test_rendering_streaming_feedback_and_trace(self) -> None:
         for value in (
-            ".md h1",
+            "renderMarkdown",
             "copy-code",
             "stream:true",
             ".body.getReader()",
             "e==='status'",
             "e==='replace'",
             "e==='done'",
+            "Run details",
+            "trace-events",
             ":hover",
             ":active",
             ":focus-visible",
@@ -63,10 +69,19 @@ class TestWebUI(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertIn(value, self.text)
 
-    def test_knowledge_and_web_usage(self) -> None:
-        self.assertIn("/api/knowledge/ingest", self.text)
-        self.assertIn("/api/web-usage", self.text)
-        self.assertIn("off · local-only", self.text)
+    def test_capability_status_and_brave_usage(self) -> None:
+        for value in (
+            "Ollama models",
+            "Brave Search",
+            "Project context",
+            "Skills",
+            "api_monthly_unlimited",
+            "/api/knowledge/ingest",
+            "/api/web-usage",
+            "Off · local-only",
+        ):
+            with self.subTest(value=value):
+                self.assertIn(value, self.text)
 
 
 if __name__ == "__main__":

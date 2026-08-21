@@ -75,7 +75,9 @@ Open `http://127.0.0.1:8765/`.
 
 The browser includes multiple chats, pinned/recents/search, attachments, saved responses, Markdown/code rendering, streaming, execution status, stop-generation, follow-up actions, and route/model metadata.
 
-### Controls
+### Settings and capabilities
+
+The main conversation now stays uncluttered. Open **Settings** only when you want to override Auto behavior. The drawer groups routing/context controls separately from capability status.
 
 | Control | Options | Effect |
 | --- | --- | --- |
@@ -88,6 +90,14 @@ The browser includes multiple chats, pinned/recents/search, attachments, saved r
 | Answer length | Auto / Short / Standard / Long | Controls output budget. |
 | Skill | Off / selected skill | Applies a task instruction manual. |
 | Reasoning | Auto / Deep / Normal | Controls the larger context mode. |
+
+The **Capabilities** section shows the current Ollama models, Brave status/quota state, configured project sources, and skills. This borrows the useful part of a plugin-first UI—capabilities are visible as independent surfaces—without adding an agent framework or a dynamic plugin kernel.
+
+### Run details
+
+Each assistant response has a collapsed **Run details** inspector. It records the observable execution facts already produced by pgpt: route/source/task, selected model, web/project selection, context/length controls, status events, and timing.
+
+It does **not** expose hidden chain-of-thought. The goal is operational traceability: you can see why a request used local/project/web and which model actually answered.
 
 ### Smart context
 
@@ -130,7 +140,29 @@ Then check:
 pgpt web-usage
 ```
 
+### Brave quota behavior
+
+Brave reports both short rate-limit windows and a monthly plan window. A Brave monthly limit of **`0` means unlimited**; pgpt therefore does not treat `limit=0, remaining=0` as an exhausted API plan.
+
+`monthly_request_budget` in `config.json` is a separate pgpt safety budget. The default is 500 requests/month even when the Brave plan itself is unlimited. The browser badge shows that local safety budget and marks an unlimited Brave API plan as `API ∞`.
+
+If a previous run stored `monthly_limit: 0` and `monthly_remaining: 0`, you do **not** need to delete the state file after this fix; the corrected interpretation applies when the state is read.
+
 An automatically chosen web route may degrade gracefully when offline and explicitly tells the model that live evidence was unavailable. A forced lookup/research or natural-language explicit web request instead returns a clear error if retrieval fails; it does not guess a current answer from local memory.
+
+## Harness-inspired design choices
+
+DeepSeek Harness is useful as a design reference, but `pgpt-cli` intentionally remains a simple local chat application rather than becoming an agent harness.
+
+The adopted ideas are:
+
+- **Capability boundaries:** model, web, project context, skills, sessions, and storage remain separate modules/configuration surfaces.
+- **Provider-style settings:** the UI shows the active local model capability and Brave web capability independently instead of hiding them behind Auto.
+- **Traceability:** observable routing, model selection, status events, and timing are inspectable per response.
+- **Clean conversation surface:** advanced controls live in Settings instead of occupying the whole top of the chat.
+- **Session-level choice:** manual model/web/project/context choices apply to the request without changing the routing architecture.
+
+Not adopted: subagents, model-generated tool orchestration, creator mode, dynamic runtime plugin loading, or exposing private model reasoning.
 
 ## Long responses
 
@@ -185,7 +217,7 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 git diff --check
 ```
 
-CI runs the suite on Python 3.11 and 3.13, validates browser JavaScript, and enforces the one-remote-branch rule. Coverage includes the 100+ routing policy dataset, NBA/current-year routing, smart history, model overrides, forced-web semantics, continuation behavior, server controls, knowledge-ingest safety, and browser controls.
+CI runs the suite on Python 3.11 and 3.13, validates browser JavaScript, and enforces the one-remote-branch rule. Coverage includes the 100+ routing policy dataset, NBA/current-year routing, smart history, model overrides, forced-web semantics, Brave unlimited-quota handling, continuation behavior, server controls, knowledge-ingest safety, run-details UI, and browser controls.
 
 The local-model routing acceptance suite is opt-in:
 
