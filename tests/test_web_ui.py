@@ -83,6 +83,24 @@ class TestWebUI(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertIn(value, self.text)
 
+    def test_activity_feedback_and_submit_contrast(self) -> None:
+        for value in (
+            "stageLabel",
+            "Thinking",
+            "Retrieving",
+            "Analyzing",
+            "Working",
+            "Reviewing",
+            "activity-indicator",
+            "@keyframes activityPulse",
+            'aria-live="polite"',
+            ".send{",
+            "background:var(--accent)",
+            "prefers-reduced-motion",
+        ):
+            with self.subTest(value=value):
+                self.assertIn(value, self.text)
+
 
 if __name__ == "__main__":
     unittest.main()
