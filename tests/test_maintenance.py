@@ -30,6 +30,26 @@ class TestMaintenance(unittest.TestCase):
             maintenance._redact("PGPT_BRAVE_API_KEY=actual-key"),
         )
 
+    def test_automatic_ingest_ignores_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".env").write_text("TOKEN=secret", encoding="utf-8")
+            (root / ".env.production").write_text("TOKEN=secret", encoding="utf-8")
+            (root / "client.key").write_text("secret", encoding="utf-8")
+            (root / "certificate.pem").write_text("secret", encoding="utf-8")
+            ignored = maintenance._automatic_ingest_ignores(root)
+            for name in (
+                ".ssh",
+                ".gnupg",
+                ".aws",
+                ".env",
+                ".env.production",
+                "client.key",
+                "certificate.pem",
+            ):
+                with self.subTest(name=name):
+                    self.assertIn(name, ignored)
+
     def test_zero_byte_name_without_collision_uses_direct_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -80,7 +100,25 @@ class TestMaintenance(unittest.TestCase):
             ):
                 self.assertEqual(ingest_root, root)
                 self.assertEqual(collisions, [])
-                self.assertEqual(ignored, ["same.md"])
+                self.assertIn("same.md", ignored)
+
+    def test_privategpt_runtime_data_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory) / "private-gpt-data"
+            child = runtime / "local_data"
+            child.mkdir(parents=True)
+            with patch.object(
+                maintenance,
+                "cfg_path",
+                side_effect=lambda name: runtime
+                if name == "pgpt_home"
+                else Path(directory),
+            ):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "PrivateGPT runtime data",
+                ):
+                    maintenance.resolve_knowledge_directory(str(child))
 
 
 if __name__ == "__main__":
