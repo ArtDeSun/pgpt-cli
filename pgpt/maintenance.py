@@ -25,7 +25,7 @@ from pgpt.generation.ollama import list_models
 _SENSITIVE_NAMES = {".ssh", ".gnupg", ".aws"}
 _SECRET_SUFFIXES = {".pem", ".key"}
 _SYSTEM_ROOTS = tuple(Path(value) for value in ("/etc", "/proc", "/sys", "/dev", "/boot"))
-_INGEST_HELPER = Path(__file__).resolve().parents[1] / "tools" / "privategpt_ingest_folder.py"
+_INGEST_HELPER = Path(__file__).resolve().with_name("privategpt_ingest.py")
 
 
 def _reachable(url: str, timeout: float = 1.0) -> bool:
