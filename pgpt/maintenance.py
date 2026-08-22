@@ -15,6 +15,7 @@ from pgpt.generation.ollama import list_models
 
 
 _SENSITIVE_NAMES = {".ssh", ".gnupg", ".aws"}
+_SECRET_SUFFIXES = {".pem", ".key"}
 _SYSTEM_ROOTS = tuple(Path(value) for value in ("/etc", "/proc", "/sys", "/dev", "/boot"))
 
 
@@ -60,6 +61,19 @@ def sync(project_name: str | None = None) -> None:
     cmd += [f"{source}/", f"{destination}/"]
     print(f"[sync] {project_name}: {source} -> {destination}")
     subprocess.run(cmd, check=True)
+
+
+def _automatic_ingest_ignores(root: Path) -> list[str]:
+    """Return basenames that should never be sent to a knowledge index."""
+    ignored = set(_SENSITIVE_NAMES)
+    for path in root.rglob("*"):
+        name = path.name
+        folded = name.casefold()
+        if folded == ".env" or folded.startswith(".env."):
+            ignored.add(name)
+        if path.is_file() and path.suffix.casefold() in _SECRET_SUFFIXES:
+            ignored.add(name)
+    return sorted(ignored)
 
 
 def _zero_byte_files(root: Path) -> list[Path]:
@@ -139,7 +153,7 @@ def _prepared_ingest(
     PrivateGPT's basename filtering and report the collision to the caller.
     """
 
-    configured = list(dict.fromkeys(configured))
+    configured = list(dict.fromkeys([*configured, *_automatic_ingest_ignores(root)]))
     zero_files = _zero_byte_files(root)
     zero_names = sorted({path.name for path in zero_files})
     collisions = _zero_byte_name_collisions(root, zero_files, configured)
@@ -220,6 +234,12 @@ def resolve_knowledge_directory(value: str) -> Path:
         raise ValueError(f"Path is not a directory: {root}")
     if root == Path(root.anchor):
         raise ValueError("Refusing to ingest a filesystem root")
+    home = Path.home().resolve()
+    if root in {home, home.parent}:
+        raise ValueError("Refusing to ingest a home-directory root")
+    pgpt_home = cfg_path("pgpt_home")
+    if root == pgpt_home or pgpt_home in root.parents:
+        raise ValueError("Refusing to ingest PrivateGPT runtime data")
     if any(root == base or base in root.parents for base in _SYSTEM_ROOTS):
         raise ValueError("Refusing to ingest a system directory")
     if any(part.casefold() in _SENSITIVE_NAMES for part in root.parts):
