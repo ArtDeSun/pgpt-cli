@@ -124,11 +124,18 @@ def privategpt_env() -> dict[str, str]:
     load_secrets()
     env = os.environ.copy()
     api_base = CONFIG["endpoints"]["openai_api_base"]
+    runtime_root = cfg_path("pgpt_home")
     env["OPENAI_API_BASE"] = api_base
     if not env.get("OPENAI_EMBEDDING_API_BASE"):
         env["OPENAI_EMBEDDING_API_BASE"] = api_base
-    env["PGPT_HOME"] = str(cfg_path("pgpt_home"))
+    env["PGPT_LOCAL_DATA_FOLDER"] = str(runtime_root / "private_gpt")
+    env["PGPT_QDRANT_PATH"] = str(runtime_root / "qdrant")
+    env["PGPT_CODE_EXECUTION_VOLUME_ROOT"] = str(runtime_root / "volumes")
     return env
+
+
+def _uv_privategpt_prefix() -> list[str]:
+    return ["uv", "run", "--python", "3.11", "--extra", "core"]
 
 
 def _ingest_command(
@@ -138,10 +145,7 @@ def _ingest_command(
     collection: str,
 ) -> list[str]:
     cmd = [
-        "uv",
-        "run",
-        "--extra",
-        "core",
+        *_uv_privategpt_prefix(),
         "python",
         str(_INGEST_HELPER),
         str(root),
@@ -326,10 +330,7 @@ def _redact(line: str) -> str:
 
 def serve() -> None:
     cmd = [
-        "uv",
-        "run",
-        "--extra",
-        "core",
+        *_uv_privategpt_prefix(),
         "private-gpt",
         "serve",
         "--host",
