@@ -30,7 +30,7 @@ class TestMaintenance(unittest.TestCase):
             maintenance._redact("PGPT_BRAVE_API_KEY=actual-key"),
         )
 
-    def test_privategpt_env_matches_current_upstream_quickstart(self) -> None:
+    def test_privategpt_env_matches_current_upstream_settings(self) -> None:
         with (
             patch.dict(maintenance.os.environ, {}, clear=True),
             patch.object(maintenance, "load_secrets"),
@@ -49,8 +49,23 @@ class TestMaintenance(unittest.TestCase):
             env["OPENAI_EMBEDDING_API_BASE"],
             maintenance.CONFIG["endpoints"]["openai_api_base"],
         )
-        self.assertEqual(env["PGPT_HOME"], "/tmp/private-gpt-data")
+        self.assertEqual(
+            env["PGPT_LOCAL_DATA_FOLDER"],
+            "/tmp/private-gpt-data/private_gpt",
+        )
+        self.assertEqual(env["PGPT_QDRANT_PATH"], "/tmp/private-gpt-data/qdrant")
+        self.assertEqual(
+            env["PGPT_CODE_EXECUTION_VOLUME_ROOT"],
+            "/tmp/private-gpt-data/volumes",
+        )
+        self.assertNotIn("PGPT_HOME", env)
         self.assertNotIn("PGPT_PROFILES", env)
+
+    def test_privategpt_commands_pin_python_311_and_core_extra(self) -> None:
+        self.assertEqual(
+            maintenance._uv_privategpt_prefix(),
+            ["uv", "run", "--python", "3.11", "--extra", "core"],
+        )
 
     def test_ingest_command_uses_collection_aware_helper(self) -> None:
         command = maintenance._ingest_command(
@@ -59,8 +74,11 @@ class TestMaintenance(unittest.TestCase):
             True,
             "notes-v1",
         )
-        self.assertEqual(command[:3], ["uv", "run", "python"])
-        self.assertEqual(command[3], str(maintenance._INGEST_HELPER))
+        self.assertEqual(
+            command[:7],
+            ["uv", "run", "--python", "3.11", "--extra", "core", "python"],
+        )
+        self.assertEqual(command[7], str(maintenance._INGEST_HELPER))
         self.assertIn("--collection", command)
         self.assertIn("notes-v1", command)
         self.assertIn("--ignored", command)
