@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from pgpt import maintenance
@@ -29,6 +30,16 @@ class TestMaintenance(unittest.TestCase):
             "actual-key",
             maintenance._redact("PGPT_BRAVE_API_KEY=actual-key"),
         )
+
+    def test_collection_name_validation(self) -> None:
+        self.assertEqual(maintenance._collection_name(None, "notes"), "notes")
+        self.assertEqual(maintenance._collection_name(" notes-v1 ", "notes"), "notes-v1")
+        with self.assertRaises(ValueError):
+            maintenance._collection_name("   ", "notes")
+        with self.assertRaises(ValueError):
+            maintenance._collection_name("x" * 256, "notes")
+        with self.assertRaises(ValueError):
+            maintenance._collection_name(42, "notes")
 
     def test_privategpt_env_matches_current_upstream_settings(self) -> None:
         with (
@@ -84,6 +95,26 @@ class TestMaintenance(unittest.TestCase):
         self.assertIn("--ignored", command)
         self.assertIn(".env", command)
         self.assertEqual(command[-1], "--watch")
+
+    def test_project_ingest_propagates_privategpt_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = {
+                "knowledge_dir": directory,
+                "ingest_ignored": [],
+                "collection": "notes-v1",
+            }
+            with (
+                patch.object(maintenance, "get_project", return_value=("notes", project)),
+                patch.object(
+                    maintenance.subprocess,
+                    "run",
+                    return_value=SimpleNamespace(returncode=7),
+                ),
+                patch.object(maintenance, "privategpt_env", return_value={}),
+                patch.object(maintenance, "cfg_path", return_value=Path(directory)),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "exit code 7"):
+                    maintenance.ingest("notes")
 
     def test_automatic_ingest_ignores_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
