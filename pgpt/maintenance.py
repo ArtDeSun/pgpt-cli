@@ -10,7 +10,15 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Iterator
 
-from pgpt.config import CONFIG, cfg_path, expand, get_project, load_secrets, save_user_project
+from pgpt.config import (
+    CONFIG,
+    cfg_path,
+    expand,
+    get_project,
+    load_secrets,
+    save_user_project,
+    validate_user_project_name,
+)
 from pgpt.generation.ollama import list_models
 
 
@@ -258,6 +266,7 @@ def ingest_directory(
     on_line: Callable[[str], None] | None = None,
 ) -> int:
     """Register and ingest a user-selected folder without changing PrivateGPT source."""
+    validate_user_project_name(project_name)
     root = resolve_knowledge_directory(path)
     configured = list(ignored or [])
     with _prepared_ingest(root, configured) as (
