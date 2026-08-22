@@ -36,9 +36,22 @@ def _reachable(url: str, timeout: float = 1.0) -> bool:
         return False
 
 
+def _privategpt_models_url() -> str:
+    return CONFIG["endpoints"]["private_gpt"].rstrip("/") + "/v1/models"
+
+
+def _ensure_privategpt_stopped_for_local_ingest() -> None:
+    if _reachable(_privategpt_models_url(), timeout=0.25):
+        raise RuntimeError(
+            "PrivateGPT is already running. Stop `pgpt serve` before local folder "
+            "ingestion so the ingestion helper and server do not open the same "
+            "file-backed Qdrant state concurrently."
+        )
+
+
 def status() -> None:
     ollama = CONFIG["endpoints"]["ollama"].rstrip("/") + "/api/tags"
-    private_gpt = CONFIG["endpoints"]["private_gpt"].rstrip("/") + "/v1/models"
+    private_gpt = _privategpt_models_url()
     server = CONFIG.get("server", {})
     host = str(server.get("host", "127.0.0.1"))
     port = int(server.get("port", 8765))
@@ -227,6 +240,7 @@ def _prepared_ingest(
 
 
 def ingest(project_name: str | None = None, watch: bool = False) -> None:
+    _ensure_privategpt_stopped_for_local_ingest()
     project_name, project = get_project(project_name)
     root = expand(project["knowledge_dir"])
     configured = list(project.get("ingest_ignored", []))
@@ -295,6 +309,7 @@ def ingest_directory(
     on_line: Callable[[str], None] | None = None,
 ) -> int:
     """Register and ingest a user-selected folder without changing PrivateGPT source."""
+    _ensure_privategpt_stopped_for_local_ingest()
     normalized = validate_user_project_name(project_name)
     root = resolve_knowledge_directory(path)
     configured = list(ignored or [])
