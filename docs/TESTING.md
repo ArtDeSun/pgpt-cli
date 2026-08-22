@@ -40,8 +40,8 @@ This intentionally tests the real small-model classifier rather than a mocked de
 13. **Zero-byte basename collision** — create `old/example.md` as zero bytes and `current/example.md` with content, then ingest the parent folder once. Confirm pgpt reports a temporary filtered staging tree and PrivateGPT still receives the valid `current/example.md`.
 14. **Sensitive nested files** — add nested `.env`, `.env.production`, `.pem`, `.key`, `.ssh`, `.gnupg`, and `.aws` entries and confirm they are not ingested.
 15. **Symlink boundary** — add a symlink pointing outside the selected knowledge tree and confirm pgpt does not follow or ingest it.
-16. **PrivateGPT runtime boundary** — start PrivateGPT through `pgpt serve`, ingest a small folder, then confirm generated PrivateGPT state appears under `~/ai/private-gpt-data/private_gpt`, `~/ai/private-gpt-data/qdrant`, or `~/ai/private-gpt-data/volumes`, not as new runtime state inside `~/ai/private-gpt`.
-17. **PrivateGPT Workbench** — confirm `pgpt server` works without PrivateGPT. When `pgpt serve` is running, the separate upstream Workbench is available at `http://127.0.0.1:8080/ui` if upstream UI hosting is enabled.
+16. **PrivateGPT runtime boundary** — with `pgpt serve` stopped, ingest a small folder, then confirm generated PrivateGPT state and its uv environment appear under `~/ai/private-gpt-data`, not as new runtime state inside `~/ai/private-gpt`.
+17. **PrivateGPT Workbench** — after ingestion finishes, start `pgpt serve` and confirm the separate upstream Workbench is available at `http://127.0.0.1:8080/ui` if upstream UI hosting is enabled. Confirm `pgpt server` remains independently usable without PrivateGPT.
 
 ## Real-service PrivateGPT prerequisites
 
@@ -54,13 +54,15 @@ uv python install 3.11
 ollama pull mxbai-embed-large
 ```
 
-The pgpt wrapper should construct PrivateGPT commands with this prefix:
+The pgpt wrapper constructs PrivateGPT commands with this prefix:
 
 ```text
 uv run --python 3.11 --extra core
 ```
 
 PrivateGPT's current settings use `OPENAI_API_BASE` and `OPENAI_EMBEDDING_API_BASE`; pgpt points both at the configured local Ollama `/v1` endpoint unless an embedding endpoint is already explicitly present in the environment.
+
+pgpt also sets `UV_PROJECT_ENVIRONMENT=~/ai/private-gpt-data/venv` and redirects PrivateGPT local data, Qdrant state, and code-execution volumes beneath `~/ai/private-gpt-data`. This keeps the upstream checkout clean.
 
 ## Real-service release checks
 
@@ -83,7 +85,7 @@ time pgpt ask --project pgpt-cli \
   "Explain how resolve_route works in this project."
 ```
 
-Then start the UI:
+Then start the pgpt UI:
 
 ```bash
 pgpt server
@@ -91,13 +93,7 @@ pgpt server
 
 Open `http://127.0.0.1:8765/` and exercise a new chat, stop-generation, a project question, a web question, an attachment, a saved response, and Run details.
 
-For the optional PrivateGPT path:
-
-```bash
-pgpt serve
-```
-
-In another terminal, ingest a small non-sensitive test tree:
+For the optional PrivateGPT ingestion path, first ensure `pgpt serve` is **not** running, then ingest a small non-sensitive test tree:
 
 ```bash
 pgpt knowledge-add /absolute/path/to/test-notes \
@@ -105,7 +101,23 @@ pgpt knowledge-add /absolute/path/to/test-notes \
   --collection test-notes
 ```
 
-Check that `~/ai/private-gpt` remains a source checkout and that generated vector/runtime data is under `~/ai/private-gpt-data`.
+The local ingestion helper and a running PrivateGPT server can both open the same local Qdrant state, so do not run them concurrently when using the default file-backed Qdrant configuration.
+
+After ingestion completes, start PrivateGPT separately:
+
+```bash
+pgpt serve
+```
+
+Check that `~/ai/private-gpt` remains a source checkout and that generated state is under:
+
+```text
+~/ai/private-gpt-data/
+├── venv/
+├── private_gpt/
+├── qdrant/
+└── volumes/
+```
 
 ## End-to-end quality
 
