@@ -69,12 +69,17 @@ def get_project(name: str | None = None) -> tuple[str, dict[str, Any]]:
         raise SystemExit(f"Unknown project: {project_name}") from exc
 
 
-def save_user_project(name: str, source_dir: str, *, collection: str | None = None) -> dict[str, Any]:
+def validate_user_project_name(name: str) -> str:
     normalized = name.strip().casefold()
     if not _PROJECT_NAME.fullmatch(normalized):
         raise ValueError("Project names may contain lowercase letters, numbers, and hyphens only")
     if normalized in CONFIG.get("projects", {}):
         raise ValueError(f"Built-in project already exists: {normalized}")
+    return normalized
+
+
+def save_user_project(name: str, source_dir: str, *, collection: str | None = None) -> dict[str, Any]:
+    normalized = validate_user_project_name(name)
     root = expand(source_dir)
     if not root.is_dir():
         raise ValueError(f"Project directory does not exist: {root}")
