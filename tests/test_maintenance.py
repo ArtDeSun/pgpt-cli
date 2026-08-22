@@ -106,6 +106,7 @@ class TestMaintenance(unittest.TestCase):
             }
             with (
                 patch.object(maintenance, "get_project", return_value=("notes", project)),
+                patch.object(maintenance, "_reachable", return_value=False),
                 patch.object(
                     maintenance.subprocess,
                     "run",
