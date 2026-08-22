@@ -1,23 +1,21 @@
 # pgpt-cli
 
-`pgpt-cli` is a local-first ChatGPT-style assistant for WSL. Ollama generates answers, direct project-source retrieval handles code/project questions, Brave supplies current public information and research, and PrivateGPT is an optional durable RAG layer.
+`pgpt-cli` is a local-first ChatGPT-style assistant for WSL. Ollama generates answers, direct source retrieval handles registered code/project contexts, Brave supplies current public information and research, and PrivateGPT is an optional durable RAG/indexing layer.
 
-The operating rule is: **Auto should normally work, but the browser exposes authoritative manual overrides for every high-impact decision.**
+The operating rule is: **Auto should normally work, but user context, PrivateGPT runtime state, and internal pgpt test projects must remain separate.**
 
 ## Architecture
 
 ```text
 Terminal: pgpt ask/chat          Browser: http://127.0.0.1:8765
             \                              /
-             \                            /
-              +------ pgpt-cli API ------+
+             +--------- pgpt-cli ---------+
                          |
-               routing + context policy
+                 routing + context
+                   /       |       \
                   /        |        \
-                 /         |         \
-        direct project    Brave      local skills/history
-           source          web
-                 \         |         /
+      registered source   Brave    skills/history
+             folders       web
                   \        |        /
                        Ollama
                          |
@@ -25,59 +23,61 @@ Terminal: pgpt ask/chat          Browser: http://127.0.0.1:8765
                          |
                        answer
 
-Optional durable RAG path
+Optional durable indexing
 -------------------------
-local folder -> pgpt collection-aware ingest helper
-             -> PrivateGPT IngestService
-             -> ~/ai/private-gpt-data
+registered source folder
+        -> pgpt PrivateGPT ingest helper
+        -> PrivateGPT IngestService
+        -> ~/ai/private-gpt-data
 ```
 
-PrivateGPT is **not** the normal pgpt answer-generation frontend. Normal chat, project-source retrieval, Brave, skills, routing, and verification remain pgpt-native.
+PrivateGPT runtime directories are **not** project/context directories and are never scanned to populate the project selector.
 
-## Existing `~/ai` layout
+## Filesystem boundaries
 
-You do **not** need to reorganize your existing folders:
+A normal WSL layout is:
 
 ```text
 ~/ai/
 ├── pgpt-cli/                 # this repository
 ├── private-gpt/              # upstream PrivateGPT source checkout
-├── private-gpt-data/         # generated PrivateGPT runtime/vector/env state
-└── vibemaster-knowledge/     # current VibeMaster source/snapshot
+└── private-gpt-data/         # generated PrivateGPT runtime/vector/env state
 ```
 
-`config.json` points the built-in `vibemaster` project at `~/ai/vibemaster-knowledge`.
-
-For `pgpt-cli` itself, `pgpt sync --project pgpt-cli` may create this optional sanitized snapshot:
+User-selectable contexts live wherever you choose. Their authoritative registry is:
 
 ```text
-~/ai/knowledge/pgpt-cli
+~/.config/pgpt/projects.json
 ```
 
-That is additive. You do not need to move your repositories under `~/ai/knowledge`.
-
-Personal pgpt state remains outside the repositories:
+Personal pgpt state is:
 
 ```text
 ~/.config/pgpt/
-├── projects.json
+├── projects.json             # authoritative user context registry
 ├── secrets.env
 └── skills/
 ```
 
-Keep these boundaries:
+PrivateGPT-generated state is kept under:
 
 ```text
-private-gpt/       upstream software/source code
-private-gpt-data/  generated PrivateGPT runtime/vector/env state
-pgpt-cli/          pgpt application source
-vibemaster-knowledge/
-                   current VibeMaster source/snapshot
+~/ai/private-gpt-data/
+├── venv/
+├── private_gpt/
+├── qdrant/
+└── volumes/
 ```
 
-Do not use `private-gpt-data` as an ingestion source.
+An older installation may also contain:
 
-## Pull and install pgpt-cli
+```text
+~/ai/private-gpt-data/local_data/private_gpt/
+```
+
+That is legacy runtime/index state. pgpt reports it when present but ignores it for context discovery. Do not use either `private-gpt-data/private_gpt` or `private-gpt-data/local_data/private_gpt` as context sources.
+
+## Pull and install
 
 ```bash
 cd ~/ai/pgpt-cli
@@ -90,7 +90,7 @@ pgpt status
 pgpt models
 ```
 
-Recommended local answer/router models:
+Recommended local models:
 
 ```bash
 ollama pull qwen3:1.7b
@@ -106,9 +106,69 @@ general/research answers       llama3.2:3b when available
 code/debug/implementation      qwen2.5-coder:3b when available
 ```
 
+## Register context folders
+
+Direct project retrieval does not require PrivateGPT. Register a real source folder with:
+
+```bash
+pgpt context-add /absolute/path/to/project \
+  --name my-project
+```
+
+This writes the context entry to `~/.config/pgpt/projects.json`. The source folder remains in place; pgpt does not copy it into `private-gpt-data`.
+
+Example registry:
+
+```json
+{
+  "my-project": {
+    "source_dir": "/home/user/ai/my-project",
+    "knowledge_dir": "/home/user/ai/my-project",
+    "collection": "my-project",
+    "sync_excludes": [],
+    "ingest_ignored": [],
+    "sync_required": false,
+    "user_managed": true
+  }
+}
+```
+
+The browser **Project** selector contains only entries from this user registry. Internal `pgpt-cli` fixtures and PrivateGPT storage directories do not appear there.
+
+## Auto project routing
+
+Auto is neutral. An unspecified request no longer silently defaults to the `pgpt-cli` repository.
+
+Automatic context selection considers only registered user contexts and requires an unambiguous match:
+
+```text
+explicit registered context name   -> that context
+unique matching code symbol         -> that context
+"my project" + exactly one context -> that context
+ambiguous/no match                  -> no project context
+```
+
+For a manual override:
+
+```bash
+pgpt ask --project my-project --context \
+  "Explain how renderCard works."
+```
+
+In the browser, **Force project** makes the selected project authoritative. Auto and Off do not treat the visible dropdown value as an implicit project choice.
+
+Validate routing without generating an answer:
+
+```bash
+pgpt validate --web off "What is dependency injection?"
+pgpt validate --web off "Explain renderCard in my project."
+```
+
+The validation JSON includes `selected_project` so the source choice is visible.
+
 ## Browser
 
-Start pgpt:
+Start the pgpt browser/API:
 
 ```bash
 pgpt server
@@ -124,62 +184,37 @@ The browser includes multiple chats, pinned/recents/search, attachments, saved r
 
 ### Settings
 
-The main conversation stays uncluttered. Open **Settings** only when you want to override Auto behavior.
-
 | Control | Options | Effect |
 | --- | --- | --- |
-| Project routing | Auto / Off / Force project | Prevent or force project retrieval. |
-| Project | configured project | Chooses the project source. |
-| Web | Auto / Off / Force lookup / Force research | Forced web never silently falls back to an ungrounded local guess. |
-| Model | Auto / installed Ollama model | Explicit model always wins. |
+| Project routing | Auto / Off / Force project | Auto may select one registered context; Off prevents project retrieval; Force uses the selected context. |
+| Project | registered user context | User registry only; internal/runtime folders are excluded. |
+| Web | Auto / Off / Force lookup / Force research | Forced web never silently falls back to an ungrounded current-information guess. |
+| Model | Auto / installed Ollama model | Explicit model wins. |
 | Task | Auto / General / Explain code / Debug / Implement / Architecture / Research | Overrides task/template routing. |
 | Chat context | Smart / Full recent / Off | Controls conversation history. |
 | Answer length | Auto / Short / Standard / Long | Controls output budget. |
 | Skill | Off / selected skill | Applies a task instruction manual. |
 | Reasoning | Auto / Deep / Normal | Controls the larger context mode. |
 
-The **Capabilities** section shows current Ollama models, Brave status/quota state, configured project sources, and skills.
+The API metadata also reports the authoritative registry path, PrivateGPT runtime root, registered source paths, source existence, and any detected legacy PrivateGPT runtime tree.
 
 ### Run details
 
-Each assistant response has a collapsed **Run details** inspector containing observable execution facts: route/source/task, selected model, web/project selection, context/length controls, status events, and timing.
-
-It does not expose hidden chain-of-thought.
-
-### Smart context
-
-`Smart` is the default. It preserves relevant follow-ups while dropping unrelated older topics. `Full recent` deliberately sends recent history; `Off` starts clean except for an explicitly selected skill.
+Each assistant response has a collapsed **Run details** inspector containing observable execution facts: route/source/task, selected model, web/project selection, status events, and timing. It does not expose hidden chain-of-thought.
 
 ## Routing and web behavior
 
 With controls on Auto:
 
 ```text
-stable/general question     -> local Ollama
-project evidence/request    -> direct project-source retrieval
-current public fact         -> Brave lookup
-explicit web request        -> Brave lookup
-multi-source research       -> Brave research
+stable/general question       -> local Ollama
+unambiguous project evidence  -> direct registered-source retrieval
+current public fact           -> Brave lookup
+explicit web request          -> Brave lookup
+multi-source research         -> Brave research
 ```
 
-High-confidence routing is deterministic. Only ambiguous general freshness decisions use the small Ollama classifier. Current-year public-result questions are treated as current, and a coincidental project symbol hit is not enough to hijack an unrelated public question.
-
-Examples:
-
-```bash
-pgpt validate "What is dependency injection?"
-pgpt validate "Who won the 2026 NBA championship?"
-pgpt validate "Explain your own source code and routing."
-pgpt validate "Look up this npm error on the web and explain the likely cause."
-```
-
-For Brave, create:
-
-```text
-~/.config/pgpt/secrets.env
-```
-
-with:
+For Brave, create `~/.config/pgpt/secrets.env` with:
 
 ```text
 PGPT_BRAVE_API_KEY=...
@@ -191,67 +226,20 @@ Then check:
 pgpt web-usage
 ```
 
-A Brave monthly plan limit of `0` is treated as unlimited. `monthly_request_budget` in `config.json` is a separate pgpt-side safety budget.
+A forced lookup/research or natural-language explicit web request returns a retrieval error instead of silently guessing when live retrieval is unavailable.
 
-An automatically chosen web route may degrade gracefully when offline and explicitly reports that live evidence was unavailable. A forced lookup/research or natural-language explicit web request instead returns a clear retrieval error rather than silently guessing a current answer locally.
+## Optional PrivateGPT indexing
 
-## Projects and direct source retrieval
+PrivateGPT is optional for normal source-aware chat. Use it when you specifically want durable RAG/indexed knowledge.
 
-Normal project/code questions read the selected source tree directly. They do **not** require PrivateGPT or a vector index.
-
-```bash
-pgpt ask --project pgpt-cli \
-  "Explain how resolve_route works."
-
-pgpt ask --project vibemaster \
-  "Explain the YouTube metadata handling in this project."
-```
-
-Direct retrieval excludes common generated/dependency directories, credentials directories, and symlink files. The built-in `pgpt-cli-history` fixture remains available to tests as a self-contained historical retrieval target.
-
-## Optional PrivateGPT setup
-
-The current upstream PrivateGPT checkout requires Python 3.11. pgpt therefore invokes PrivateGPT through `uv` with an explicit Python 3.11 and the upstream `core` extra.
-
-Make sure `uv` is installed and Python 3.11 is available:
+The current upstream PrivateGPT checkout requires Python 3.11. pgpt invokes it through `uv` with an explicit Python 3.11 and the upstream `core` extra.
 
 ```bash
 uv python install 3.11
-```
-
-PrivateGPT also needs an embedding-capable Ollama model for durable ingestion. A practical choice matching its current default 1024-dimensional vector configuration is:
-
-```bash
 ollama pull mxbai-embed-large
 ```
 
-pgpt starts the current upstream PrivateGPT CLI approximately as:
-
-```text
-uv run --python 3.11 --extra core private-gpt serve --host 127.0.0.1
-```
-
-and points both PrivateGPT's LLM and embedding OpenAI-compatible endpoints at your local Ollama `/v1` endpoint.
-
-### PrivateGPT runtime state
-
-Current PrivateGPT and `uv` normally create local runtime/environment state around the project being run. pgpt redirects the relevant paths so generated state does not pollute `~/ai/private-gpt`.
-
-pgpt redirects them under:
-
-```text
-~/ai/private-gpt-data/
-├── venv/                     # uv environment for the PrivateGPT checkout
-├── private_gpt/              # PrivateGPT local data
-├── qdrant/                   # local Qdrant vector state
-└── volumes/                  # local code-execution volume state
-```
-
-The upstream source checkout remains source code only.
-
-## Add any knowledge folder
-
-The browser's **Add knowledge folder** action and this CLI command use the same pgpt ingestion path:
+Register and index a folder through PrivateGPT with:
 
 ```bash
 pgpt knowledge-add /absolute/path/to/notes \
@@ -259,100 +247,38 @@ pgpt knowledge-add /absolute/path/to/notes \
   --collection notes
 ```
 
-Optional basename ignores can be repeated:
+`knowledge-add` validates the folder, rejects system/home/runtime/credential roots, protects sensitive files, uses a collection-aware pgpt helper, preserves path-aware artifact IDs, and registers the user context only after successful ingestion.
 
-```bash
-pgpt knowledge-add /absolute/path/to/notes \
-  --name notes \
-  --ignore scratch.txt \
-  --ignore generated.md
-```
-
-pgpt:
-
-1. validates the project and collection names before starting an expensive ingestion job;
-2. validates that the path is a readable directory;
-3. rejects filesystem/home roots, PrivateGPT runtime data, and common credentials directories;
-4. automatically excludes nested `.ssh`, `.gnupg`, `.aws`, `.env`, `.env.*`, `*.pem`, and `*.key` entries;
-5. skips symlinks rather than following them into another tree;
-6. runs a pgpt-owned collection-aware helper inside PrivateGPT's Python environment;
-7. calls PrivateGPT's `IngestService` rather than modifying the upstream PrivateGPT checkout;
-8. preserves the requested PrivateGPT collection name instead of relying on upstream `scripts/ingest_folder.py`'s hard-coded default collection;
-9. stores path-aware artifact IDs so same-named files in different directories do not overwrite one another;
-10. registers the project in `~/.config/pgpt/projects.json` only after successful ingestion;
-11. propagates ingestion failures instead of reporting a false success.
+For direct retrieval without indexing, use `context-add` instead.
 
 ### Local Qdrant sequencing
 
-With the default file-backed Qdrant configuration, do **not** run `pgpt knowledge-add` or `pgpt ingest` concurrently with `pgpt serve`. Both processes can open the same local Qdrant state.
-
-Use this sequence:
+With the default file-backed Qdrant configuration, do not run `pgpt knowledge-add` or `pgpt ingest` concurrently with `pgpt serve`.
 
 ```text
 1. Stop pgpt serve if it is running.
 2. Run pgpt knowledge-add ... or pgpt ingest ...
 3. Wait for ingestion to finish.
-4. Start pgpt serve when you want the PrivateGPT Workbench/API.
+4. Start pgpt serve when you need PrivateGPT.
 ```
 
-The normal pgpt browser server (`pgpt server`) is independent and does not create this Qdrant conflict.
-
-### Zero-byte source cleanup
-
-PrivateGPT ignore rules are basename-oriented. A naive workaround for empty files can therefore hide a valid file elsewhere with the same basename.
-
-For example:
+The normal browser server, `pgpt server`, is independent from this Qdrant conflict.
 
 ```text
-source/
-├── old/example.md        0 bytes
-└── current/example.md    valid content
-```
-
-For one-shot ingestion, pgpt detects this collision and builds a temporary filtered staging tree containing the valid file but not the zero-byte path. The original source tree is not modified, and the staging tree is deleted afterward.
-
-When there is no basename collision, pgpt keeps the faster direct-ingestion path and adds the empty basenames to the ignore set.
-
-`--watch` cannot use a temporary snapshot because later source changes would not be mirrored into it. In the rare watched-ingestion collision case, pgpt prints an explicit warning and retains basename filtering.
-
-## Existing project sync / ingestion
-
-The project-oriented maintenance commands remain:
-
-```bash
-# create/update optional sanitized pgpt-cli snapshot
-pgpt sync --project pgpt-cli
-
-# ingest it into its configured PrivateGPT collection
-pgpt ingest --project pgpt-cli
-
-# VibeMaster already points directly at its source/snapshot
-pgpt sync --project vibemaster
-pgpt ingest --project vibemaster
-
-# optional watched ingestion
-pgpt ingest --project pgpt-cli --watch
-```
-
-For `vibemaster`, sync is intentionally a no-op because its source and knowledge directory are already the same configured folder.
-
-```text
-pgpt server   -> pgpt browser/API; normal everyday workflow
+pgpt server   -> pgpt browser/API; normal workflow
 pgpt serve    -> PrivateGPT server; optional RAG/compatibility workflow
 ```
 
-## PrivateGPT's own UI
+## Existing internal projects
 
-PrivateGPT has its own Workbench, separate from the pgpt browser.
+The repository keeps hidden internal project entries for pgpt maintenance/evaluation, including `pgpt-cli` and the historical test fixture. They remain available when explicitly requested by development tooling, but they are not user-selectable browser contexts and are not candidates for Auto user-project selection.
 
-When `pgpt serve` is running and upstream UI hosting is enabled:
+For example, repository development can still explicitly run:
 
-```text
-http://127.0.0.1:8080/ui      PrivateGPT Workbench
-http://127.0.0.1:8765/        pgpt browser
+```bash
+pgpt ask --project pgpt-cli --context \
+  "Explain resolve_route."
 ```
-
-The Workbench is an upstream PrivateGPT API demonstrator. pgpt does not patch or depend on its HTML.
 
 ## Skills
 
@@ -367,25 +293,6 @@ pgpt skills
 pgpt ask --skill music-business "Evaluate this plan."
 ```
 
-Skills are intentionally plain files with a small, inspectable contract. The repository does not grant the model unrestricted filesystem/process tools.
-
-## Harness-inspired design choices
-
-Adopted ideas:
-
-- capability boundaries between model, web, project context, skills, sessions, and storage;
-- provider-style settings rather than hiding everything behind Auto;
-- per-response routing/model/status/timing traceability;
-- advanced controls in Settings rather than cluttering the chat surface;
-- explicit session-level model/web/project/context overrides;
-- a clear future boundary for process/filesystem tools instead of implicit unrestricted agent access.
-
-Not adopted today: subagents, unrestricted model-generated tool orchestration, dynamic runtime plugin loading, or exposure of private model reasoning.
-
-## Long responses
-
-When Ollama stops because of the output-length budget, pgpt can issue bounded continuations while hiding its internal continuation instruction. For large plans and analyses, choose **Answer length → Long**. Use **Full recent** or **Deep** only when additional context is useful.
-
 ## VS Code / WSL
 
 `pgpt server` exposes an OpenAI-compatible endpoint:
@@ -394,28 +301,7 @@ When Ollama stops because of the output-length budget, pgpt can issue bounded co
 http://127.0.0.1:8765/v1
 ```
 
-See:
-
-```text
-docs/continue-config.yaml
-docs/VS_CODE.md
-```
-
-Intended path:
-
-```text
-VS Code Remote WSL
-        |
-     Continue
-        |
-http://127.0.0.1:8765/v1
-        |
-     pgpt-cli
-        |
-routing + direct project retrieval + Brave + skills + verification
-        |
-      Ollama
-```
+See `docs/continue-config.yaml` and `docs/VS_CODE.md`.
 
 ## Tests
 
@@ -427,11 +313,9 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 git diff --check
 ```
 
-CI runs on Python 3.11 and 3.13, validates browser JavaScript, and enforces the one-remote-branch rule.
+CI runs on Python 3.11 and 3.13, validates browser JavaScript, enforces the one-remote-branch rule, and runs the full offline unit suite.
 
-Coverage includes the routing policy dataset, current-year routing, smart history, model overrides, forced-web semantics, Brave quota handling, continuation behavior, project retrieval safety, knowledge-ingest safety, zero-byte basename collisions, PrivateGPT runtime-path isolation, collection-aware ingestion, path-aware artifact IDs, ingestion failure propagation, run-details UI, and browser controls.
-
-The real local-router acceptance suite is opt-in because GitHub-hosted CI has no Ollama daemon:
+The real local-router acceptance suite remains opt-in because GitHub-hosted CI has no Ollama daemon:
 
 ```bash
 PGPT_RUN_LOCAL_MODEL_TESTS=1 \
