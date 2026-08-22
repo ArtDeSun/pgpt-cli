@@ -42,16 +42,42 @@ def _load_user_projects() -> dict[str, dict[str, Any]]:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
-    return {
-        str(name): project
-        for name, project in value.items()
-        if isinstance(name, str) and isinstance(project, dict)
-    } if isinstance(value, dict) else {}
+    return (
+        {
+            str(name): project
+            for name, project in value.items()
+            if isinstance(name, str) and isinstance(project, dict)
+        }
+        if isinstance(value, dict)
+        else {}
+    )
+
+
+def user_projects() -> dict[str, dict[str, Any]]:
+    """Return only user-registered context folders.
+
+    PrivateGPT runtime/index folders are deliberately not a project registry. The
+    persistent user-facing registry is ~/.config/pgpt/projects.json.
+    """
+
+    return {name: dict(value) for name, value in _load_user_projects().items()}
+
+
+def user_project_names() -> list[str]:
+    return sorted(user_projects())
 
 
 def projects(*, include_hidden: bool = True) -> dict[str, dict[str, Any]]:
-    merged = {str(name): dict(value) for name, value in CONFIG.get("projects", {}).items()}
-    merged.update(_load_user_projects())
+    """Return built-in/internal projects plus the user registry.
+
+    Internal projects remain available to explicit CLI maintenance and tests,
+    while browser/automatic project selection uses user_projects() instead.
+    """
+
+    merged = {
+        str(name): dict(value) for name, value in CONFIG.get("projects", {}).items()
+    }
+    merged.update(user_projects())
     if include_hidden:
         return merged
     return {name: value for name, value in merged.items() if not value.get("hidden")}
@@ -72,13 +98,20 @@ def get_project(name: str | None = None) -> tuple[str, dict[str, Any]]:
 def validate_user_project_name(name: str) -> str:
     normalized = name.strip().casefold()
     if not _PROJECT_NAME.fullmatch(normalized):
-        raise ValueError("Project names may contain lowercase letters, numbers, and hyphens only")
+        raise ValueError(
+            "Project names may contain lowercase letters, numbers, and hyphens only"
+        )
     if normalized in CONFIG.get("projects", {}):
         raise ValueError(f"Built-in project already exists: {normalized}")
     return normalized
 
 
-def save_user_project(name: str, source_dir: str, *, collection: str | None = None) -> dict[str, Any]:
+def save_user_project(
+    name: str,
+    source_dir: str,
+    *,
+    collection: str | None = None,
+) -> dict[str, Any]:
     normalized = validate_user_project_name(name)
     root = expand(source_dir)
     if not root.is_dir():
