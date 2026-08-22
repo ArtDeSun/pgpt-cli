@@ -3,16 +3,17 @@ from __future__ import annotations
 import argparse
 import json
 
-from pgpt.config import CONFIG, get_project
+from pgpt.config import CONFIG, get_project, save_user_project
 from pgpt.maintenance import (
     ingest,
     ingest_directory,
     models,
+    resolve_knowledge_directory,
     serve as serve_private_gpt,
     status,
     sync,
 )
-from pgpt.retrieval.project import has_symbol_hit
+from pgpt.retrieval.project import has_symbol_hit, select_user_project
 from pgpt.retrieval.web_usage import usage_snapshot
 from pgpt.routing.router import resolve_route
 from pgpt.runtime.pipeline import run
@@ -24,7 +25,9 @@ from pgpt.storage import chats
 def _web(value: str | None) -> str | None:
     if value in {None, "auto"}:
         return None
-    return {"on": "lookup", "lookup": "lookup", "research": "research", "off": "off"}[value]
+    return {"on": "lookup", "lookup": "lookup", "research": "research", "off": "off"}[
+        value
+    ]
 
 
 def cmd_ask(args: argparse.Namespace) -> None:
@@ -42,13 +45,24 @@ def cmd_ask(args: argparse.Namespace) -> None:
     print(f"[saved] {result.response_path}")
 
 
+def _validation_project(prompt: str, args: argparse.Namespace) -> str | None:
+    if args.project:
+        return get_project(args.project)[0]
+    if args.context is False:
+        return None
+    selected = select_user_project(prompt)
+    if args.context is True and selected is None:
+        raise ValueError("Project context was forced but no project was selected")
+    return selected
+
+
 def cmd_validate(args: argparse.Namespace) -> None:
     prompt = args.prompt or input("You > ")
-    project_name, _ = get_project(args.project)
-    symbol = has_symbol_hit(prompt, project_name)
+    project_name = _validation_project(prompt, args)
+    symbol = bool(project_name and has_symbol_hit(prompt, project_name))
     decision = resolve_route(
         prompt,
-        project_name=project_name,
+        project_name=project_name or "",
         web_override=_web(args.web),
         project_override=args.context,
         template_override=args.template,
@@ -56,11 +70,12 @@ def cmd_validate(args: argparse.Namespace) -> None:
         deep_override=args.deep,
         symbol_hit=symbol,
     )
-    print(json.dumps(decision.__dict__, indent=2))
+    payload = {**decision.__dict__, "selected_project": project_name}
+    print(json.dumps(payload, indent=2))
 
 
 def cmd_chat_new(args: argparse.Namespace) -> None:
-    project_name, _ = get_project(args.project)
+    project_name = get_project(args.project)[0] if args.project else None
     slug = chats.create(args.title, project_name)
     print(f"Created and selected chat: {slug}")
 
@@ -69,7 +84,8 @@ def cmd_chat_list(_args: argparse.Namespace) -> None:
     current = chats.current()
     for slug, data in chats.list_chats():
         marker = "*" if slug == current else " "
-        print(f"{marker} {slug:32} {data.get('project',''):16} {data.get('title','')}")
+        project = data.get("project") or "auto"
+        print(f"{marker} {slug:32} {project:16} {data.get('title','')}")
 
 
 def cmd_skills(_args: argparse.Namespace) -> None:
@@ -87,6 +103,16 @@ def cmd_skill_new(args: argparse.Namespace) -> None:
 
 def cmd_web_usage(_args: argparse.Namespace) -> None:
     print(json.dumps(usage_snapshot(), indent=2))
+
+
+def cmd_context_add(args: argparse.Namespace) -> None:
+    root = resolve_knowledge_directory(args.path)
+    entry = save_user_project(
+        args.name,
+        str(root),
+        collection=args.collection,
+    )
+    print(f"Registered context: {args.name.strip().casefold()} -> {entry['source_dir']}")
 
 
 def cmd_knowledge_add(args: argparse.Namespace) -> None:
@@ -113,7 +139,7 @@ def cmd_chat(args: argparse.Namespace) -> None:
     slug = args.slug or chats.current()
     if not slug:
         title = input("New chat title > ").strip() or "New chat"
-        project_name, _ = get_project(args.project)
+        project_name = get_project(args.project)[0] if args.project else None
         slug = chats.create(title, project_name)
     chats.set_current(slug)
     data = chats.load(slug)
@@ -140,7 +166,7 @@ def cmd_chat(args: argparse.Namespace) -> None:
             if command in {"/quit", "/exit"}:
                 break
             if command == "/new" and rest:
-                slug = chats.create(rest, data.get("project") or CONFIG["defaults"]["project"])
+                slug = chats.create(rest, data.get("project"))
                 data = chats.load(slug)
                 print(f"Switched to {slug}")
                 continue
@@ -209,6 +235,15 @@ def build_parser() -> argparse.ArgumentParser:
     skill_new.add_argument("name")
     skill_new.set_defaults(func=cmd_skill_new)
 
+    context_add = sub.add_parser(
+        "context-add",
+        help="Register a local folder for direct project/context retrieval",
+    )
+    context_add.add_argument("path")
+    context_add.add_argument("--name", required=True)
+    context_add.add_argument("--collection")
+    context_add.set_defaults(func=cmd_context_add)
+
     knowledge_add = sub.add_parser(
         "knowledge-add",
         help="Ingest and register an arbitrary local folder through PrivateGPT",
@@ -247,10 +282,21 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument(
             "-t",
             "--template",
-            choices=["general", "explain-code", "debug", "implement", "architecture", "research"],
+            choices=[
+                "general",
+                "explain-code",
+                "debug",
+                "implement",
+                "architecture",
+                "research",
+            ],
         )
         p.add_argument("-m", "--model")
-        p.add_argument("--web", choices=["auto", "on", "off", "lookup", "research"], default="auto")
+        p.add_argument(
+            "--web",
+            choices=["auto", "on", "off", "lookup", "research"],
+            default="auto",
+        )
         group = p.add_mutually_exclusive_group()
         group.add_argument("--context", dest="context", action="store_true")
         group.add_argument("--no-context", dest="context", action="store_false")
