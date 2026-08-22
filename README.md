@@ -42,7 +42,7 @@ You do **not** need to reorganize your existing folders:
 ~/ai/
 ├── pgpt-cli/                 # this repository
 ├── private-gpt/              # upstream PrivateGPT source checkout
-├── private-gpt-data/         # generated PrivateGPT runtime/vector state
+├── private-gpt-data/         # generated PrivateGPT runtime/vector/env state
 └── vibemaster-knowledge/     # current VibeMaster source/snapshot
 ```
 
@@ -69,7 +69,7 @@ Keep these boundaries:
 
 ```text
 private-gpt/       upstream software/source code
-private-gpt-data/  generated PrivateGPT runtime/vector state
+private-gpt-data/  generated PrivateGPT runtime/vector/env state
 pgpt-cli/          pgpt application source
 vibemaster-knowledge/
                    current VibeMaster source/snapshot
@@ -207,7 +207,7 @@ pgpt ask --project vibemaster \
   "Explain the YouTube metadata handling in this project."
 ```
 
-The built-in `pgpt-cli-history` fixture remains available to tests as a self-contained historical retrieval target.
+Direct retrieval excludes common generated/dependency directories, credentials directories, and symlink files. The built-in `pgpt-cli-history` fixture remains available to tests as a self-contained historical retrieval target.
 
 ## Optional PrivateGPT setup
 
@@ -235,12 +235,13 @@ and points both PrivateGPT's LLM and embedding OpenAI-compatible endpoints at yo
 
 ### PrivateGPT runtime state
 
-Current PrivateGPT defaults several runtime paths relative to its source checkout. pgpt overrides those paths so generated state does not pollute `~/ai/private-gpt`.
+Current PrivateGPT and `uv` normally create local runtime/environment state around the project being run. pgpt redirects the relevant paths so generated state does not pollute `~/ai/private-gpt`.
 
 pgpt redirects them under:
 
 ```text
 ~/ai/private-gpt-data/
+├── venv/                     # uv environment for the PrivateGPT checkout
 ├── private_gpt/              # PrivateGPT local data
 ├── qdrant/                   # local Qdrant vector state
 └── volumes/                  # local code-execution volume state
@@ -269,7 +270,7 @@ pgpt knowledge-add /absolute/path/to/notes \
 
 pgpt:
 
-1. validates the project name before starting an expensive ingestion job;
+1. validates the project and collection names before starting an expensive ingestion job;
 2. validates that the path is a readable directory;
 3. rejects filesystem/home roots, PrivateGPT runtime data, and common credentials directories;
 4. automatically excludes nested `.ssh`, `.gnupg`, `.aws`, `.env`, `.env.*`, `*.pem`, and `*.key` entries;
@@ -278,7 +279,23 @@ pgpt:
 7. calls PrivateGPT's `IngestService` rather than modifying the upstream PrivateGPT checkout;
 8. preserves the requested PrivateGPT collection name instead of relying on upstream `scripts/ingest_folder.py`'s hard-coded default collection;
 9. stores path-aware artifact IDs so same-named files in different directories do not overwrite one another;
-10. registers the project in `~/.config/pgpt/projects.json` only after successful ingestion.
+10. registers the project in `~/.config/pgpt/projects.json` only after successful ingestion;
+11. propagates ingestion failures instead of reporting a false success.
+
+### Local Qdrant sequencing
+
+With the default file-backed Qdrant configuration, do **not** run `pgpt knowledge-add` or `pgpt ingest` concurrently with `pgpt serve`. Both processes can open the same local Qdrant state.
+
+Use this sequence:
+
+```text
+1. Stop pgpt serve if it is running.
+2. Run pgpt knowledge-add ... or pgpt ingest ...
+3. Wait for ingestion to finish.
+4. Start pgpt serve when you want the PrivateGPT Workbench/API.
+```
+
+The normal pgpt browser server (`pgpt server`) is independent and does not create this Qdrant conflict.
 
 ### Zero-byte source cleanup
 
@@ -412,7 +429,7 @@ git diff --check
 
 CI runs on Python 3.11 and 3.13, validates browser JavaScript, and enforces the one-remote-branch rule.
 
-Coverage includes the routing policy dataset, current-year routing, smart history, model overrides, forced-web semantics, Brave quota handling, continuation behavior, project retrieval, knowledge-ingest safety, zero-byte basename collisions, PrivateGPT runtime-path isolation, collection-aware ingestion command construction, run-details UI, and browser controls.
+Coverage includes the routing policy dataset, current-year routing, smart history, model overrides, forced-web semantics, Brave quota handling, continuation behavior, project retrieval safety, knowledge-ingest safety, zero-byte basename collisions, PrivateGPT runtime-path isolation, collection-aware ingestion, path-aware artifact IDs, ingestion failure propagation, run-details UI, and browser controls.
 
 The real local-router acceptance suite is opt-in because GitHub-hosted CI has no Ollama daemon:
 
