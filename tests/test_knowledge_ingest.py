@@ -36,10 +36,16 @@ class TestKnowledgeIngest(unittest.TestCase):
     def test_registers_only_after_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             proc = SimpleNamespace(stdout=iter(["done\n"]), wait=lambda: 0)
+
+            def cfg(name: str) -> Path:
+                if name == "pgpt_home":
+                    return Path(directory) / "runtime"
+                return Path(directory)
+
             with (
                 patch.object(maintenance.subprocess, "Popen", return_value=proc),
                 patch.object(maintenance, "privategpt_env", return_value={}),
-                patch.object(maintenance, "cfg_path", return_value=Path(directory)),
+                patch.object(maintenance, "cfg_path", side_effect=cfg),
                 patch.object(maintenance, "save_user_project") as save,
             ):
                 self.assertEqual(
@@ -51,10 +57,16 @@ class TestKnowledgeIngest(unittest.TestCase):
     def test_failed_ingest_is_not_registered(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             proc = SimpleNamespace(stdout=iter(["failed\n"]), wait=lambda: 3)
+
+            def cfg(name: str) -> Path:
+                if name == "pgpt_home":
+                    return Path(directory) / "runtime"
+                return Path(directory)
+
             with (
                 patch.object(maintenance.subprocess, "Popen", return_value=proc),
                 patch.object(maintenance, "privategpt_env", return_value={}),
-                patch.object(maintenance, "cfg_path", return_value=Path(directory)),
+                patch.object(maintenance, "cfg_path", side_effect=cfg),
                 patch.object(maintenance, "save_user_project") as save,
             ):
                 self.assertEqual(
