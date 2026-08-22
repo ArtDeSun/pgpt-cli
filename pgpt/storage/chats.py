@@ -21,7 +21,7 @@ def current_file() -> Path:
     return cfg_path("state_dir") / "current_chat.txt"
 
 
-def create(title: str, project: str) -> str:
+def create(title: str, project: str | None = None) -> str:
     base = _slug(title)
     slug = base
     i = 2
@@ -30,8 +30,15 @@ def create(title: str, project: str) -> str:
         i += 1
     d = _chat_dir(slug)
     d.mkdir(parents=True, exist_ok=True)
-    data = {"title": title, "project": project, "created": datetime.now().isoformat(), "messages": []}
-    (d / "conversation.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+    data = {
+        "title": title,
+        "project": project,
+        "created": datetime.now().isoformat(),
+        "messages": [],
+    }
+    (d / "conversation.json").write_text(
+        json.dumps(data, indent=2), encoding="utf-8"
+    )
     set_current(slug)
     return slug
 
@@ -55,7 +62,9 @@ def load(slug: str) -> dict[str, Any]:
 
 
 def save(slug: str, data: dict[str, Any]) -> None:
-    (_chat_dir(slug) / "conversation.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+    (_chat_dir(slug) / "conversation.json").write_text(
+        json.dumps(data, indent=2), encoding="utf-8"
+    )
 
 
 def list_chats() -> list[tuple[str, dict[str, Any]]]:
