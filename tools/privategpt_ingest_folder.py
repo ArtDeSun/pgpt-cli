@@ -3,10 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 from pathlib import Path
-
-from private_gpt.di import get_global_injector
-from private_gpt.server.ingest.ingest_service import IngestService
-from private_gpt.server.ingest.ingest_watcher import IngestWatcher
+from typing import Any, Iterator
 
 
 def _artifact_id(root: Path, path: Path) -> str:
@@ -18,7 +15,7 @@ def _artifact_id(root: Path, path: Path) -> str:
     return f"{candidate[:238]}-{digest}"
 
 
-def _iter_files(root: Path, ignored: set[str]):
+def _iter_files(root: Path, ignored: set[str]) -> Iterator[Path]:
     for path in sorted(root.iterdir(), key=lambda item: item.name.casefold()):
         if path.name in ignored or path.is_symlink():
             continue
@@ -29,7 +26,7 @@ def _iter_files(root: Path, ignored: set[str]):
 
 
 def _ingest_file(
-    service: IngestService,
+    service: Any,
     *,
     root: Path,
     path: Path,
@@ -53,6 +50,13 @@ def _ingest_file(
 
 
 def main() -> None:
+    # Delayed imports keep this helper importable by pgpt's normal CI without
+    # installing PrivateGPT into pgpt's own environment. The script itself is
+    # executed through `uv run` inside the PrivateGPT checkout.
+    from private_gpt.di import get_global_injector
+    from private_gpt.server.ingest.ingest_service import IngestService
+    from private_gpt.server.ingest.ingest_watcher import IngestWatcher
+
     parser = argparse.ArgumentParser(
         description="Ingest a folder into a named PrivateGPT collection."
     )
@@ -66,11 +70,15 @@ def main() -> None:
     if not root.is_dir():
         raise ValueError(f"Path is not a directory: {root}")
 
+    collection = args.collection.strip()
+    if not collection or len(collection) > 255:
+        raise ValueError("Collection must contain 1 to 255 characters")
+
     ignored = set(args.ignored)
     service = get_global_injector().get(IngestService)
 
     for path in _iter_files(root, ignored):
-        _ingest_file(service, root=root, path=path, collection=args.collection)
+        _ingest_file(service, root=root, path=path, collection=collection)
 
     if not args.watch:
         return
@@ -91,7 +99,7 @@ def main() -> None:
                 service,
                 root=root,
                 path=resolved,
-                collection=args.collection,
+                collection=collection,
             )
         except Exception as exc:
             print(f"[privategpt] watch ingest failed: {exc}", flush=True)
