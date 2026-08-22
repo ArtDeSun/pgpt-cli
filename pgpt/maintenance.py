@@ -25,6 +25,7 @@ from pgpt.generation.ollama import list_models
 _SENSITIVE_NAMES = {".ssh", ".gnupg", ".aws"}
 _SECRET_SUFFIXES = {".pem", ".key"}
 _SYSTEM_ROOTS = tuple(Path(value) for value in ("/etc", "/proc", "/sys", "/dev", "/boot"))
+_INGEST_HELPER = Path(__file__).resolve().parents[1] / "tools" / "privategpt_ingest_folder.py"
 
 
 def _reachable(url: str, timeout: float = 1.0) -> bool:
@@ -97,10 +98,6 @@ def _zero_byte_files(root: Path) -> list[Path]:
     return sorted(files)
 
 
-def _zero_byte_names(root: Path) -> list[str]:
-    return sorted({path.name for path in _zero_byte_files(root)})
-
-
 def _zero_byte_name_collisions(
     root: Path,
     zero_files: list[Path],
@@ -126,14 +123,29 @@ def _zero_byte_name_collisions(
 def privategpt_env() -> dict[str, str]:
     load_secrets()
     env = os.environ.copy()
-    env["OPENAI_API_BASE"] = CONFIG["endpoints"]["openai_api_base"]
+    api_base = CONFIG["endpoints"]["openai_api_base"]
+    env["OPENAI_API_BASE"] = api_base
+    if not env.get("OPENAI_EMBEDDING_API_BASE"):
+        env["OPENAI_EMBEDDING_API_BASE"] = api_base
     env["PGPT_HOME"] = str(cfg_path("pgpt_home"))
-    env["PGPT_PROFILES"] = ",".join(CONFIG.get("server", {}).get("profiles", ["model"]))
     return env
 
 
-def _ingest_command(root: Path, ignored: list[str], watch: bool) -> list[str]:
-    cmd = ["uv", "run", "python", "scripts/ingest_folder.py", str(root)]
+def _ingest_command(
+    root: Path,
+    ignored: list[str],
+    watch: bool,
+    collection: str,
+) -> list[str]:
+    cmd = [
+        "uv",
+        "run",
+        "python",
+        str(_INGEST_HELPER),
+        str(root),
+        "--collection",
+        collection,
+    ]
     if ignored:
         cmd += ["--ignored", *ignored]
     if watch:
@@ -150,15 +162,15 @@ def _prepared_ingest(
 ) -> Iterator[tuple[Path, list[str], list[str]]]:
     """Prepare a safe ingestion root without modifying the user's source tree.
 
-    PrivateGPT's ``--ignored`` option matches basenames. If a zero-byte file and
-    a valid file in another directory share the same basename, passing that name
-    to PrivateGPT would hide both files. For one-shot ingestion, create a
-    temporary filtered tree only for that collision case. Normal ingestion keeps
-    using the original directory and has no copy overhead.
+    PrivateGPT ignores local-ingestion entries by basename. If a zero-byte file
+    and a valid file in another directory share the same basename, a basename
+    ignore would hide both. For one-shot ingestion, create a temporary filtered
+    tree only for that collision case. Normal ingestion keeps using the original
+    directory and has no copy overhead.
 
     Watched ingestion cannot use a temporary snapshot because later source
     changes would not be mirrored into it. In that rare collision case we retain
-    PrivateGPT's basename filtering and report the collision to the caller.
+    basename filtering and report the collision to the caller.
     """
 
     configured = list(dict.fromkeys([*configured, *_automatic_ingest_ignores(root)]))
@@ -201,7 +213,8 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
     project_name, project = get_project(project_name)
     root = expand(project["knowledge_dir"])
     configured = list(project.get("ingest_ignored", []))
-    print(f"[ingest] project={project_name} root={root}")
+    collection = str(project.get("collection") or project_name)
+    print(f"[ingest] project={project_name} collection={collection} root={root}")
     with _prepared_ingest(root, configured, watch=watch) as (
         ingest_root,
         ignored,
@@ -209,8 +222,8 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
     ):
         if collisions and watch:
             print(
-                "[ingest] warning: watched ingestion uses PrivateGPT basename "
-                "ignores for zero-byte collision(s): "
+                "[ingest] warning: watched ingestion uses basename ignores for "
+                "zero-byte collision(s): "
                 + ", ".join(collisions)
             )
         elif collisions:
@@ -220,16 +233,11 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
                 + ", ".join(collisions)
             )
         subprocess.run(
-            _ingest_command(ingest_root, ignored, watch),
+            _ingest_command(ingest_root, ignored, watch, collection),
             cwd=cfg_path("private_gpt_dir"),
             env=privategpt_env(),
             check=False,
         )
-
-
-def _ingest_ignored(root: Path, configured: list[str]) -> list[str]:
-    zero = _zero_byte_names(root)
-    return list(dict.fromkeys([*configured, *zero]))
 
 
 def resolve_knowledge_directory(value: str) -> Path:
@@ -266,9 +274,10 @@ def ingest_directory(
     on_line: Callable[[str], None] | None = None,
 ) -> int:
     """Register and ingest a user-selected folder without changing PrivateGPT source."""
-    validate_user_project_name(project_name)
+    normalized = validate_user_project_name(project_name)
     root = resolve_knowledge_directory(path)
     configured = list(ignored or [])
+    target_collection = collection or normalized
     with _prepared_ingest(root, configured) as (
         ingest_root,
         ignore_names,
@@ -281,7 +290,7 @@ def ingest_directory(
                 + ", ".join(collisions)
             )
         proc = subprocess.Popen(
-            _ingest_command(ingest_root, ignore_names, False),
+            _ingest_command(ingest_root, ignore_names, False, target_collection),
             cwd=cfg_path("private_gpt_dir"),
             env=privategpt_env(),
             stdout=subprocess.PIPE,
@@ -297,7 +306,7 @@ def ingest_directory(
         code = proc.wait()
 
     if code == 0:
-        save_user_project(project_name, str(root), collection=collection)
+        save_user_project(normalized, str(root), collection=target_collection)
     return code
 
 
@@ -314,7 +323,7 @@ def _redact(line: str) -> str:
 
 
 def serve() -> None:
-    cmd = ["uv", "run", "python", "-m", "private_gpt", "serve", "--host", "127.0.0.1"]
+    cmd = ["uv", "run", "private-gpt", "serve", "--host", "127.0.0.1"]
     proc = subprocess.Popen(
         cmd,
         cwd=cfg_path("private_gpt_dir"),
