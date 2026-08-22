@@ -138,6 +138,7 @@ def privategpt_env() -> dict[str, str]:
     env["OPENAI_API_BASE"] = api_base
     if not env.get("OPENAI_EMBEDDING_API_BASE"):
         env["OPENAI_EMBEDDING_API_BASE"] = api_base
+    env["UV_PROJECT_ENVIRONMENT"] = str(runtime_root / "venv")
     env["PGPT_LOCAL_DATA_FOLDER"] = str(runtime_root / "private_gpt")
     env["PGPT_QDRANT_PATH"] = str(runtime_root / "qdrant")
     env["PGPT_CODE_EXECUTION_VOLUME_ROOT"] = str(runtime_root / "volumes")
