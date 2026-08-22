@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "endpoints": {
     "private_gpt": "http://127.0.0.1:8080",
     "ollama": "http://127.0.0.1:11434",
@@ -144,7 +144,8 @@
       "ingest_ignored": [
         ".gitignore",
         "secrets.env.example"
-      ]
+      ],
+      "hidden": true
     },
     "pgpt-cli-history": {
       "source_dir": "tests/fixtures/historical_pgpt",
@@ -153,25 +154,6 @@
       "sync_excludes": [],
       "ingest_ignored": [],
       "hidden": true
-    },
-    "vibemaster": {
-      "source_dir": "~/ai/vibemaster-knowledge",
-      "knowledge_dir": "~/ai/vibemaster-knowledge",
-      "collection": "vibemaster",
-      "sync_excludes": [
-        ".git/",
-        "node_modules/",
-        ".next/",
-        ".env",
-        ".env.*",
-        "*.pem",
-        "*.key"
-      ],
-      "ingest_ignored": [
-        "package-lock.json",
-        ".gitignore"
-      ],
-      "sync_required": false
     }
   }
 }
