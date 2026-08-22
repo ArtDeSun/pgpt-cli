@@ -23,6 +23,16 @@ class TestKnowledgeIngest(unittest.TestCase):
         with self.assertRaises(ValueError):
             maintenance.resolve_knowledge_directory("/")
 
+    def test_invalid_or_builtin_name_fails_before_privategpt(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(maintenance.subprocess, "Popen") as popen:
+                with self.assertRaisesRegex(ValueError, "Built-in project already exists"):
+                    maintenance.ingest_directory(
+                        directory,
+                        project_name="pgpt-cli",
+                    )
+            popen.assert_not_called()
+
     def test_registers_only_after_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             proc = SimpleNamespace(stdout=iter(["done\n"]), wait=lambda: 0)
