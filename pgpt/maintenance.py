@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 from pgpt.config import CONFIG, cfg_path, expand, get_project, load_secrets, save_user_project
 from pgpt.generation.ollama import list_models
@@ -59,8 +62,43 @@ def sync(project_name: str | None = None) -> None:
     subprocess.run(cmd, check=True)
 
 
+def _zero_byte_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        try:
+            if path.stat().st_size == 0:
+                files.append(path)
+        except OSError:
+            continue
+    return sorted(files)
+
+
 def _zero_byte_names(root: Path) -> list[str]:
-    return sorted({path.name for path in root.rglob("*") if path.is_file() and path.stat().st_size == 0})
+    return sorted({path.name for path in _zero_byte_files(root)})
+
+
+def _zero_byte_name_collisions(
+    root: Path,
+    zero_files: list[Path],
+    configured: list[str],
+) -> list[str]:
+    configured_names = set(configured)
+    zero_names = {path.name for path in zero_files if path.name not in configured_names}
+    if not zero_names:
+        return []
+
+    nonempty_names: set[str] = set()
+    for path in root.rglob("*"):
+        if not path.is_file() or path.name not in zero_names:
+            continue
+        try:
+            if path.stat().st_size > 0:
+                nonempty_names.add(path.name)
+        except OSError:
+            continue
+    return sorted(zero_names & nonempty_names)
 
 
 def privategpt_env() -> dict[str, str]:
@@ -81,17 +119,90 @@ def _ingest_command(root: Path, ignored: list[str], watch: bool) -> list[str]:
     return cmd
 
 
+@contextmanager
+def _prepared_ingest(
+    root: Path,
+    configured: list[str],
+    *,
+    watch: bool = False,
+) -> Iterator[tuple[Path, list[str], list[str]]]:
+    """Prepare a safe ingestion root without modifying the user's source tree.
+
+    PrivateGPT's ``--ignored`` option matches basenames. If a zero-byte file and
+    a valid file in another directory share the same basename, passing that name
+    to PrivateGPT would hide both files. For one-shot ingestion, create a
+    temporary filtered tree only for that collision case. Normal ingestion keeps
+    using the original directory and has no copy overhead.
+
+    Watched ingestion cannot use a temporary snapshot because later source
+    changes would not be mirrored into it. In that rare collision case we retain
+    PrivateGPT's basename filtering and report the collision to the caller.
+    """
+
+    configured = list(dict.fromkeys(configured))
+    zero_files = _zero_byte_files(root)
+    zero_names = sorted({path.name for path in zero_files})
+    collisions = _zero_byte_name_collisions(root, zero_files, configured)
+
+    if not collisions or watch:
+        ignored = list(dict.fromkeys([*configured, *zero_names]))
+        yield root, ignored, collisions
+        return
+
+    zero_relative = {path.relative_to(root) for path in zero_files}
+    with tempfile.TemporaryDirectory(prefix="pgpt-ingest-") as temp:
+        staging_root = Path(temp) / "source"
+
+        def ignore_zero_byte(directory: str, names: list[str]) -> list[str]:
+            base = Path(directory)
+            skipped: list[str] = []
+            for name in names:
+                candidate = base / name
+                try:
+                    relative = candidate.relative_to(root)
+                except ValueError:
+                    continue
+                if relative in zero_relative:
+                    skipped.append(name)
+            return skipped
+
+        shutil.copytree(
+            root,
+            staging_root,
+            ignore=ignore_zero_byte,
+            symlinks=True,
+        )
+        yield staging_root, configured, collisions
+
+
 def ingest(project_name: str | None = None, watch: bool = False) -> None:
     project_name, project = get_project(project_name)
     root = expand(project["knowledge_dir"])
-    ignored = _ingest_ignored(root, list(project.get("ingest_ignored", [])))
+    configured = list(project.get("ingest_ignored", []))
     print(f"[ingest] project={project_name} root={root}")
-    subprocess.run(
-        _ingest_command(root, ignored, watch),
-        cwd=cfg_path("private_gpt_dir"),
-        env=privategpt_env(),
-        check=False,
-    )
+    with _prepared_ingest(root, configured, watch=watch) as (
+        ingest_root,
+        ignored,
+        collisions,
+    ):
+        if collisions and watch:
+            print(
+                "[ingest] warning: watched ingestion uses PrivateGPT basename "
+                "ignores for zero-byte collision(s): "
+                + ", ".join(collisions)
+            )
+        elif collisions:
+            print(
+                "[ingest] using a temporary filtered staging tree for zero-byte "
+                "basename collision(s): "
+                + ", ".join(collisions)
+            )
+        subprocess.run(
+            _ingest_command(ingest_root, ignored, watch),
+            cwd=cfg_path("private_gpt_dir"),
+            env=privategpt_env(),
+            check=False,
+        )
 
 
 def _ingest_ignored(root: Path, configured: list[str]) -> list[str]:
@@ -128,22 +239,34 @@ def ingest_directory(
 ) -> int:
     """Register and ingest a user-selected folder without changing PrivateGPT source."""
     root = resolve_knowledge_directory(path)
-    ignore_names = _ingest_ignored(root, list(ignored or []))
-    proc = subprocess.Popen(
-        _ingest_command(root, ignore_names, False),
-        cwd=cfg_path("private_gpt_dir"),
-        env=privategpt_env(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
-    assert proc.stdout is not None
-    for raw in proc.stdout:
-        line = _redact(raw.rstrip("\n"))
-        if on_line is not None:
-            on_line(line)
-    code = proc.wait()
+    configured = list(ignored or [])
+    with _prepared_ingest(root, configured) as (
+        ingest_root,
+        ignore_names,
+        collisions,
+    ):
+        if collisions and on_line is not None:
+            on_line(
+                "[pgpt] using a temporary filtered staging tree for zero-byte "
+                "basename collision(s): "
+                + ", ".join(collisions)
+            )
+        proc = subprocess.Popen(
+            _ingest_command(ingest_root, ignore_names, False),
+            cwd=cfg_path("private_gpt_dir"),
+            env=privategpt_env(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        assert proc.stdout is not None
+        for raw in proc.stdout:
+            line = _redact(raw.rstrip("\n"))
+            if on_line is not None:
+                on_line(line)
+        code = proc.wait()
+
     if code == 0:
         save_user_project(project_name, str(root), collection=collection)
     return code
