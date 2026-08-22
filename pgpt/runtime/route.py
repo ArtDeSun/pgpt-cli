@@ -29,12 +29,14 @@ class Route:
         cls,
         decision: RoutingDecision,
         *,
-        project_name: str,
+        project_name: str | None,
         template_override: str | None,
         model_override: str | None,
         deep_override: bool | None,
     ) -> "Route":
         execution = _execution(decision)
+        if execution == "project" and not project_name:
+            raise ValueError("Project route requires a concrete selected project")
         template = template_override or _template(decision)
         selection = select_model(
             MODEL_TASK.get(template, decision.task),
