@@ -20,7 +20,7 @@ def _artifact_id(root: Path, path: Path) -> str:
 
 def _iter_files(root: Path, ignored: set[str]):
     for path in sorted(root.iterdir(), key=lambda item: item.name.casefold()):
-        if path.name in ignored:
+        if path.name in ignored or path.is_symlink():
             continue
         if path.is_file():
             yield path
@@ -79,6 +79,8 @@ def main() -> None:
 
     def on_change(path: Path) -> None:
         try:
+            if path.is_symlink():
+                return
             resolved = path.expanduser().resolve()
             if not resolved.exists() or not resolved.is_file():
                 return
