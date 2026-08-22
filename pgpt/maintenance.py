@@ -140,6 +140,8 @@ def _ingest_command(
     cmd = [
         "uv",
         "run",
+        "--extra",
+        "core",
         "python",
         str(_INGEST_HELPER),
         str(root),
@@ -323,7 +325,16 @@ def _redact(line: str) -> str:
 
 
 def serve() -> None:
-    cmd = ["uv", "run", "private-gpt", "serve", "--host", "127.0.0.1"]
+    cmd = [
+        "uv",
+        "run",
+        "--extra",
+        "core",
+        "private-gpt",
+        "serve",
+        "--host",
+        "127.0.0.1",
+    ]
     proc = subprocess.Popen(
         cmd,
         cwd=cfg_path("private_gpt_dir"),
