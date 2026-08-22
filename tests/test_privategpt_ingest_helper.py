@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools import privategpt_ingest_folder as helper
+from pgpt import privategpt_ingest as helper
 
 
 class _FakeIngestService:
