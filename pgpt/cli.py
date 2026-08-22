@@ -4,7 +4,14 @@ import argparse
 import json
 
 from pgpt.config import CONFIG, get_project
-from pgpt.maintenance import ingest, models, serve as serve_private_gpt, status, sync
+from pgpt.maintenance import (
+    ingest,
+    ingest_directory,
+    models,
+    serve as serve_private_gpt,
+    status,
+    sync,
+)
 from pgpt.retrieval.project import has_symbol_hit
 from pgpt.retrieval.web_usage import usage_snapshot
 from pgpt.routing.router import resolve_route
@@ -80,6 +87,22 @@ def cmd_skill_new(args: argparse.Namespace) -> None:
 
 def cmd_web_usage(_args: argparse.Namespace) -> None:
     print(json.dumps(usage_snapshot(), indent=2))
+
+
+def cmd_knowledge_add(args: argparse.Namespace) -> None:
+    def emit(line: str) -> None:
+        print(line)
+
+    code = ingest_directory(
+        args.path,
+        project_name=args.name,
+        collection=args.collection,
+        ignored=list(args.ignore or []),
+        on_line=emit,
+    )
+    if code != 0:
+        raise RuntimeError(f"PrivateGPT ingestion failed with exit code {code}")
+    print(f"Added knowledge project: {args.name.strip().casefold()}")
 
 
 def cmd_server(args: argparse.Namespace) -> None:
@@ -181,19 +204,39 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("models").set_defaults(func=lambda _a: models())
     sub.add_parser("skills").set_defaults(func=cmd_skills)
     sub.add_parser("web-usage").set_defaults(func=cmd_web_usage)
+
     skill_new = sub.add_parser("skill-new")
     skill_new.add_argument("name")
     skill_new.set_defaults(func=cmd_skill_new)
+
+    knowledge_add = sub.add_parser(
+        "knowledge-add",
+        help="Ingest and register an arbitrary local folder through PrivateGPT",
+    )
+    knowledge_add.add_argument("path")
+    knowledge_add.add_argument("--name", required=True)
+    knowledge_add.add_argument("--collection")
+    knowledge_add.add_argument(
+        "--ignore",
+        action="append",
+        default=[],
+        help="Basename PrivateGPT should ignore; may be repeated",
+    )
+    knowledge_add.set_defaults(func=cmd_knowledge_add)
+
     private_serve = sub.add_parser("serve")
     private_serve.set_defaults(func=lambda _a: serve_private_gpt())
+
     local_server = sub.add_parser("server")
     local_server.add_argument("--host")
     local_server.add_argument("--port", type=int)
     local_server.add_argument("--allow-remote", action="store_true")
     local_server.set_defaults(func=cmd_server)
+
     p = sub.add_parser("sync")
     p.add_argument("--project")
     p.set_defaults(func=lambda a: sync(a.project))
+
     p = sub.add_parser("ingest")
     p.add_argument("--project")
     p.add_argument("--watch", action="store_true")
@@ -202,7 +245,8 @@ def build_parser() -> argparse.ArgumentParser:
     def add_common_args(p: argparse.ArgumentParser) -> None:
         p.add_argument("--project")
         p.add_argument(
-            "-t", "--template",
+            "-t",
+            "--template",
             choices=["general", "explain-code", "debug", "implement", "architecture", "research"],
         )
         p.add_argument("-m", "--model")
@@ -221,21 +265,26 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--skill")
     add_common_args(p)
     p.set_defaults(func=cmd_ask)
+
     p = sub.add_parser("validate")
     p.add_argument("prompt", nargs="?")
     add_common_args(p)
     p.set_defaults(func=cmd_validate)
+
     p = sub.add_parser("chat-new")
     p.add_argument("title")
     p.add_argument("--project")
     p.set_defaults(func=cmd_chat_new)
+
     p = sub.add_parser("chat-list")
     p.set_defaults(func=cmd_chat_list)
+
     p = sub.add_parser("chat")
     p.add_argument("slug", nargs="?")
     p.add_argument("--skill")
     add_common_args(p)
     p.set_defaults(func=cmd_chat)
+
     return parser
 
 
