@@ -77,8 +77,13 @@ def resolve_route(
     current = _matches("current", prompt) or (_current_year_question(prompt) and not writing)
     named_project = bool(project_name and project_name.casefold() in prompt.casefold())
     symbol_project = bool(symbol_hit and _SYMBOL_INTENT.search(prompt))
+
+    # Project intent is actionable only when a concrete source has already been
+    # selected. This prevents "my project" from silently falling back to an
+    # internal/default repository when several or zero user contexts are viable.
     project_evidence = bool(
-        explicit_project or named_project or symbol_project or project_override is True
+        project_name
+        and (explicit_project or named_project or symbol_project or project_override is True)
     )
     task = _task(
         prompt,
@@ -103,7 +108,7 @@ def resolve_route(
         source, reason = "web", "explicit --web research"
     elif web_override in {"on", "lookup"}:
         source, reason = "web", "explicit --web lookup"
-    elif project_override is True:
+    elif project_override is True and project_name:
         source, reason = "project", "explicit project context"
     elif explicit_web:
         source, reason = "web", "explicit web request"
