@@ -60,6 +60,7 @@ class TestMaintenance(unittest.TestCase):
             env["OPENAI_EMBEDDING_API_BASE"],
             maintenance.CONFIG["endpoints"]["openai_api_base"],
         )
+        self.assertEqual(env["UV_PROJECT_ENVIRONMENT"], "/tmp/private-gpt-data/venv")
         self.assertEqual(
             env["PGPT_LOCAL_DATA_FOLDER"],
             "/tmp/private-gpt-data/private_gpt",
