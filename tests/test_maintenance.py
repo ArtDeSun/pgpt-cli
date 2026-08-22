@@ -30,6 +30,43 @@ class TestMaintenance(unittest.TestCase):
             maintenance._redact("PGPT_BRAVE_API_KEY=actual-key"),
         )
 
+    def test_privategpt_env_matches_current_upstream_quickstart(self) -> None:
+        with (
+            patch.dict(maintenance.os.environ, {}, clear=True),
+            patch.object(maintenance, "load_secrets"),
+            patch.object(
+                maintenance,
+                "cfg_path",
+                return_value=Path("/tmp/private-gpt-data"),
+            ),
+        ):
+            env = maintenance.privategpt_env()
+        self.assertEqual(
+            env["OPENAI_API_BASE"],
+            maintenance.CONFIG["endpoints"]["openai_api_base"],
+        )
+        self.assertEqual(
+            env["OPENAI_EMBEDDING_API_BASE"],
+            maintenance.CONFIG["endpoints"]["openai_api_base"],
+        )
+        self.assertEqual(env["PGPT_HOME"], "/tmp/private-gpt-data")
+        self.assertNotIn("PGPT_PROFILES", env)
+
+    def test_ingest_command_uses_collection_aware_helper(self) -> None:
+        command = maintenance._ingest_command(
+            Path("/tmp/notes"),
+            [".env"],
+            True,
+            "notes-v1",
+        )
+        self.assertEqual(command[:3], ["uv", "run", "python"])
+        self.assertEqual(command[3], str(maintenance._INGEST_HELPER))
+        self.assertIn("--collection", command)
+        self.assertIn("notes-v1", command)
+        self.assertIn("--ignored", command)
+        self.assertIn(".env", command)
+        self.assertEqual(command[-1], "--watch")
+
     def test_automatic_ingest_ignores_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
