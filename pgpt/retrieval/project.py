@@ -18,7 +18,20 @@ from pgpt.retrieval.project_symbol_rules import (
 
 
 CODE_EXTS = {".ts", ".tsx", ".js", ".jsx", ".py", ".json", ".md", ".mjs", ".cjs"}
-IGNORE_DIRS = {".git", "node_modules", ".next", "dist", "build", "coverage"}
+IGNORE_DIRS = {
+    ".git",
+    ".next",
+    ".venv",
+    ".ssh",
+    ".gnupg",
+    ".aws",
+    "__pycache__",
+    "node_modules",
+    "venv",
+    "dist",
+    "build",
+    "coverage",
+}
 IDENTIFIER = re.compile(r"\b[A-Za-z_$][A-Za-z0-9_$]{2,}\b")
 
 
@@ -132,7 +145,7 @@ def has_symbol_hit(prompt: str, project_name: str) -> bool:
 
 def _iter_files(root: Path) -> Iterable[Path]:
     for path in root.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in CODE_EXTS:
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in CODE_EXTS:
             continue
         if any(part in IGNORE_DIRS for part in path.parts):
             continue
