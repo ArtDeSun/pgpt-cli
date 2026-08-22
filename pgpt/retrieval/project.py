@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from pgpt.config import CONFIG, expand, get_project
+from pgpt.config import CONFIG, expand, get_project, user_project_names
 from pgpt.retrieval.project_symbol_rules import (
     lexical_max_terms,
     lexical_minimum_term_length,
@@ -33,6 +33,10 @@ IGNORE_DIRS = {
     "coverage",
 }
 IDENTIFIER = re.compile(r"\b[A-Za-z_$][A-Za-z0-9_$]{2,}\b")
+_GENERIC_PROJECT_INTENT = re.compile(
+    r"\b(?:my|this)\s+(?:project|repo|repository|codebase|application|app)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -141,6 +145,45 @@ def exact_symbol_files(prompt: str, project_name: str) -> list[Path]:
 def has_symbol_hit(prompt: str, project_name: str) -> bool:
     minimum = minimum_project_definition_score()
     return any(hit.definition_score >= minimum for hit in _symbol_hits(prompt, project_name))
+
+
+def select_user_project(prompt: str) -> str | None:
+    """Choose a user-registered context only when the evidence is unambiguous.
+
+    Automatic selection never scans PrivateGPT runtime folders and never chooses
+    built-in/internal projects. It first honors an explicitly named registered
+    context, then a unique code-symbol match, then a generic "my project" request
+    only when exactly one user context exists.
+    """
+
+    names = user_project_names()
+    if not names:
+        return None
+
+    folded = prompt.casefold()
+    named = [
+        name
+        for name in names
+        if re.search(
+            rf"(?<![a-z0-9]){re.escape(name.casefold())}(?![a-z0-9])",
+            folded,
+        )
+    ]
+    if len(named) == 1:
+        return named[0]
+    if len(named) > 1:
+        return None
+
+    if candidate_identifiers(prompt):
+        matched = [name for name in names if has_symbol_hit(prompt, name)]
+        if len(matched) == 1:
+            return matched[0]
+        if len(matched) > 1:
+            return None
+
+    if len(names) == 1 and _GENERIC_PROJECT_INTENT.search(prompt):
+        return names[0]
+    return None
 
 
 def _iter_files(root: Path) -> Iterable[Path]:
