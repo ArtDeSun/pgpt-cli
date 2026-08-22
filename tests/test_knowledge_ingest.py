@@ -33,6 +33,16 @@ class TestKnowledgeIngest(unittest.TestCase):
                     )
             popen.assert_not_called()
 
+    def test_running_privategpt_blocks_local_ingestion(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(maintenance, "_reachable", return_value=True),
+                patch.object(maintenance.subprocess, "Popen") as popen,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "Stop `pgpt serve`"):
+                    maintenance.ingest_directory(directory, project_name="notes")
+            popen.assert_not_called()
+
     def test_registers_only_after_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             proc = SimpleNamespace(stdout=iter(["done\n"]), wait=lambda: 0)
@@ -43,6 +53,7 @@ class TestKnowledgeIngest(unittest.TestCase):
                 return Path(directory)
 
             with (
+                patch.object(maintenance, "_reachable", return_value=False),
                 patch.object(maintenance.subprocess, "Popen", return_value=proc),
                 patch.object(maintenance, "privategpt_env", return_value={}),
                 patch.object(maintenance, "cfg_path", side_effect=cfg),
@@ -64,6 +75,7 @@ class TestKnowledgeIngest(unittest.TestCase):
                 return Path(directory)
 
             with (
+                patch.object(maintenance, "_reachable", return_value=False),
                 patch.object(maintenance.subprocess, "Popen", return_value=proc),
                 patch.object(maintenance, "privategpt_env", return_value={}),
                 patch.object(maintenance, "cfg_path", side_effect=cfg),
