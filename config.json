@@ -18,10 +18,6 @@
   "server": {
     "host": "127.0.0.1",
     "port": 8765,
-    "profiles": [
-      "model",
-      "web"
-    ],
     "max_request_bytes": 2000000,
     "response_list_limit": 100
   },
