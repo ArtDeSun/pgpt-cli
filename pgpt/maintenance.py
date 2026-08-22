@@ -240,11 +240,11 @@ def _prepared_ingest(
 
 
 def ingest(project_name: str | None = None, watch: bool = False) -> None:
-    _ensure_privategpt_stopped_for_local_ingest()
     project_name, project = get_project(project_name)
     root = expand(project["knowledge_dir"])
     configured = list(project.get("ingest_ignored", []))
     collection = _collection_name(project.get("collection"), project_name)
+    _ensure_privategpt_stopped_for_local_ingest()
     print(f"[ingest] project={project_name} collection={collection} root={root}")
     with _prepared_ingest(root, configured, watch=watch) as (
         ingest_root,
@@ -309,11 +309,11 @@ def ingest_directory(
     on_line: Callable[[str], None] | None = None,
 ) -> int:
     """Register and ingest a user-selected folder without changing PrivateGPT source."""
-    _ensure_privategpt_stopped_for_local_ingest()
     normalized = validate_user_project_name(project_name)
     root = resolve_knowledge_directory(path)
     configured = list(ignored or [])
     target_collection = _collection_name(collection, normalized)
+    _ensure_privategpt_stopped_for_local_ingest()
     with _prepared_ingest(root, configured) as (
         ingest_root,
         ignore_names,
