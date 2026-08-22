@@ -120,6 +120,16 @@ def _zero_byte_name_collisions(
     return sorted(zero_names & nonempty_names)
 
 
+def _collection_name(value: object | None, fallback: str) -> str:
+    candidate = fallback if value is None else value
+    if not isinstance(candidate, str):
+        raise ValueError("Collection must be a string")
+    candidate = candidate.strip()
+    if not candidate or len(candidate) > 255:
+        raise ValueError("Collection must contain 1 to 255 characters")
+    return candidate
+
+
 def privategpt_env() -> dict[str, str]:
     load_secrets()
     env = os.environ.copy()
@@ -219,7 +229,7 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
     project_name, project = get_project(project_name)
     root = expand(project["knowledge_dir"])
     configured = list(project.get("ingest_ignored", []))
-    collection = str(project.get("collection") or project_name)
+    collection = _collection_name(project.get("collection"), project_name)
     print(f"[ingest] project={project_name} collection={collection} root={root}")
     with _prepared_ingest(root, configured, watch=watch) as (
         ingest_root,
@@ -238,12 +248,16 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
                 "basename collision(s): "
                 + ", ".join(collisions)
             )
-        subprocess.run(
+        completed = subprocess.run(
             _ingest_command(ingest_root, ignored, watch, collection),
             cwd=cfg_path("private_gpt_dir"),
             env=privategpt_env(),
             check=False,
         )
+        if completed.returncode != 0:
+            raise RuntimeError(
+                f"PrivateGPT ingestion failed with exit code {completed.returncode}"
+            )
 
 
 def resolve_knowledge_directory(value: str) -> Path:
@@ -283,7 +297,7 @@ def ingest_directory(
     normalized = validate_user_project_name(project_name)
     root = resolve_knowledge_directory(path)
     configured = list(ignored or [])
-    target_collection = collection or normalized
+    target_collection = _collection_name(collection, normalized)
     with _prepared_ingest(root, configured) as (
         ingest_root,
         ignore_names,
