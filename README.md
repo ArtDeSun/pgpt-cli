@@ -242,11 +242,13 @@ pgpt knowledge-add /absolute/path/to/notes \
 
 pgpt:
 
-1. validates that the path is a readable directory;
-2. rejects filesystem roots and common credentials directories;
-3. invokes PrivateGPT's existing `scripts/ingest_folder.py` without shell interpolation;
-4. never copies the folder into the `private-gpt` Git repository;
-5. registers the project in `~/.config/pgpt/projects.json` only after successful ingestion.
+1. validates the project name before launching an expensive ingestion job;
+2. validates that the path is a readable directory;
+3. rejects filesystem/home roots, PrivateGPT runtime data, and common credentials directories;
+4. automatically excludes nested `.ssh`, `.gnupg`, `.aws`, `.env`, `.env.*`, `*.pem`, and `*.key` entries from the ingestion set;
+5. invokes PrivateGPT's existing `scripts/ingest_folder.py` without shell interpolation;
+6. never copies the folder into the `private-gpt` Git repository;
+7. registers the project in `~/.config/pgpt/projects.json` only after successful ingestion.
 
 ### Zero-byte source cleanup
 
