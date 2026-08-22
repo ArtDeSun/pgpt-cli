@@ -24,6 +24,14 @@ class TestCliParser(unittest.TestCase):
         self.assertEqual(args.command, "skill-new")
         self.assertEqual(args.name, "my-review")
 
+    def test_context_add_command(self) -> None:
+        args = build_parser().parse_args(
+            ["context-add", "/tmp/notes", "--name", "notes"]
+        )
+        self.assertEqual(args.command, "context-add")
+        self.assertEqual(args.path, "/tmp/notes")
+        self.assertEqual(args.name, "notes")
+
     def test_knowledge_add_command(self) -> None:
         args = build_parser().parse_args(
             [
