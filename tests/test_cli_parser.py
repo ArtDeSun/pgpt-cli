@@ -24,6 +24,25 @@ class TestCliParser(unittest.TestCase):
         self.assertEqual(args.command, "skill-new")
         self.assertEqual(args.name, "my-review")
 
+    def test_knowledge_add_command(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "knowledge-add",
+                "/tmp/notes",
+                "--name",
+                "notes",
+                "--collection",
+                "notes-v1",
+                "--ignore",
+                "draft.txt",
+            ]
+        )
+        self.assertEqual(args.command, "knowledge-add")
+        self.assertEqual(args.path, "/tmp/notes")
+        self.assertEqual(args.name, "notes")
+        self.assertEqual(args.collection, "notes-v1")
+        self.assertEqual(args.ignore, ["draft.txt"])
+
     def test_ask_skill_argument(self) -> None:
         args = build_parser().parse_args(["ask", "review this", "--skill", "code-review"])
         self.assertEqual(args.skill, "code-review")
