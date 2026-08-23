@@ -12,18 +12,35 @@ from pgpt import maintenance
 
 
 class TestMaintenance(unittest.TestCase):
-    def test_status_reports_local_api(self) -> None:
+    def test_status_reports_local_api_and_storage_boundaries(self) -> None:
         output = io.StringIO()
-        with patch.object(
-            maintenance,
-            "_reachable",
-            side_effect=[True, False, False],
-        ), redirect_stdout(output):
+        with (
+            patch.object(
+                maintenance,
+                "_reachable",
+                side_effect=[True, False, False],
+            ),
+            patch.object(
+                maintenance,
+                "privategpt_source_info",
+                return_value={
+                    "path": "/tmp/private-gpt",
+                    "exists": True,
+                    "compatible": True,
+                    "reason": "ready",
+                    "commit": "abc123",
+                },
+            ),
+            redirect_stdout(output),
+        ):
             maintenance.status()
         text = output.getvalue()
         self.assertIn("Ollama:", text)
         self.assertIn("pgpt API:", text)
-        self.assertIn("PrivateGPT:", text)
+        self.assertIn("PrivateGPT API:", text)
+        self.assertIn("PrivateGPT source:", text)
+        self.assertIn("PrivateGPT data:", text)
+        self.assertIn("Context registry:", text)
 
     def test_redaction(self) -> None:
         self.assertNotIn(
@@ -40,6 +57,38 @@ class TestMaintenance(unittest.TestCase):
             maintenance._collection_name("x" * 256, "notes")
         with self.assertRaises(ValueError):
             maintenance._collection_name(42, "notes")
+
+    def test_privategpt_source_info_requires_expected_checkout_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "private-gpt"
+            root.mkdir()
+            with patch.object(
+                maintenance,
+                "cfg_path",
+                side_effect=lambda name: root
+                if name == "private_gpt_dir"
+                else Path(directory),
+            ):
+                missing = maintenance.privategpt_source_info()
+                self.assertFalse(missing["compatible"])
+
+                (root / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
+                di = root / "private_gpt" / "di.py"
+                ingest_service = (
+                    root
+                    / "private_gpt"
+                    / "server"
+                    / "ingest"
+                    / "ingest_service.py"
+                )
+                di.parent.mkdir(parents=True)
+                ingest_service.parent.mkdir(parents=True)
+                di.write_text("def get_injector():\n    return None\n", encoding="utf-8")
+                ingest_service.write_text("class IngestService: pass\n", encoding="utf-8")
+
+                ready = maintenance.privategpt_source_info()
+                self.assertTrue(ready["compatible"])
+                self.assertEqual(ready["reason"], "ready")
 
     def test_privategpt_env_matches_current_upstream_settings(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -77,10 +126,10 @@ class TestMaintenance(unittest.TestCase):
             self.assertNotIn("PGPT_HOME", env)
             self.assertNotIn("PGPT_PROFILES", env)
 
-    def test_privategpt_commands_pin_python_311_and_core_extra(self) -> None:
+    def test_privategpt_commands_pin_python_311_core_and_frozen_lock(self) -> None:
         self.assertEqual(
             maintenance._uv_privategpt_prefix(),
-            ["uv", "run", "--python", "3.11", "--extra", "core"],
+            ["uv", "run", "--frozen", "--python", "3.11", "--extra", "core"],
         )
 
     def test_ingest_command_uses_collection_aware_helper(self) -> None:
@@ -91,10 +140,19 @@ class TestMaintenance(unittest.TestCase):
             "notes-v1",
         )
         self.assertEqual(
-            command[:7],
-            ["uv", "run", "--python", "3.11", "--extra", "core", "python"],
+            command[:8],
+            [
+                "uv",
+                "run",
+                "--frozen",
+                "--python",
+                "3.11",
+                "--extra",
+                "core",
+                "python",
+            ],
         )
-        self.assertEqual(command[7], str(maintenance._INGEST_HELPER))
+        self.assertEqual(command[8], str(maintenance._INGEST_HELPER))
         self.assertIn("--collection", command)
         self.assertIn("notes-v1", command)
         self.assertIn("--ignored", command)
@@ -110,6 +168,11 @@ class TestMaintenance(unittest.TestCase):
             }
             with (
                 patch.object(maintenance, "get_project", return_value=("notes", project)),
+                patch.object(
+                    maintenance,
+                    "_require_privategpt_checkout",
+                    return_value=Path(directory),
+                ),
                 patch.object(maintenance, "_reachable", return_value=False),
                 patch.object(
                     maintenance.subprocess,
@@ -117,7 +180,6 @@ class TestMaintenance(unittest.TestCase):
                     return_value=SimpleNamespace(returncode=7),
                 ),
                 patch.object(maintenance, "privategpt_env", return_value={}),
-                patch.object(maintenance, "cfg_path", return_value=Path(directory)),
             ):
                 with self.assertRaisesRegex(RuntimeError, "exit code 7"):
                     maintenance.ingest("notes")
