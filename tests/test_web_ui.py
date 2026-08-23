@@ -57,7 +57,7 @@ class TestWebUI(unittest.TestCase):
             "syncProjectControl",
             "project.disabled",
             "/api/context/register",
-            "Context registry",
+            "Registry:",
             "PrivateGPT runtime (not a context source)",
         ):
             with self.subTest(value=value):
