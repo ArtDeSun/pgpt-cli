@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pgpt import privategpt_ingest as helper
 
@@ -90,6 +93,30 @@ class TestPrivateGPTIngestHelper(unittest.TestCase):
                 metadata,
                 {"file_name": "entry.md", "relative_path": "notes/entry.md"},
             )
+
+    def test_current_privategpt_injector_api_is_preferred(self) -> None:
+        expected = object()
+        package = types.ModuleType("private_gpt")
+        di = types.ModuleType("private_gpt.di")
+        di.get_injector = lambda: expected
+        package.di = di
+        with patch.dict(
+            sys.modules,
+            {"private_gpt": package, "private_gpt.di": di},
+        ):
+            self.assertIs(helper._application_injector(), expected)
+
+    def test_legacy_privategpt_injector_api_is_supported(self) -> None:
+        expected = object()
+        package = types.ModuleType("private_gpt")
+        di = types.ModuleType("private_gpt.di")
+        di.get_global_injector = lambda: expected
+        package.di = di
+        with patch.dict(
+            sys.modules,
+            {"private_gpt": package, "private_gpt.di": di},
+        ):
+            self.assertIs(helper._application_injector(), expected)
 
 
 if __name__ == "__main__":
