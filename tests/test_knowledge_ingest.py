@@ -36,6 +36,11 @@ class TestKnowledgeIngest(unittest.TestCase):
     def test_running_privategpt_blocks_local_ingestion(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             with (
+                patch.object(
+                    maintenance,
+                    "_require_privategpt_checkout",
+                    return_value=Path(directory),
+                ),
                 patch.object(maintenance, "_reachable", return_value=True),
                 patch.object(maintenance.subprocess, "Popen") as popen,
             ):
@@ -53,6 +58,11 @@ class TestKnowledgeIngest(unittest.TestCase):
                 return Path(directory)
 
             with (
+                patch.object(
+                    maintenance,
+                    "_require_privategpt_checkout",
+                    return_value=Path(directory),
+                ),
                 patch.object(maintenance, "_reachable", return_value=False),
                 patch.object(maintenance.subprocess, "Popen", return_value=proc),
                 patch.object(maintenance, "privategpt_env", return_value={}),
@@ -75,6 +85,11 @@ class TestKnowledgeIngest(unittest.TestCase):
                 return Path(directory)
 
             with (
+                patch.object(
+                    maintenance,
+                    "_require_privategpt_checkout",
+                    return_value=Path(directory),
+                ),
                 patch.object(maintenance, "_reachable", return_value=False),
                 patch.object(maintenance.subprocess, "Popen", return_value=proc),
                 patch.object(maintenance, "privategpt_env", return_value={}),
