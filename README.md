@@ -40,7 +40,7 @@ A normal WSL layout is:
 ```text
 ~/ai/
 ├── pgpt-cli/                 # this repository
-├── private-gpt/              # upstream PrivateGPT source checkout
+├── private-gpt/              # clean upstream PrivateGPT source checkout
 └── private-gpt-data/         # generated PrivateGPT runtime/vector/env state
 ```
 
@@ -69,6 +69,8 @@ PrivateGPT-generated state is kept under:
 └── volumes/
 ```
 
+`private-gpt-data` is disposable generated state. If it is deleted, pgpt recreates the runtime directories automatically the next time PrivateGPT indexing or serving is used. Deleting it removes existing PrivateGPT indexes, but it does **not** remove registered context folders from `~/.config/pgpt/projects.json`.
+
 An older installation may also contain:
 
 ```text
@@ -76,6 +78,22 @@ An older installation may also contain:
 ```
 
 That is legacy runtime/index state. pgpt reports it when present but ignores it for context discovery. Do not use either `private-gpt-data/private_gpt` or `private-gpt-data/local_data/private_gpt` as context sources.
+
+## PrivateGPT source checkout
+
+Keep `~/ai/private-gpt` as a clean source checkout rather than storing machine-specific model, web, project, or index state inside it. `pgpt-cli` supplies its PrivateGPT integration settings through environment variables and keeps generated state under `~/ai/private-gpt-data`.
+
+The recommended canonical source is upstream:
+
+```bash
+cd ~/ai
+rm -rf private-gpt
+git clone https://github.com/zylon-ai/private-gpt.git private-gpt
+```
+
+If `ArtDeSun/private-gpt` is intentionally kept synchronized with upstream, it can be used instead. The important requirement is that `~/ai/private-gpt` is a clean current checkout; do not copy machine-specific `settings-model.yaml`, `settings-web.yaml`, Qdrant data, or old `local_data` directories into it.
+
+`pgpt-cli` deliberately does not use PrivateGPT's local source tree as a project registry and does not depend on PrivateGPT's built-in web search for normal pgpt web requests. Ollama and Brave remain controlled by pgpt itself.
 
 ## Pull and install
 
@@ -232,7 +250,7 @@ A forced lookup/research or natural-language explicit web request returns a retr
 
 PrivateGPT is optional for normal source-aware chat. Use it when you specifically want durable RAG/indexed knowledge.
 
-The current upstream PrivateGPT checkout requires Python 3.11. pgpt invokes it through `uv` with an explicit Python 3.11 and the upstream `core` extra.
+Current PrivateGPT requires Python 3.11. pgpt invokes the source checkout through `uv` with Python 3.11 and the upstream `core` extra. The integration supports PrivateGPT's current `get_injector()` API while retaining compatibility with older `get_global_injector()` checkouts.
 
 ```bash
 uv python install 3.11
@@ -250,6 +268,14 @@ pgpt knowledge-add /absolute/path/to/notes \
 `knowledge-add` validates the folder, rejects system/home/runtime/credential roots, protects sensitive files, uses a collection-aware pgpt helper, preserves path-aware artifact IDs, and registers the user context only after successful ingestion.
 
 For direct retrieval without indexing, use `context-add` instead.
+
+If `private-gpt-data` was deleted while contexts remain registered, recreate only the indexes you actually need:
+
+```bash
+pgpt ingest --project my-project
+```
+
+Do not recreate old runtime folders manually.
 
 ### Local Qdrant sequencing
 
