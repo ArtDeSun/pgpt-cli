@@ -40,6 +40,7 @@ class TestMaintenance(unittest.TestCase):
         self.assertIn("PrivateGPT API:", text)
         self.assertIn("PrivateGPT source:", text)
         self.assertIn("PrivateGPT data:", text)
+        self.assertIn("PrivateGPT embed:", text)
         self.assertIn("Context registry:", text)
 
     def test_redaction(self) -> None:
@@ -112,6 +113,14 @@ class TestMaintenance(unittest.TestCase):
                 env["OPENAI_EMBEDDING_API_BASE"],
                 maintenance.CONFIG["endpoints"]["openai_api_base"],
             )
+            self.assertEqual(
+                env["PGPT_EMBEDDING_DEFAULT"],
+                maintenance.CONFIG["private_gpt"]["embedding_model"],
+            )
+            self.assertEqual(
+                env["PGPT_EMBED_DIM"],
+                str(maintenance.CONFIG["private_gpt"]["embed_dim"]),
+            )
             self.assertEqual(env["UV_PROJECT_ENVIRONMENT"], str(runtime / "venv"))
             self.assertEqual(env["PGPT_LOCAL_DATA_FOLDER"], str(runtime / "private_gpt"))
             self.assertEqual(env["PGPT_QDRANT_PATH"], str(runtime / "qdrant"))
@@ -125,6 +134,25 @@ class TestMaintenance(unittest.TestCase):
             self.assertTrue((runtime / "volumes").is_dir())
             self.assertNotIn("PGPT_HOME", env)
             self.assertNotIn("PGPT_PROFILES", env)
+
+    def test_privategpt_embedding_environment_override_wins(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory) / "runtime"
+            with (
+                patch.dict(
+                    maintenance.os.environ,
+                    {
+                        "PGPT_EMBEDDING_DEFAULT": "custom-embed",
+                        "PGPT_EMBED_DIM": "768",
+                    },
+                    clear=True,
+                ),
+                patch.object(maintenance, "load_secrets"),
+                patch.object(maintenance, "cfg_path", return_value=runtime),
+            ):
+                env = maintenance.privategpt_env()
+            self.assertEqual(env["PGPT_EMBEDDING_DEFAULT"], "custom-embed")
+            self.assertEqual(env["PGPT_EMBED_DIM"], "768")
 
     def test_privategpt_commands_pin_python_311_core_and_frozen_lock(self) -> None:
         self.assertEqual(
