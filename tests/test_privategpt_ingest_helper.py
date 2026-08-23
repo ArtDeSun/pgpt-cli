@@ -140,6 +140,81 @@ class TestPrivateGPTIngestHelper(unittest.TestCase):
 
         self.assertIs(FakeSettings.embed_model, expected)
 
+    def test_source_mime_equivalents_extend_upstream_without_replacing_it(self) -> None:
+        package = types.ModuleType("private_gpt")
+        components = types.ModuleType("private_gpt.components")
+        ingest = types.ModuleType("private_gpt.components.ingest")
+        utils = types.ModuleType("private_gpt.components.ingest.utils")
+        ingest_helper = types.ModuleType("private_gpt.components.ingest.ingest_helper")
+
+        def original(guest: str, actual: str) -> bool:
+            return frozenset({guest, actual}) == frozenset({"text/markdown", "text/plain"})
+
+        utils.should_ignore_mime_mismatch = original
+        ingest_helper.should_ignore_mime_mismatch = original
+        ingest.utils = utils
+        ingest.ingest_helper = ingest_helper
+        components.ingest = ingest
+        package.components = components
+
+        with patch.dict(
+            sys.modules,
+            {
+                "private_gpt": package,
+                "private_gpt.components": components,
+                "private_gpt.components.ingest": ingest,
+                "private_gpt.components.ingest.utils": utils,
+                "private_gpt.components.ingest.ingest_helper": ingest_helper,
+            },
+        ):
+            helper._configure_source_mime_compatibility()
+            self.assertTrue(utils.should_ignore_mime_mismatch("text/css", "text/plain"))
+            self.assertTrue(
+                ingest_helper.should_ignore_mime_mismatch(
+                    "text/javascript", "application/javascript"
+                )
+            )
+            self.assertTrue(
+                utils.should_ignore_mime_mismatch("text/markdown", "text/plain")
+            )
+            self.assertFalse(
+                utils.should_ignore_mime_mismatch("image/png", "text/plain")
+            )
+
+    def test_file_backed_qdrant_is_forced_to_serial_ingest(self) -> None:
+        package = types.ModuleType("private_gpt")
+        components = types.ModuleType("private_gpt.components")
+        vector_store = types.ModuleType("private_gpt.components.vector_store")
+        patched = types.ModuleType(
+            "private_gpt.components.vector_store.patched_qdrant_store"
+        )
+
+        class FakeStore:
+            @classmethod
+            def executor(cls, *args: object, **kwargs: object) -> object:
+                return object()
+
+        patched.PatchedQdrantVectorStore = FakeStore
+        vector_store.patched_qdrant_store = patched
+        components.vector_store = vector_store
+        package.components = components
+        service = types.SimpleNamespace(
+            settings=types.SimpleNamespace(qdrant=types.SimpleNamespace(url=""))
+        )
+
+        with patch.dict(
+            sys.modules,
+            {
+                "private_gpt": package,
+                "private_gpt.components": components,
+                "private_gpt.components.vector_store": vector_store,
+                "private_gpt.components.vector_store.patched_qdrant_store": patched,
+            },
+        ):
+            helper._configure_local_qdrant_safety(service)
+
+        self.assertIsNone(FakeStore.executor(max_workers=8))
+
 
 if __name__ == "__main__":
     unittest.main()
