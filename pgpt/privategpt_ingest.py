@@ -63,6 +63,26 @@ def _application_injector() -> Any:
     return getter()
 
 
+def _configure_llama_index_embedding(service: Any) -> None:
+    """Make upstream VectorStoreIndex initialization use PrivateGPT's embedding.
+
+    Current PrivateGPT resolves its embedding model inside EmbeddingComponent, but
+    some VectorArtifactIndex initialization paths still omit ``embed_model`` when
+    constructing a LlamaIndex VectorStoreIndex. LlamaIndex then falls back to its
+    process-global default. Set that default only inside this short-lived
+    ingestion subprocess so a pristine upstream checkout works without local
+    source patches.
+    """
+    component = getattr(service, "embedding_component", None)
+    getter = getattr(component, "get_embed", None)
+    if getter is None:
+        return
+
+    from llama_index.core import Settings as LlamaIndexSettings
+
+    LlamaIndexSettings.embed_model = getter()
+
+
 def main() -> None:
     # Delayed imports keep this helper importable by pgpt's normal CI without
     # installing PrivateGPT into pgpt's own environment. The script itself is
@@ -89,6 +109,7 @@ def main() -> None:
 
     ignored = set(args.ignored)
     service = _application_injector().get(IngestService)
+    _configure_llama_index_embedding(service)
 
     for path in _iter_files(root, ignored):
         _ingest_file(service, root=root, path=path, collection=collection)
