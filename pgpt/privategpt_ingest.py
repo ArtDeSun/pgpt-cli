@@ -5,6 +5,14 @@ import hashlib
 from pathlib import Path
 from typing import Any, Iterator
 
+_SAFE_MIME_EQUIVALENTS = {
+    frozenset({"text/javascript", "application/javascript"}),
+    frozenset({"text/vnd.trolltech.linguist", "application/javascript"}),
+    frozenset({"text/vnd.trolltech.linguist", "text/plain"}),
+    frozenset({"text/vnd.trolltech.linguist", "text/x-c"}),
+    frozenset({"text/css", "text/plain"}),
+}
+
 
 def _artifact_id(root: Path, path: Path) -> str:
     relative = path.relative_to(root).as_posix()
@@ -64,15 +72,7 @@ def _application_injector() -> Any:
 
 
 def _configure_llama_index_embedding(service: Any) -> None:
-    """Make upstream VectorStoreIndex initialization use PrivateGPT's embedding.
-
-    Current PrivateGPT resolves its embedding model inside EmbeddingComponent, but
-    some VectorArtifactIndex initialization paths still omit ``embed_model`` when
-    constructing a LlamaIndex VectorStoreIndex. LlamaIndex then falls back to its
-    process-global default. Set that default only inside this short-lived
-    ingestion subprocess so a pristine upstream checkout works without local
-    source patches.
-    """
+    """Make pristine upstream VectorStoreIndex initialization use PrivateGPT's embedding."""
     component = getattr(service, "embedding_component", None)
     getter = getattr(component, "get_embed", None)
     if getter is None:
@@ -81,6 +81,47 @@ def _configure_llama_index_embedding(service: Any) -> None:
     from llama_index.core import Settings as LlamaIndexSettings
 
     LlamaIndexSettings.embed_model = getter()
+
+
+def _configure_source_mime_compatibility() -> None:
+    """Accept known-equivalent source MIME pairs without patching PrivateGPT source."""
+    from private_gpt.components.ingest import ingest_helper, utils
+
+    original = utils.should_ignore_mime_mismatch
+
+    def compatible(guest_mime: str, actual_mime: str) -> bool:
+        return (
+            frozenset({guest_mime, actual_mime}) in _SAFE_MIME_EQUIVALENTS
+            or original(guest_mime, actual_mime)
+        )
+
+    utils.should_ignore_mime_mismatch = compatible
+    # IngestionHelper imports the function directly, so update that module alias too.
+    ingest_helper.should_ignore_mime_mismatch = compatible
+
+
+def _configure_local_qdrant_safety(service: Any) -> None:
+    """Keep file-backed Qdrant writes serial inside the ingestion subprocess."""
+    settings = getattr(service, "settings", None)
+    qdrant = getattr(settings, "qdrant", None)
+    if qdrant is None or getattr(qdrant, "url", None):
+        return
+
+    from private_gpt.components.vector_store.patched_qdrant_store import (
+        PatchedQdrantVectorStore,
+    )
+
+    def serial_executor(cls: type[Any], *args: Any, **kwargs: Any) -> None:
+        return None
+
+    PatchedQdrantVectorStore.executor = classmethod(serial_executor)
+
+
+def _configure_privategpt_ingestion(service: Any) -> None:
+    """Apply process-local compatibility needed by pgpt's clean upstream workflow."""
+    _configure_llama_index_embedding(service)
+    _configure_source_mime_compatibility()
+    _configure_local_qdrant_safety(service)
 
 
 def main() -> None:
@@ -109,7 +150,7 @@ def main() -> None:
 
     ignored = set(args.ignored)
     service = _application_injector().get(IngestService)
-    _configure_llama_index_embedding(service)
+    _configure_privategpt_ingestion(service)
 
     for path in _iter_files(root, ignored):
         _ingest_file(service, root=root, path=path, collection=collection)
