@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 
+from pgpt.browser_server import serve as serve_local
 from pgpt.config import CONFIG, get_project, save_user_project
 from pgpt.maintenance import (
     ingest,
@@ -17,7 +18,6 @@ from pgpt.retrieval.project import has_symbol_hit, select_user_project
 from pgpt.retrieval.web_usage import usage_snapshot
 from pgpt.routing.router import resolve_route
 from pgpt.runtime.pipeline import run
-from pgpt.server import serve as serve_local
 from pgpt.skills import create_skill, list_skills, skill_history
 from pgpt.storage import chats
 
