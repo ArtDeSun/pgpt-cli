@@ -125,6 +125,38 @@ class TestServerHTTP(unittest.TestCase):
         self.assertEqual(payload["effective_requests"], 65)
         self.assertEqual(payload["remaining"], 435)
 
+    def test_context_register_endpoint_does_not_require_privategpt(self) -> None:
+        request = urllib.request.Request(
+            self.base + "/api/context/register",
+            data=json.dumps(
+                {"path": "/tmp/notes", "name": "notes", "collection": "notes-v1"}
+            ).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        entry = {
+            "source_dir": "/tmp/notes",
+            "collection": "notes-v1",
+        }
+        with (
+            patch.object(
+                server,
+                "resolve_knowledge_directory",
+                return_value=Path("/tmp/notes"),
+            ) as resolve,
+            patch.object(server, "save_user_project", return_value=entry) as save,
+            patch.object(server, "ingest_directory") as ingest,
+        ):
+            with urllib.request.urlopen(request, timeout=2) as response:
+                payload = json.load(response)
+
+        resolve.assert_called_once_with("/tmp/notes")
+        save.assert_called_once_with("notes", "/tmp/notes", collection="notes-v1")
+        ingest.assert_not_called()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["project"], "notes")
+        self.assertEqual(payload["source_dir"], "/tmp/notes")
+
     def test_knowledge_ingest_endpoint_preserves_options(self) -> None:
         request = urllib.request.Request(
             self.base + "/api/knowledge/ingest",
