@@ -42,36 +42,40 @@ class TestMaintenance(unittest.TestCase):
             maintenance._collection_name(42, "notes")
 
     def test_privategpt_env_matches_current_upstream_settings(self) -> None:
-        with (
-            patch.dict(maintenance.os.environ, {}, clear=True),
-            patch.object(maintenance, "load_secrets"),
-            patch.object(
-                maintenance,
-                "cfg_path",
-                return_value=Path("/tmp/private-gpt-data"),
-            ),
-        ):
-            env = maintenance.privategpt_env()
-        self.assertEqual(
-            env["OPENAI_API_BASE"],
-            maintenance.CONFIG["endpoints"]["openai_api_base"],
-        )
-        self.assertEqual(
-            env["OPENAI_EMBEDDING_API_BASE"],
-            maintenance.CONFIG["endpoints"]["openai_api_base"],
-        )
-        self.assertEqual(env["UV_PROJECT_ENVIRONMENT"], "/tmp/private-gpt-data/venv")
-        self.assertEqual(
-            env["PGPT_LOCAL_DATA_FOLDER"],
-            "/tmp/private-gpt-data/private_gpt",
-        )
-        self.assertEqual(env["PGPT_QDRANT_PATH"], "/tmp/private-gpt-data/qdrant")
-        self.assertEqual(
-            env["PGPT_CODE_EXECUTION_VOLUME_ROOT"],
-            "/tmp/private-gpt-data/volumes",
-        )
-        self.assertNotIn("PGPT_HOME", env)
-        self.assertNotIn("PGPT_PROFILES", env)
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory) / "private-gpt-data"
+            with (
+                patch.dict(maintenance.os.environ, {}, clear=True),
+                patch.object(maintenance, "load_secrets"),
+                patch.object(
+                    maintenance,
+                    "cfg_path",
+                    return_value=runtime,
+                ),
+            ):
+                env = maintenance.privategpt_env()
+
+            self.assertEqual(
+                env["OPENAI_API_BASE"],
+                maintenance.CONFIG["endpoints"]["openai_api_base"],
+            )
+            self.assertEqual(
+                env["OPENAI_EMBEDDING_API_BASE"],
+                maintenance.CONFIG["endpoints"]["openai_api_base"],
+            )
+            self.assertEqual(env["UV_PROJECT_ENVIRONMENT"], str(runtime / "venv"))
+            self.assertEqual(env["PGPT_LOCAL_DATA_FOLDER"], str(runtime / "private_gpt"))
+            self.assertEqual(env["PGPT_QDRANT_PATH"], str(runtime / "qdrant"))
+            self.assertEqual(
+                env["PGPT_CODE_EXECUTION_VOLUME_ROOT"],
+                str(runtime / "volumes"),
+            )
+            self.assertTrue(runtime.is_dir())
+            self.assertTrue((runtime / "private_gpt").is_dir())
+            self.assertTrue((runtime / "qdrant").is_dir())
+            self.assertTrue((runtime / "volumes").is_dir())
+            self.assertNotIn("PGPT_HOME", env)
+            self.assertNotIn("PGPT_PROFILES", env)
 
     def test_privategpt_commands_pin_python_311_and_core_extra(self) -> None:
         self.assertEqual(
