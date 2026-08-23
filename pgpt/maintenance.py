@@ -40,6 +40,64 @@ def _privategpt_models_url() -> str:
     return CONFIG["endpoints"]["private_gpt"].rstrip("/") + "/v1/models"
 
 
+def privategpt_source_info() -> dict[str, object]:
+    """Describe the PrivateGPT source checkout without treating it as context."""
+    root = cfg_path("private_gpt_dir")
+    required = (
+        root / "pyproject.toml",
+        root / "private_gpt" / "di.py",
+        root / "private_gpt" / "server" / "ingest" / "ingest_service.py",
+    )
+    missing = [str(path.relative_to(root)) for path in required if not path.is_file()]
+    compatible = not missing
+    reason = "ready" if compatible else "missing: " + ", ".join(missing)
+
+    if compatible:
+        try:
+            di_text = required[1].read_text(encoding="utf-8")
+        except OSError as exc:
+            compatible = False
+            reason = f"cannot read private_gpt/di.py: {exc}"
+        else:
+            if "def get_injector(" not in di_text and "def get_global_injector(" not in di_text:
+                compatible = False
+                reason = "unsupported injector API"
+
+    commit: str | None = None
+    if compatible and (root / ".git").exists():
+        try:
+            completed = subprocess.run(
+                ["git", "-C", str(root), "rev-parse", "--short=12", "HEAD"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            if completed.returncode == 0:
+                commit = completed.stdout.strip() or None
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
+    return {
+        "path": str(root),
+        "exists": root.is_dir(),
+        "compatible": compatible,
+        "reason": reason,
+        "commit": commit,
+    }
+
+
+def _require_privategpt_checkout() -> Path:
+    info = privategpt_source_info()
+    if not info["compatible"]:
+        raise RuntimeError(
+            "PrivateGPT source checkout is not ready at "
+            f"{info['path']}: {info['reason']}. Use a clean current checkout before "
+            "running PrivateGPT indexing or `pgpt serve`."
+        )
+    return Path(str(info["path"]))
+
+
 def _ensure_privategpt_stopped_for_local_ingest() -> None:
     if _reachable(_privategpt_models_url(), timeout=0.25):
         raise RuntimeError(
@@ -56,9 +114,16 @@ def status() -> None:
     host = str(server.get("host", "127.0.0.1"))
     port = int(server.get("port", 8765))
     local_api = f"http://{host}:{port}/health"
-    print(f"Ollama:     {'reachable' if _reachable(ollama) else 'NOT reachable'}")
-    print(f"pgpt API:   {'reachable' if _reachable(local_api) else 'NOT reachable'}")
-    print(f"PrivateGPT: {'reachable' if _reachable(private_gpt) else 'NOT reachable'}")
+    source = privategpt_source_info()
+    revision = f" @ {source['commit']}" if source.get("commit") else ""
+    source_state = "ready" if source["compatible"] else f"NOT ready ({source['reason']})"
+
+    print(f"Ollama:             {'reachable' if _reachable(ollama) else 'NOT reachable'}")
+    print(f"pgpt API:           {'reachable' if _reachable(local_api) else 'NOT reachable'}")
+    print(f"PrivateGPT API:     {'reachable' if _reachable(private_gpt) else 'NOT reachable'}")
+    print(f"PrivateGPT source:  {source_state} · {source['path']}{revision}")
+    print(f"PrivateGPT data:    {cfg_path('pgpt_home')} (generated runtime only)")
+    print(f"Context registry:   {cfg_path('projects_file')}")
 
 
 def models() -> None:
@@ -178,7 +243,8 @@ def privategpt_env() -> dict[str, str]:
 
 
 def _uv_privategpt_prefix() -> list[str]:
-    return ["uv", "run", "--python", "3.11", "--extra", "core"]
+    # --frozen guarantees pgpt never rewrites the PrivateGPT source lockfile.
+    return ["uv", "run", "--frozen", "--python", "3.11", "--extra", "core"]
 
 
 def _ingest_command(
@@ -263,6 +329,7 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
     root = expand(project["knowledge_dir"])
     configured = list(project.get("ingest_ignored", []))
     collection = _collection_name(project.get("collection"), project_name)
+    private_gpt_dir = _require_privategpt_checkout()
     _ensure_privategpt_stopped_for_local_ingest()
     print(f"[ingest] project={project_name} collection={collection} root={root}")
     with _prepared_ingest(root, configured, watch=watch) as (
@@ -284,7 +351,7 @@ def ingest(project_name: str | None = None, watch: bool = False) -> None:
             )
         completed = subprocess.run(
             _ingest_command(ingest_root, ignored, watch, collection),
-            cwd=cfg_path("private_gpt_dir"),
+            cwd=private_gpt_dir,
             env=privategpt_env(),
             check=False,
         )
@@ -332,6 +399,7 @@ def ingest_directory(
     root = resolve_knowledge_directory(path)
     configured = list(ignored or [])
     target_collection = _collection_name(collection, normalized)
+    private_gpt_dir = _require_privategpt_checkout()
     _ensure_privategpt_stopped_for_local_ingest()
     with _prepared_ingest(root, configured) as (
         ingest_root,
@@ -346,7 +414,7 @@ def ingest_directory(
             )
         proc = subprocess.Popen(
             _ingest_command(ingest_root, ignore_names, False, target_collection),
-            cwd=cfg_path("private_gpt_dir"),
+            cwd=private_gpt_dir,
             env=privategpt_env(),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -378,6 +446,7 @@ def _redact(line: str) -> str:
 
 
 def serve() -> None:
+    private_gpt_dir = _require_privategpt_checkout()
     cmd = [
         *_uv_privategpt_prefix(),
         "private-gpt",
@@ -387,7 +456,7 @@ def serve() -> None:
     ]
     proc = subprocess.Popen(
         cmd,
-        cwd=cfg_path("private_gpt_dir"),
+        cwd=private_gpt_dir,
         env=privategpt_env(),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
