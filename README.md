@@ -2,7 +2,7 @@
 
 `pgpt-cli` is a local-first ChatGPT-style assistant for WSL. Ollama generates answers, direct source retrieval handles registered code/project contexts, Brave supplies current public information and research, and PrivateGPT is an optional durable RAG/indexing layer.
 
-The operating rule is: **Auto should normally work, but user context, PrivateGPT runtime state, and internal pgpt test projects must remain separate.**
+The operating rule is: **Auto should normally work, but user context, PrivateGPT runtime state, browser chat history, and internal pgpt test projects must remain separate.**
 
 ## Architecture
 
@@ -50,7 +50,7 @@ User-selectable contexts live wherever you choose. Their authoritative registry 
 ~/.config/pgpt/projects.json
 ```
 
-Personal pgpt state is:
+Personal pgpt configuration is:
 
 ```text
 ~/.config/pgpt/
@@ -58,6 +58,19 @@ Personal pgpt state is:
 ├── secrets.env
 └── skills/
 ```
+
+Browser/session data and generated responses are local runtime files under the pgpt-cli checkout:
+
+```text
+~/ai/pgpt-cli/
+├── chats/
+│   └── browser-state.json    # browser chat list, messages, pins, active chat
+├── responses/
+│   └── *.md                  # generated response artifacts
+└── state/                    # small CLI/runtime state
+```
+
+`chats/`, `responses/`, and `state/` are gitignored. Pulling new code does not overwrite them.
 
 PrivateGPT-generated state is kept under:
 
@@ -69,7 +82,7 @@ PrivateGPT-generated state is kept under:
 └── volumes/
 ```
 
-`private-gpt-data` is disposable generated state. If it is deleted, pgpt recreates the runtime directories automatically the next time PrivateGPT indexing or serving is used. Deleting it removes existing PrivateGPT indexes, but it does **not** remove registered context folders from `~/.config/pgpt/projects.json`.
+`private-gpt-data` is disposable generated state. If it is deleted, pgpt recreates the runtime directories automatically the next time PrivateGPT indexing or serving is used. Deleting it removes existing PrivateGPT indexes, but it does **not** remove registered context folders from `~/.config/pgpt/projects.json` or browser chats from `~/ai/pgpt-cli/chats/browser-state.json`.
 
 An older installation may also contain:
 
@@ -200,6 +213,18 @@ http://127.0.0.1:8765/
 
 The browser includes multiple chats, pinned/recents/search, attachments, saved responses, Markdown/code rendering, streaming, execution status, stop-generation, follow-up actions, and route/model metadata.
 
+### Persistent chat history
+
+Browser history is disk-backed. The UI still keeps a browser-local cache for responsiveness, but `pgpt server` synchronizes the complete chat state to:
+
+```text
+~/ai/pgpt-cli/chats/browser-state.json
+```
+
+On startup, the server-backed state is restored into the UI. If this release finds older browser-local history but no disk state yet, that history is migrated to the disk-backed state automatically. Closing/reopening the browser or restarting `pgpt server` therefore should not erase chats.
+
+The Markdown files in `responses/` are answer artifacts; they are **not** the authoritative chat/session history. The complete browser conversation list is `chats/browser-state.json`.
+
 ### Settings
 
 | Control | Options | Effect |
@@ -209,7 +234,7 @@ The browser includes multiple chats, pinned/recents/search, attachments, saved r
 | Web | Auto / Off / Force lookup / Force research | Forced web never silently falls back to an ungrounded current-information guess. |
 | Model | Auto / installed Ollama model | Explicit model wins. |
 | Task | Auto / General / Explain code / Debug / Implement / Architecture / Research | Overrides task/template routing. |
-| Chat context | Smart / Full recent / Off | Controls conversation history. |
+| Chat context | Smart / Full recent / Off | Controls conversation history supplied to the model. |
 | Answer length | Auto / Short / Standard / Long | Controls output budget. |
 | Skill | Off / selected skill | Applies a task instruction manual. |
 | Reasoning | Auto / Deep / Normal | Controls the larger context mode. |
@@ -339,7 +364,7 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 git diff --check
 ```
 
-CI runs on Python 3.11 and 3.13, validates browser JavaScript, enforces the one-remote-branch rule, and runs the full offline unit suite.
+CI runs on Python 3.11 and 3.13, validates both browser JavaScript files, enforces the one-remote-branch rule, and runs the full offline unit suite.
 
 The real local-router acceptance suite remains opt-in because GitHub-hosted CI has no Ollama daemon:
 
