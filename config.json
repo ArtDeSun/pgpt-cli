@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "endpoints": {
     "private_gpt": "http://127.0.0.1:8080",
     "ollama": "http://127.0.0.1:11434",
@@ -14,6 +14,10 @@
     "skills_dir": "~/.config/pgpt/skills",
     "projects_file": "~/.config/pgpt/projects.json",
     "secrets_file": "~/.config/pgpt/secrets.env"
+  },
+  "private_gpt": {
+    "embedding_model": "mxbai-embed-large",
+    "embed_dim": 1024
   },
   "server": {
     "host": "127.0.0.1",
