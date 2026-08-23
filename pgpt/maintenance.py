@@ -117,12 +117,15 @@ def status() -> None:
     source = privategpt_source_info()
     revision = f" @ {source['commit']}" if source.get("commit") else ""
     source_state = "ready" if source["compatible"] else f"NOT ready ({source['reason']})"
+    private_cfg = CONFIG.get("private_gpt", {})
+    embedding = private_cfg.get("embedding_model", "auto")
 
     print(f"Ollama:             {'reachable' if _reachable(ollama) else 'NOT reachable'}")
     print(f"pgpt API:           {'reachable' if _reachable(local_api) else 'NOT reachable'}")
     print(f"PrivateGPT API:     {'reachable' if _reachable(private_gpt) else 'NOT reachable'}")
     print(f"PrivateGPT source:  {source_state} · {source['path']}{revision}")
     print(f"PrivateGPT data:    {cfg_path('pgpt_home')} (generated runtime only)")
+    print(f"PrivateGPT embed:   {embedding}")
     print(f"Context registry:   {cfg_path('projects_file')}")
 
 
@@ -232,9 +235,17 @@ def privategpt_env() -> dict[str, str]:
     env = os.environ.copy()
     api_base = CONFIG["endpoints"]["openai_api_base"]
     runtime = _prepare_privategpt_runtime()
+    private_cfg = CONFIG.get("private_gpt", {})
+    embedding_model = str(private_cfg.get("embedding_model", "")).strip()
+    embed_dim = private_cfg.get("embed_dim")
+
     env["OPENAI_API_BASE"] = api_base
     if not env.get("OPENAI_EMBEDDING_API_BASE"):
         env["OPENAI_EMBEDDING_API_BASE"] = api_base
+    if embedding_model:
+        env.setdefault("PGPT_EMBEDDING_DEFAULT", embedding_model)
+    if embed_dim:
+        env.setdefault("PGPT_EMBED_DIM", str(embed_dim))
     env["UV_PROJECT_ENVIRONMENT"] = str(runtime["venv"])
     env["PGPT_LOCAL_DATA_FOLDER"] = str(runtime["data"])
     env["PGPT_QDRANT_PATH"] = str(runtime["qdrant"])
