@@ -49,11 +49,24 @@ def _ingest_file(
     )
 
 
+def _application_injector() -> Any:
+    """Return PrivateGPT's application injector across supported API revisions."""
+    from private_gpt import di
+
+    getter = getattr(di, "get_injector", None)
+    if getter is None:
+        getter = getattr(di, "get_global_injector", None)
+    if getter is None:
+        raise RuntimeError(
+            "Unsupported PrivateGPT checkout: no get_injector-compatible API found"
+        )
+    return getter()
+
+
 def main() -> None:
     # Delayed imports keep this helper importable by pgpt's normal CI without
     # installing PrivateGPT into pgpt's own environment. The script itself is
     # executed through `uv run` inside the PrivateGPT checkout.
-    from private_gpt.di import get_global_injector
     from private_gpt.server.ingest.ingest_service import IngestService
     from private_gpt.server.ingest.ingest_watcher import IngestWatcher
 
@@ -75,7 +88,7 @@ def main() -> None:
         raise ValueError("Collection must contain 1 to 255 characters")
 
     ignored = set(args.ignored)
-    service = get_global_injector().get(IngestService)
+    service = _application_injector().get(IngestService)
 
     for path in _iter_files(root, ignored):
         _ingest_file(service, root=root, path=path, collection=collection)
