@@ -143,18 +143,37 @@ def _collection_name(value: object | None, fallback: str) -> str:
     return candidate
 
 
+def _privategpt_runtime_paths() -> dict[str, Path]:
+    root = cfg_path("pgpt_home")
+    return {
+        "root": root,
+        "venv": root / "venv",
+        "data": root / "private_gpt",
+        "qdrant": root / "qdrant",
+        "volumes": root / "volumes",
+    }
+
+
+def _prepare_privategpt_runtime() -> dict[str, Path]:
+    paths = _privategpt_runtime_paths()
+    paths["root"].mkdir(parents=True, exist_ok=True)
+    for name in ("data", "qdrant", "volumes"):
+        paths[name].mkdir(parents=True, exist_ok=True)
+    return paths
+
+
 def privategpt_env() -> dict[str, str]:
     load_secrets()
     env = os.environ.copy()
     api_base = CONFIG["endpoints"]["openai_api_base"]
-    runtime_root = cfg_path("pgpt_home")
+    runtime = _prepare_privategpt_runtime()
     env["OPENAI_API_BASE"] = api_base
     if not env.get("OPENAI_EMBEDDING_API_BASE"):
         env["OPENAI_EMBEDDING_API_BASE"] = api_base
-    env["UV_PROJECT_ENVIRONMENT"] = str(runtime_root / "venv")
-    env["PGPT_LOCAL_DATA_FOLDER"] = str(runtime_root / "private_gpt")
-    env["PGPT_QDRANT_PATH"] = str(runtime_root / "qdrant")
-    env["PGPT_CODE_EXECUTION_VOLUME_ROOT"] = str(runtime_root / "volumes")
+    env["UV_PROJECT_ENVIRONMENT"] = str(runtime["venv"])
+    env["PGPT_LOCAL_DATA_FOLDER"] = str(runtime["data"])
+    env["PGPT_QDRANT_PATH"] = str(runtime["qdrant"])
+    env["PGPT_CODE_EXECUTION_VOLUME_ROOT"] = str(runtime["volumes"])
     return env
 
 
