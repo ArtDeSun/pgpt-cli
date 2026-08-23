@@ -118,6 +118,28 @@ class TestPrivateGPTIngestHelper(unittest.TestCase):
         ):
             self.assertIs(helper._application_injector(), expected)
 
+    def test_privategpt_embedding_becomes_llamaindex_process_default(self) -> None:
+        expected = object()
+
+        class FakeSettings:
+            embed_model = None
+
+        llama_package = types.ModuleType("llama_index")
+        llama_core = types.ModuleType("llama_index.core")
+        llama_core.Settings = FakeSettings
+        llama_package.core = llama_core
+        service = types.SimpleNamespace(
+            embedding_component=types.SimpleNamespace(get_embed=lambda: expected)
+        )
+
+        with patch.dict(
+            sys.modules,
+            {"llama_index": llama_package, "llama_index.core": llama_core},
+        ):
+            helper._configure_llama_index_embedding(service)
+
+        self.assertIs(FakeSettings.embed_model, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
