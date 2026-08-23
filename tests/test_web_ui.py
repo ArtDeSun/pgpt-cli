@@ -25,6 +25,8 @@ class TestWebUI(unittest.TestCase):
             "Export chat",
             "/api/responses",
             "Download Markdown",
+            "fileInput",
+            "renderMarkdown",
         ):
             with self.subTest(value=value):
                 self.assertIn(value, self.text)
@@ -45,10 +47,25 @@ class TestWebUI(unittest.TestCase):
             "Smart",
             'id="answerLength"',
             'id="reasoning"',
-            "Add knowledge folder",
+            "Add context folder",
         ):
             with self.subTest(value=value):
                 self.assertIn(value, self.text)
+
+    def test_project_selector_is_only_active_when_forced(self) -> None:
+        for value in (
+            "syncProjectControl",
+            "project.disabled",
+            "/api/context/register",
+            "Context registry",
+            "PrivateGPT runtime (not a context source)",
+        ):
+            with self.subTest(value=value):
+                self.assertIn(value, self.text)
+
+    def test_privategpt_indexing_remains_optional(self) -> None:
+        self.assertIn("/api/knowledge/ingest", self.text)
+        self.assertIn("indexPrivateGpt", self.text)
 
     def test_rendering_streaming_feedback_and_trace(self) -> None:
         for value in (
@@ -76,7 +93,6 @@ class TestWebUI(unittest.TestCase):
             "Project context",
             "Skills",
             "api_monthly_unlimited",
-            "/api/knowledge/ingest",
             "/api/web-usage",
             "Off · local-only",
         ):
