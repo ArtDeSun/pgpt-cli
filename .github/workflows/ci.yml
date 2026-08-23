@@ -55,6 +55,7 @@ jobs:
           Path("/tmp/pgpt-ui.js").write_text(match.group(1), encoding="utf-8")
           PY
           node --check /tmp/pgpt-ui.js
+          node --check web/persistence.js
 
       - name: Tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
