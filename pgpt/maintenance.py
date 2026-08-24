@@ -24,6 +24,18 @@ from pgpt.generation.ollama import list_models
 
 _SENSITIVE_NAMES = {".ssh", ".gnupg", ".aws"}
 _SECRET_SUFFIXES = {".pem", ".key"}
+_GENERATED_NAMES = {
+    ".git",
+    ".next",
+    ".venv",
+    "__pycache__",
+    "build",
+    "coverage",
+    "dist",
+    "node_modules",
+    "venv",
+}
+_GENERATED_SUFFIXES = {".pyc", ".pyo"}
 _SYSTEM_ROOTS = tuple(Path(value) for value in ("/etc", "/proc", "/sys", "/dev", "/boot"))
 _INGEST_HELPER = Path(__file__).resolve().with_name("privategpt_ingest.py")
 
@@ -154,15 +166,27 @@ def sync(project_name: str | None = None) -> None:
 
 
 def _automatic_ingest_ignores(root: Path) -> list[str]:
-    """Return basenames that should never be sent to a knowledge index."""
-    ignored = set(_SENSITIVE_NAMES)
-    for path in root.rglob("*"):
-        name = path.name
-        folded = name.casefold()
-        if folded == ".env" or folded.startswith(".env."):
-            ignored.add(name)
-        if path.is_file() and path.suffix.casefold() in _SECRET_SUFFIXES:
-            ignored.add(name)
+    """Return sensitive or generated basenames that must not enter an index."""
+    ignored = {*_SENSITIVE_NAMES, *_GENERATED_NAMES}
+    runtime_root = cfg_path("pgpt_home")
+    if runtime_root == root or root in runtime_root.parents:
+        ignored.add(runtime_root.name)
+
+    for directory, directory_names, file_names in os.walk(root, followlinks=False):
+        directory_names[:] = [
+            name
+            for name in directory_names
+            if name not in ignored and not (Path(directory) / name).is_symlink()
+        ]
+        for name in file_names:
+            path = Path(directory) / name
+            if path.is_symlink():
+                continue
+            folded = name.casefold()
+            if folded == ".env" or folded.startswith(".env."):
+                ignored.add(name)
+            if path.suffix.casefold() in _SECRET_SUFFIXES | _GENERATED_SUFFIXES:
+                ignored.add(name)
     return sorted(ignored)
 
 

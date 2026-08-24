@@ -212,22 +212,40 @@ class TestMaintenance(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "exit code 7"):
                     maintenance.ingest("notes")
 
-    def test_automatic_ingest_ignores_secrets(self) -> None:
+    def test_automatic_ingest_ignores_secrets_and_generated_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            runtime = root / "private-gpt-data"
+            runtime.mkdir()
             (root / ".env").write_text("TOKEN=secret", encoding="utf-8")
             (root / ".env.production").write_text("TOKEN=secret", encoding="utf-8")
             (root / "client.key").write_text("secret", encoding="utf-8")
             (root / "certificate.pem").write_text("secret", encoding="utf-8")
-            ignored = maintenance._automatic_ingest_ignores(root)
+            (root / "module.pyc").write_bytes(b"generated")
+            (root / "__pycache__").mkdir()
+            (root / "node_modules").mkdir()
+            with patch.object(
+                maintenance,
+                "cfg_path",
+                side_effect=lambda name: runtime
+                if name == "pgpt_home"
+                else Path(directory),
+            ):
+                ignored = maintenance._automatic_ingest_ignores(root)
             for name in (
                 ".ssh",
                 ".gnupg",
                 ".aws",
+                ".git",
+                ".venv",
+                "__pycache__",
+                "node_modules",
+                "private-gpt-data",
                 ".env",
                 ".env.production",
                 "client.key",
                 "certificate.pem",
+                "module.pyc",
             ):
                 with self.subTest(name=name):
                     self.assertIn(name, ignored)

@@ -290,7 +290,7 @@ pgpt knowledge-add /absolute/path/to/notes \
   --collection notes
 ```
 
-`knowledge-add` validates the folder, rejects system/home/runtime/credential roots, protects sensitive files, uses a collection-aware pgpt helper, preserves path-aware artifact IDs, and registers the user context only after successful ingestion.
+`knowledge-add` validates the folder, rejects system/home/runtime/credential roots, protects sensitive files, skips generated dependency/build/cache directories and nested `private-gpt-data`, uses a collection-aware pgpt helper, preserves path-aware artifact IDs, and registers the user context only after successful ingestion.
 
 For direct retrieval without indexing, use `context-add` instead.
 
