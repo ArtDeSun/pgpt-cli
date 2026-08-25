@@ -20,6 +20,7 @@ from pgpt.config import (
     validate_user_project_name,
 )
 from pgpt.generation.ollama import list_models
+from pgpt.models.selector import resolve_model_name
 
 
 _SENSITIVE_NAMES = {".ssh", ".gnupg", ".aws"}
@@ -254,6 +255,24 @@ def _prepare_privategpt_runtime() -> dict[str, Path]:
     return paths
 
 
+def _resolve_privategpt_embedding_model(requested: str) -> str:
+    try:
+        available = set(list_models())
+    except Exception as exc:
+        raise RuntimeError(
+            "Cannot resolve the PrivateGPT embedding model because Ollama is unavailable"
+        ) from exc
+
+    resolved = resolve_model_name(requested, available)
+    if resolved is None:
+        choices = ", ".join(sorted(available)) or "none"
+        raise RuntimeError(
+            f"PrivateGPT embedding model is not installed in Ollama: {requested}. "
+            f"Available models: {choices}"
+        )
+    return resolved
+
+
 def privategpt_env() -> dict[str, str]:
     load_secrets()
     env = os.environ.copy()
@@ -266,8 +285,13 @@ def privategpt_env() -> dict[str, str]:
     env["OPENAI_API_BASE"] = api_base
     if not env.get("OPENAI_EMBEDDING_API_BASE"):
         env["OPENAI_EMBEDDING_API_BASE"] = api_base
-    if embedding_model:
-        env.setdefault("PGPT_EMBEDDING_DEFAULT", embedding_model)
+    requested_embedding = env.get("PGPT_EMBEDDING_DEFAULT", embedding_model).strip()
+    if requested_embedding:
+        if env["OPENAI_EMBEDDING_API_BASE"].rstrip("/") == api_base.rstrip("/"):
+            requested_embedding = _resolve_privategpt_embedding_model(
+                requested_embedding
+            )
+        env["PGPT_EMBEDDING_DEFAULT"] = requested_embedding
     if embed_dim:
         env.setdefault("PGPT_EMBED_DIM", str(embed_dim))
     env["UV_PROJECT_ENVIRONMENT"] = str(runtime["venv"])

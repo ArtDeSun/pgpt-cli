@@ -102,6 +102,11 @@ class TestMaintenance(unittest.TestCase):
                     "cfg_path",
                     return_value=runtime,
                 ),
+                patch.object(
+                    maintenance,
+                    "list_models",
+                    return_value=["mxbai-embed-large:latest"],
+                ),
             ):
                 env = maintenance.privategpt_env()
 
@@ -115,7 +120,7 @@ class TestMaintenance(unittest.TestCase):
             )
             self.assertEqual(
                 env["PGPT_EMBEDDING_DEFAULT"],
-                maintenance.CONFIG["private_gpt"]["embedding_model"],
+                "mxbai-embed-large:latest",
             )
             self.assertEqual(
                 env["PGPT_EMBED_DIM"],
@@ -149,10 +154,26 @@ class TestMaintenance(unittest.TestCase):
                 ),
                 patch.object(maintenance, "load_secrets"),
                 patch.object(maintenance, "cfg_path", return_value=runtime),
+                patch.object(
+                    maintenance,
+                    "list_models",
+                    return_value=["custom-embed:latest"],
+                ),
             ):
                 env = maintenance.privategpt_env()
-            self.assertEqual(env["PGPT_EMBEDDING_DEFAULT"], "custom-embed")
+            self.assertEqual(env["PGPT_EMBEDDING_DEFAULT"], "custom-embed:latest")
             self.assertEqual(env["PGPT_EMBED_DIM"], "768")
+
+    def test_privategpt_embedding_model_must_be_installed(self) -> None:
+        with patch.object(
+            maintenance,
+            "list_models",
+            return_value=["qwen3-embedding:0.6b"],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "not installed in Ollama"):
+                maintenance._resolve_privategpt_embedding_model(
+                    "mxbai-embed-large"
+                )
 
     def test_privategpt_commands_pin_python_311_core_and_frozen_lock(self) -> None:
         self.assertEqual(

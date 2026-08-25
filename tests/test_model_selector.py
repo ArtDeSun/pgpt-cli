@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import unittest
-from pgpt.models.selector import select_model
+from pgpt.models.selector import resolve_model_name, select_model
 
 AVAILABLE={"qwen3:1.7b","qwen2.5-coder:3b","llama3.2:3b","phi4-mini:latest"}
 
 class TestModelSelector(unittest.TestCase):
+    def test_resolve_model_name_adds_latest_tag(self):
+        self.assertEqual(
+            resolve_model_name("phi4-mini", {"phi4-mini:latest"}),
+            "phi4-mini:latest",
+        )
     def test_task_preferences(self):
         cases={"general":"llama3.2:3b","research":"llama3.2:3b","explain-code":"qwen2.5-coder:3b","debug":"qwen2.5-coder:3b","implement":"qwen2.5-coder:3b","architecture":"qwen2.5-coder:3b","unknown-task":"llama3.2:3b"}
         for task,expected in cases.items():

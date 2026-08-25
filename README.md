@@ -277,6 +277,8 @@ PrivateGPT is optional for normal source-aware chat. Use it when you specificall
 
 Current PrivateGPT requires Python 3.11. pgpt invokes the source checkout through `uv` with Python 3.11 and the upstream `core` extra. The integration supports PrivateGPT's current `get_injector()` API while retaining compatibility with older `get_global_injector()` checkouts.
 
+pgpt resolves an untagged configured embedding model such as `mxbai-embed-large` to Ollama's exact installed ID, such as `mxbai-embed-large:latest`, before starting PrivateGPT.
+
 ```bash
 uv python install 3.11
 ollama pull mxbai-embed-large
