@@ -14,6 +14,8 @@ class TestProjectRetrievalSafety(unittest.TestCase):
             keep = root / "src" / "app.py"
             keep.parent.mkdir()
             keep.write_text("print('ok')", encoding="utf-8")
+            note = root / "notes.txt"
+            note.write_text("safe note", encoding="utf-8")
 
             skipped = [
                 root / ".aws" / "profile.json",
@@ -26,7 +28,7 @@ class TestProjectRetrievalSafety(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("secret or generated", encoding="utf-8")
 
-            self.assertEqual(list(_iter_files(root)), [keep])
+            self.assertEqual(set(_iter_files(root)), {keep, note})
 
     def test_iter_files_skips_symlink_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

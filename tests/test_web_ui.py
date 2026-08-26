@@ -31,6 +31,22 @@ class TestWebUI(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertIn(value, self.text)
 
+    def test_sidebar_controls_have_distinct_interaction_states(self) -> None:
+        for value in (
+            ".side-actions .btn:hover",
+            ".side-actions .btn:active",
+            ".chat:hover",
+            ".chat.active",
+            ".chat button:hover",
+            ".chat button:active",
+            'class="chat-action pin"',
+            'class="chat-action delete"',
+            'aria-current=',
+            'aria-label="Saved responses"',
+        ):
+            with self.subTest(value=value):
+                self.assertIn(value, self.text)
+
     def test_settings_and_manual_controls(self) -> None:
         self.assertIn('id="controls" class="drawer"', self.text)
         self.assertNotIn('id="controls" class="drawer open"', self.text)

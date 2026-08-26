@@ -1,1 +1,1 @@
-PROJECT CONTEXT below contains the source retrieved for this request.
+PROJECT CONTEXT below contains source files retrieved for this request. Answer only from the supplied or retrieved material and name the files used. For notes or documents, extract and summarize their actual facts. For code, follow the selected task instructions. Separate evidence from inference.

@@ -18,6 +18,33 @@ from pgpt.retrieval.project_symbol_rules import (
 
 
 CODE_EXTS = {".ts", ".tsx", ".js", ".jsx", ".py", ".json", ".md", ".mjs", ".cjs"}
+TEXT_EXTS = CODE_EXTS | {
+    ".adoc",
+    ".bash",
+    ".cfg",
+    ".conf",
+    ".csv",
+    ".css",
+    ".fish",
+    ".gql",
+    ".graphql",
+    ".htm",
+    ".html",
+    ".ini",
+    ".less",
+    ".ps1",
+    ".rst",
+    ".scss",
+    ".sh",
+    ".sql",
+    ".toml",
+    ".tsv",
+    ".txt",
+    ".xml",
+    ".yaml",
+    ".yml",
+    ".zsh",
+}
 IGNORE_DIRS = {
     ".git",
     ".next",
@@ -188,11 +215,16 @@ def select_user_project(prompt: str) -> str | None:
 
 def _iter_files(root: Path) -> Iterable[Path]:
     for path in root.rglob("*"):
-        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in CODE_EXTS:
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in TEXT_EXTS:
             continue
         if any(part in IGNORE_DIRS for part in path.parts):
             continue
         yield path
+
+
+def _read_prefix(path: Path, limit: int) -> str:
+    with path.open("r", encoding="utf-8", errors="replace") as file:
+        return file.read(max(0, limit))
 
 
 def _query_terms(prompt: str) -> list[str]:
@@ -219,7 +251,7 @@ def lexical_files(prompt: str, project_name: str, limit: int = 8) -> list[Path]:
 
         if score == 0:
             try:
-                text = path.read_text(encoding="utf-8", errors="ignore")[:50000].casefold()
+                text = _read_prefix(path, 50000).casefold()
             except OSError:
                 continue
             score += sum(1 for term in terms if term in text)
@@ -290,7 +322,7 @@ def _lexical_context(prompt: str, project_name: str, budget: int) -> tuple[str, 
     for path in lexical_files(prompt, project_name):
         try:
             relative = str(path.relative_to(root))
-            content = path.read_text(encoding="utf-8", errors="replace")
+            content = _read_prefix(path, remaining)
         except OSError:
             continue
 
@@ -307,6 +339,52 @@ def _lexical_context(prompt: str, project_name: str, budget: int) -> tuple[str, 
             break
 
     return "\n\n".join(chunks), files
+
+
+def _representative_context(root: Path, budget: int) -> tuple[str, list[str]]:
+    paths = sorted(
+        _iter_files(root),
+        key=lambda path: (
+            0
+            if path.name.casefold()
+            in {"readme.md", "readme.txt", "package.json", "pyproject.toml"}
+            else 1,
+            len(path.relative_to(root).parts),
+            str(path.relative_to(root)).casefold(),
+        ),
+    )
+    if not paths:
+        return "### PROJECT FILE MANIFEST\nNo supported text files found.", []
+
+    manifest = "### PROJECT FILE MANIFEST\n" + "\n".join(
+        str(path.relative_to(root)) for path in paths[:120]
+    )
+    manifest_limit = min(budget, 1600, max(200, budget // 5))
+    chunks = [manifest[:manifest_limit]]
+    remaining = budget - len(chunks[0])
+    files: list[str] = []
+
+    for path in paths:
+        relative = str(path.relative_to(root))
+        header = f"### SOURCE FILE: {relative}\n"
+        available = remaining - len(header) - 20
+        if available <= 0:
+            break
+        try:
+            content = _read_prefix(path, available)
+        except OSError:
+            continue
+        if not content.strip():
+            continue
+
+        block = f"{header}```\n{content}\n```"
+        chunks.append(block)
+        files.append(relative)
+        remaining -= len(block)
+        if len(files) == 8:
+            break
+
+    return "\n\n".join(chunks)[:budget], files
 
 
 def build_context(
@@ -329,6 +407,4 @@ def build_context(
     if not root.exists():
         return "PROJECT SOURCE DIRECTORY DOES NOT EXIST.", []
 
-    manifest = sorted(str(path.relative_to(root)) for path in _iter_files(root))
-    context = "### PROJECT FILE MANIFEST\n" + "\n".join(manifest[:120])
-    return context[:budget], []
+    return _representative_context(root, budget)
